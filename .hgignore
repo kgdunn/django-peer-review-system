@@ -1,0 +1,6 @@
+.*\.pyc
+.*\.wpr
+.*\.wpu
+db.sqlite3
+.*\.log
+.*\.json
