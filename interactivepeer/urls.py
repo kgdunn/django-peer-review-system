@@ -24,6 +24,10 @@ urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'', include('basic.urls')),
 
+
+    # If you extend the LTI tool, add a URLs file.
+    url(r'grades/', include('grades.urls')),
+
 ]
 
 if settings.DEBUG:
