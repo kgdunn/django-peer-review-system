@@ -5,6 +5,10 @@ from django.utils.encoding import python_2_unicode_compatible
 #from django.core.exceptions import ValidationError
 #import os
 
+# In general, in the rewrite:
+# PR_Process -> EntryPoint
+# PR_Phase   -> Trigger
+
 # Our imports
 from utils import generate_random_token
 
@@ -128,8 +132,7 @@ class EntryPoint(models.Model):
     course = models.ForeignKey(Course)
 
     uses_groups = models.BooleanField(default=False,
-        help_text=('The workflow and responses are slightly modified if groups '
-                   'are used.'))
+                            help_text='Are groups used to SUBMIT a document?')
     #gf_process = models.ForeignKey('groups.Group_Formation_Process',blank=True,
     #                               default=None, null=True,
     #    help_text=('Must be specified if groups are being used.'))
@@ -142,3 +145,6 @@ class EntryPoint(models.Model):
 
     def __str__(self):
         return self.LTI_title
+
+
+

@@ -1,10 +1,16 @@
 from django.template.defaultfilters import slugify
 from django.conf import settings
 from django.core.mail import BadHeaderError
-from django.core.mail import send_mail as _send_mail
+
+from datetime import timedelta
+from django.utils import timezone
+#from django.core.mail import send_mail as _send_mail
 from django.core.mail import send_mass_mail
 from django.template import Context, Template
 from pygments import formatters, highlight, lexers
+
+from django_q.tasks import schedule
+from django_q.models import Schedule
 
 import re
 import os
@@ -110,11 +116,14 @@ def _slug_strip(value, separator='-'):
     return value
 
 
-def send_email(to_addresses, subject, messages):
+def send_email(to_addresses, subject, messages, delay_secs=0):
     """
     Basic function to send email according to the four required string inputs.
     Let Django send the message; it takes care of opening and closing the
     connection, as well as locking for thread safety.
+
+    Updated mid 2017: will send the message to the Queue to be sent, with a
+                      delay of ``delay_secs``.
 
     If ``messages`` is a list and ``to_addresses`` is a list and both are of
     the same length, then it uses Django's mass emailing function, where
@@ -158,8 +167,16 @@ def send_email(to_addresses, subject, messages):
     else:
         if subject and messages and from_address:
             try:
-                out = _send_mail(subject, messages, from_address, to_addresses,
-                                 fail_silently=False)
+                #out = _send_mail(subject, messages, from_address, to_addresses,
+                #                 fail_silently=False)
+
+                schedule('django.core.mail.send_mail',
+                         subject=subject,
+                         message=messages,
+                         from_email=from_address,
+                         recipient_list=to_addresses,
+                         schedule_type=Schedule.ONCE,
+                         next_run=timezone.now() + timedelta(seconds=delay_secs))
             except Exception as e:
                 logger.error(('An error occurred when sending email to %s, '
                               'with subject [%s]. Error = %s') % (

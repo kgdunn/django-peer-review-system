@@ -29,8 +29,8 @@ class GradeCategory(models.Model):
     Gradebook.
     """
     class Meta:
-        verbose_name = 'Grade Category'
-        verbose_name_plural = 'Grade Categories'
+        verbose_name = 'Grade category'
+        verbose_name_plural = 'Grade categories'
 
     gradebook = models.ForeignKey(GradeBook)
     order = models.PositiveSmallIntegerField(
@@ -41,8 +41,8 @@ class GradeCategory(models.Model):
     weight = models.DecimalField(max_digits=4, decimal_places=3,
             help_text='The weight of this item; a value between 0.0 and 1.0')
     spread_evenly = models.BooleanField(default=True,
-        help_text=("Spread weight across all items evenly. True: no need to "
-                   "specify weights on the GradeItems. "))
+        help_text=("Spread weight across all items evenly. If 'True': no need "
+                   "to specify weights on the GradeItems. "))
 
     def __str__(self):
         return '{0}. Category: {1} [wt={2}%]'.format(self.order,
@@ -55,7 +55,8 @@ class GradeItem(models.Model):
     An item in the gradebook. Each gradebook consists of one or more items
     (columns) in the gradebook.
     """
-    category = models.ForeignKey(GradeCategory, blank=True, null=True)
+    category = models.ForeignKey(GradeCategory)
+    entry = models.ForeignKey('basic.EntryPoint', blank=True, null=True)
     order = models.PositiveSmallIntegerField(
         help_text="Which column order is this item")
     display_name = models.CharField(max_length=250, default='Assignment ...')
@@ -73,8 +74,7 @@ class GradeItem(models.Model):
 
 
     def __str__(self):
-        return '{0}. Category: {1}'.format(self.order,
-                                           self.display_name)
+        return '{0}. Item: {1}'.format(self.order, self.display_name)
 
 
 @python_2_unicode_compatible
@@ -86,7 +86,7 @@ class LearnerGrade(models.Model):
     learner = models.ForeignKey('basic.Person')
     value = models.DecimalField(max_digits=7, decimal_places=3, blank=True,
                                 null=True,
-                                help_text="The grade earned by the learner.")
+        help_text="The grade earned by the learner. Between 0.0 and 100.0")
     not_graded_yet = models.BooleanField(default=True,
             help_text="If this item is not yet graded/submitted/etc")
     modfied_dt = models.DateTimeField(auto_now=True)
@@ -95,6 +95,15 @@ class LearnerGrade(models.Model):
         return '[{0}/{1}] for {2}'.format(self.value,
                                           self.gitem.max_score,
                                           self.learner)
+
+
+    def save(self, *args, **kwargs):
+        if kwargs.pop('push', False):
+            # Put code here to push the grades to Brightspace
+            pass
+        super(LearnerGrade, self).save(*args, **kwargs)
+
+
 
 
 

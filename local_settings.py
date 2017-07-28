@@ -98,6 +98,10 @@ LOGGING = {
         'utils.__init__': {
             'handlers': ['file', ],
             'level': 'DEBUG',
+        },
+        'submissions.views': {
+            'handlers': ['file', ],
+            'level': 'DEBUG',
         }
     },
 }

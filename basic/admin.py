@@ -4,6 +4,8 @@ from .models import Course, Person
 from .models import EntryPoint
 from .models import Group, GroupEnrolled
 
+
+
 class CourseAdmin(admin.ModelAdmin):
     list_display = ("name", "label", "base_url")
 admin.site.register(Course, CourseAdmin)

@@ -3,6 +3,8 @@ from django.conf import settings
 
 # Our imports
 from .models import Person, Course, EntryPoint
+#from submissions.models import Submission
+
 
 # Logging
 import logging
@@ -135,7 +137,6 @@ def get_create_student(request, course):
                                                            user_ID=user_ID,
                                                            role=role,
                                                            course=course)
-
 
 
     elif request.POST.get('learner_ID', '') or (settings.DEBUG and \

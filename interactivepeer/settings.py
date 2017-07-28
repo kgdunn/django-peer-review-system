@@ -40,6 +40,11 @@ INSTALLED_APPS = [
 
     'basic',
     'grades',
+    'interactive',
+    'submissions',
+
+    # 3rd party imports
+    'django_q',
 ]
 
 MIDDLEWARE = [

@@ -17,7 +17,7 @@ admin.site.register(GradeCategory, GradeCategoryAdmin)
 
 
 class GradeItemAdmin(admin.ModelAdmin):
-    list_display = ("category", "display_name", "order", "max_score", "link",
+    list_display = ("display_name", "category", "order", "max_score", "link",
                     "weight")
     ordering = ['order',]
 admin.site.register(GradeItem, GradeItemAdmin)

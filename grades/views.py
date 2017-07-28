@@ -288,3 +288,39 @@ def import_edx_gradebook(request):
 
 
     return HttpResponse('out:' + out)
+
+def push_grades(sourcedid, grade_value):
+    """
+    Based on: https://community.brightspace.com/devcop/blog/ ...
+                             so_you_want_to_extend_your_lms__part_1_lti_primer
+
+    1. Requires the ``lis_result_sourcedid`` from request.POST, as input
+       variable ``sourcedid``.
+       sourcedid = request.POST.get('lis_result_sourcedid', '')
+    2. The ``grade``: a value between 0.0 and 1.0
+
+    Will return "True" if the grade was successfully set; else it returns None.
+    """
+
+    try:
+        grade = float(grade_value)
+    except ValueError:
+        logger.debug('Could not create a floating point grade: ' + grade)
+        return None
+
+    # Call the PHP to do the work. Supply the required command line arguments
+    calling_args = ("--sourcedid {0} --grade {1} --oauth_consumer_key={2} "
+                    "--oauth_consumer_secret={3}").format(sourcedid, grade,
+                                                          settings.LTI_KEY,
+                                                          settings.LTI_SECRET)
+    php_script = settings.BASE_DIR_LOCAL + os.sep + 'grades/push_grades.php'
+    proc = subprocess.Popen("php {0} {1}".format(php_script, calling_args),
+                            shell=True,
+                            stdout=subprocess.PIPE)
+    script_response = proc.stdout.read()
+    logger.debug('PHP script response: ' + str(script_response))
+
+    if script_response.find('Grade was set') >= 0:
+        return True
+    else:
+        return False
