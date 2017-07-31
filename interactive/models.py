@@ -1,16 +1,18 @@
 from django.db import models
 from django.utils import timezone
 from django.utils.encoding import python_2_unicode_compatible
+
 """
 ---- Submission (by the student)
-0	Not started, visited the starting page      -> send email
-1   Has been sent a welcoming email             -> nothing
-3	Submitted a document the first time         -> update text in page; thank email
-                                                -> after sufficient peers
-                                                   * send email to reviewers
-                                                   * create rubric for peers
-4, 5, 6, 7, 8, 9                                -> Everytime the document is submitted (again)
-10  Document is submit and set; no more updates possible
+0	Not started, visited the starting page   -> send email
+1   Has been sent a welcoming email          -> nothing
+3	Submitted a document the first time      -> update text in page; thank email
+                                             -> after sufficient peers
+                                                * send email to reviewers
+                                                * create rubric for peers
+4, 5, 6, 7, 8, 9                             -> Everytime the document is
+                                                submitted (again)
+10  Document is submit and set; no more updates are possible
 
 
 
@@ -120,4 +122,71 @@ class Trigger(models.Model):
         return '[{0}] {1}: "{2}"'.format(self.order,
                                          self.name,
                                          self.function)
+
+
+class GroupConfig(models.Model):
+    """
+    Contains the configuration of the internal groups during the review process.
+    """
+    class Meta:
+        unique_together = (('group_name', 'course'), )
+
+
+    group_name = models.CharField(max_length=100,
+                                  help_text='If empty, will be auto-generated',
+                                  blank=True, null=True)
+    course = models.ForeignKey('basic.Course')
+    learner = models.ManyToManyField('basic.Person',
+                                     through='Membership',
+                                     #through_fields=('group', 'learner'),
+                                     )
+    created_on = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return '[{0}] {1}'.format(self.course,
+                                   self.group_name)
+
+    def save(self, *args, **kwargs):
+        if self.group_name:
+            super(GroupConfig, self).save(*args, **kwargs)
+            return
+
+        prior_groups = GroupConfig.objects.filter(course=self.course)
+        highest_number = 0
+        for item in prior_groups:
+            parts = item.group_name.lower().split('group ')
+            if len(parts) > 1:
+                try:
+                    if int(parts[1]) >= highest_number:
+                        highest_number = int(parts[1])
+                except ValueError:
+                    pass
+
+        # So we should have the highest next number now
+        # but verify no group already exists with that name:
+
+        highest_number += 1
+        prior_groups = GroupConfig.objects.filter(course=self.course,
+                                                  group_name='Group {}'.format(
+                                                        highest_number))
+        while prior_groups.count() > 0:
+            highest_number += 1
+            prior_groups = GroupConfig.objects.filter(course=self.course,
+                                                  group_name='Group {}'.format(
+                                                              highest_number))
+        self.group_name = 'Group {}'.format(highest_number)
+        super(GroupConfig, self).save(*args, **kwargs)
+
+
+
+class Membership(models.Model):
+
+    ROLES = (('Submit', "Submitter"),
+             ('Review', "Reviewer"),
+             )
+
+    group = models.ForeignKey(GroupConfig, on_delete=models.CASCADE)
+    learner = models.ForeignKey('basic.Person', on_delete=models.CASCADE)
+    member_role = ()
+    role = models.CharField(choices=ROLES, max_length=6)
 

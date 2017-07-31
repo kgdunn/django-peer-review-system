@@ -78,13 +78,13 @@ def starting_point(request, course=None, learner=None, entry_point=None):
     html.append('<h3>Welcome {0}</h3>'.format(learner))
     overall_summary = ''
 
-    #global_page = """{% extends "review/base.html" %}{% block content %}<hr>
-    #<!--SPLIT HERE-->\n{% endblock %}"""
-    #template_page = Template(global_page)
-    #context = Context(ctx_objects)
-    #page_header_footer = template_page.render(context)
-    #page_header, page_footer = page_header_footer.split('<!--SPLIT HERE-->')
-    #html.append(page_header)
+    global_page = """{% extends "basic/base.html" %}{% block content %}<hr>
+    <!--SPLIT HERE-->\n{% endblock %}"""
+    template_page = Template(global_page)
+    context = Context(ctx_objects)
+    page_header_footer = template_page.render(context)
+    page_header, page_footer = page_header_footer.split('<!--SPLIT HERE-->')
+    html.append(page_header)
 
 
     for trigger in triggers:
@@ -106,14 +106,22 @@ def starting_point(request, course=None, learner=None, entry_point=None):
         for item in trigger.args.split(','):
             args.append(item)
 
-        kwargs = json.loads(trigger.kwargs.replace('\r','').replace('\n','').\
-                            replace(' ', ''))
+        if trigger.kwargs:
+            kwargs = json.loads(trigger.kwargs.replace('\r','')\
+                                .replace('\n','')\
+                                .replace(' ', ''))
+        else:
+            kwargs = {}
 
-        # Push these into trigger (getattr, settattr)
+        # Push these ``kwargs`` into trigger (getattr, settattr)
         for key, value in kwargs.items():
             if not(getattr(trigger, key, False)):
                 setattr(trigger, key, value)
 
+        # Add self to ctx_objects
+        ctx_objects['self'] = trigger
+
+        # Call the function, finally.
         html_template, summary_template = func(trigger,
                                                 learner,
                                                 args,
@@ -145,6 +153,8 @@ def kick_off_email(trigger, learner, *args, entry_point=None, gitem=None,
     gitem.value = 1.0
     gitem.save(push=True)
 
+    return ('', '')
+
 def submitted_doc(trigger, learner, *args, ctx_objects=None,
                   entry_point=None, gitem=None, **kwargs):
     """
@@ -171,17 +181,29 @@ def submission_form(trigger, learner, *args, entry_point=None, gitem=None,
     """
     Displays the submission form, and handles the upload of it.
 
+    Fields that can be used in the template:
+        {{submission}}                The ``Submission`` model instance
+        {{submission_error_message}}  Any error message
+        {{file_upload_form}}          The HTML for the upload form
+        {{allow_submit}}              If submissions are allowed
+
+    Settings possible in the kwargs, with the defaults are shown.
+    {  "accepted_file_types_comma_separated": "PDF",
+       "max_file_upload_size_MB": <unlimited>,  [specify as 10 (not a string)]
+        "allow_multiple_files": "false",
+        "send_email_on_success": "true"
+    }
+    allow_multiple_files
+
     """
     html_text = summary_line = ''
-    ctx_objects['self'] = trigger
 
     # Remove the prior submission from the dict, so that PRs that use
     # multiple submission steps get the correct phase's submission
     #ctx_objects.pop('submission', None)
 
-
     # Get the (prior) submission
-    ctx_objects['submission'] = get_submission(learner, entry_point)
+    submission = prior_submission = get_submission(learner, entry_point)
 
     # What the admin's see
     if learner.role != 'Learn':
@@ -206,33 +228,77 @@ def submission_form(trigger, learner, *args, entry_point=None, gitem=None,
                                           #request=request,
                                           #using=None)
         #ctx_objects['self'].admin_overview = content
+    if not(getattr(trigger, 'accepted_file_types_comma_separated', False)):
+        trigger.accepted_file_types_comma_separated = 'PDF'
+
+    if not(getattr(trigger, 'max_file_upload_size_MB', False)):
+        trigger.max_file_upload_size_MB = 10
+
+    if not(hasattr(trigger, 'send_email_on_success')):
+        trigger.send_email_on_success = True
 
 
-    if trigger.allow_multiple_files:
+
+    if getattr(trigger, 'allow_multiple_files', False):
         file_upload_form = UploadFileForm_multiple_file()
     else:
         file_upload_form = UploadFileForm_one_file()
 
+    submission_error_message = ''
     if request.FILES:
-        submission = upload_submission(request, learner, entry_point, trigger)
-        if isinstance(submission, tuple):
-            ctx_objects['submission'] = submission[0]
-            ctx_objects['submission_error_message'] = submission[1]
+        submit_inst = upload_submission(request, learner, entry_point, trigger)
+        if isinstance(submit_inst, tuple):
+            # Problem with the upload
+            submission_error_message = submit_inst[1]
+            submission = prior_submission
         else:
-            ctx_objects['submission'] = submission
+            # Successfully uploaded a document
+            submission_error_message = ''
+            submission = submit_inst
+            gitem.value = 3.0
+            gitem.save(push=True)
+            schedule_review(learner, submission)
+            summary_line = ['You uploaded on ...', 'LINK'] # what if there's an error?
+    else:
+        submission = prior_submission
 
-    summary_line = ['You uploaded on ...', 'LINK'] # what if there's an error?
-
-    trigger.submission = ctx_objects['submission']
+    # Store some fields on the ``trigger`` for rendering in the template
+    trigger.submission = submission
+    trigger.submission_error_message = submission_error_message
     trigger.file_upload_form = ctx_objects['file_upload_form'] = \
         file_upload_form
 
     html_text = trigger.template
 
-    trigger.allow_submit = True  # alter this if no more submissions allowed
+    trigger.allow_submit = True  # False, if no more submissions allowed
 
     return html_text, summary_line
 
 
+def submitted_already(trigger, learner, *args, entry_point=None, gitem=None,
+                    request=None, ctx_objects=dict(), **kwargs):
+
+    """
+    Simply displays the prior submission, if any.
+    """
+    # Get the (prior) submission
+    trigger.submission = get_submission(learner, entry_point)
+
+    summary_line = ['You uploaded on ...', 'LINK'] # what if there's an error?
+    return (trigger.template, summary_line)
 
 
+def interactions_to_come(trigger, learner, *args, entry_point=None, gitem=None,
+                         request=None, ctx_objects=dict(), **kwargs):
+    """
+    Does nothing of note, other than display the remaining steps for the user.
+    """
+    summary_line = ''
+    return (trigger.template, summary_line)
+
+
+def schedule_review(learner, submission):
+    """
+    Pushes a schedule: the learner submission will be queued for processing.
+    """
+    pass

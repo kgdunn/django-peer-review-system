@@ -147,7 +147,6 @@ def create_thumbnail():
             item.is_valid = False
             item.save()
 
-    # Check that the file format is correct right away.
     strike1 = False
     if 'pdf' in trigger.accepted_file_types_comma_separated.lower():
         try:
@@ -274,21 +273,23 @@ def upload_submission(request, learner, entry, trigger, no_thumbnail=True):
 
 
         f_size = os.path.getsize(full_path)
-        if getattr(trigger, 'max_file_upload_size_MB', ''):
-            if f_size > trigger.max_file_upload_size_MB * 1024 * 1024:
-                logger.warning('File too large {0}'.format(
-                                                   submitted_file_name_django))
-                return None, ('File too large ({0} MB); it must be less than '
-                        '{1} MB.'.format(round(float(f_size/1024.0/1024.0), 1),
-                                        trigger.max_file_upload_size_MB))
+        if f_size > trigger.max_file_upload_size_MB * 1024 * 1024:
+            logger.warning('File too large {0}'.format(
+                                                    submitted_file_name_django))
+            return None, ('File too large ({0} MB); it must be less than '
+                    '{1} MB.'.format(round(float(f_size/1024.0/1024.0), 1),
+                                    trigger.max_file_upload_size_MB))
 
 
     elif trigger.allow_multiple_files:
         # Refer to prior code: this is removed for now
-        pass
+        filename = ''
+        extension = ''
+        submitted_file_name_django = ''
+        full_path = ''
 
 
-    # Check that the file format is PDF.
+    # Check that the file format is PDF, if that is required.
     strike1 = False
     if 'pdf' in trigger.accepted_file_types_comma_separated.lower():
         try:
@@ -304,6 +305,15 @@ def upload_submission(request, learner, entry, trigger, no_thumbnail=True):
             logger.debug('Invalid PDF upload: {0} [{1}]'.format(mime,
                                                             full_path))
             return None, 'Invalid file upload. Uploaded file must be a PDF.'
+
+    strike2 = False
+    if extension.lower() not in \
+                            trigger.accepted_file_types_comma_separated.lower():
+        logger.debug('Invalid file type upload: expected {0}; [{1}]'.format(\
+                                                    extension, full_path))
+        return None, ('Invalid file upload. Uploaded file must be: {}'.format(\
+                                 trigger.accepted_file_types_comma_separated))
+
 
 
     group_members = None #get_group_information(learner, entry.gf_process)

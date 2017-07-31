@@ -61,5 +61,5 @@ class Submission(models.Model):
         verbose_name="Date and time the learner/group submitted.")
 
     def __str__(self):
-        return '[{0}]: {1}'.format(self.entry,
-                                   self.submitted_by)
+        return '[{0}]: {1}'.format(self.submitted_by,
+                                   self.submitted_file_name)
