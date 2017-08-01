@@ -9,7 +9,8 @@ from django.core.mail import send_mass_mail
 from django.template import Context, Template
 from pygments import formatters, highlight, lexers
 
-from django_q.tasks import schedule
+from django_q.tasks import async, schedule
+from django_q.tasks import async_chain
 from django_q.models import Schedule
 
 import re
@@ -116,7 +117,7 @@ def _slug_strip(value, separator='-'):
     return value
 
 
-def send_email(to_addresses, subject, messages, delay_secs=0):
+def send_email(to_addresses, subject, messages, delay_secs=5):
     """
     Basic function to send email according to the four required string inputs.
     Let Django send the message; it takes care of opening and closing the
@@ -169,14 +170,22 @@ def send_email(to_addresses, subject, messages, delay_secs=0):
             try:
                 #out = _send_mail(subject, messages, from_address, to_addresses,
                 #                 fail_silently=False)
-
-                schedule('django.core.mail.send_mail',
-                         subject=subject,
-                         message=messages,
-                         from_email=from_address,
-                         recipient_list=to_addresses,
-                         schedule_type=Schedule.ONCE,
-                         next_run=timezone.now() + timedelta(seconds=delay_secs))
+                if delay_secs:
+                    schedule('django.core.mail.send_mail',
+                             subject=subject,
+                             message=messages,
+                             from_email=from_address,
+                             recipient_list=to_addresses,
+                             schedule_type=Schedule.ONCE,
+                             next_run=timezone.now() + \
+                                               timedelta(seconds=delay_secs))
+                else:
+                    async('django.core.mail.send_mail',
+                          subject=subject,
+                          message=messages,
+                          from_email=from_address,
+                          recipient_list=to_addresses,
+                          hook=log_email_actually_sent)
             except Exception as e:
                 logger.error(('An error occurred when sending email to %s, '
                               'with subject [%s]. Error = %s') % (
@@ -185,6 +194,12 @@ def send_email(to_addresses, subject, messages, delay_secs=0):
                                   str(e)))
 
     return out, to_list
+
+def log_email_actually_sent(task):
+    """
+    Logs the task actually implemented.
+    """
+    logger.debug(task.result)
 
 def generate_random_token(token_length=16, base_address='', easy_use=False):
     import random

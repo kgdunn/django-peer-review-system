@@ -1,8 +1,13 @@
 from django.db import models
 from django.utils import timezone
 from django.utils.encoding import python_2_unicode_compatible
-
+from utils import generate_random_token
 """
+
+Key assumptions:
+* You have to submit before you can start reviewing others
+
+
 ---- Submission (by the student)
 0	Not started, visited the starting page   -> send email
 1   Has been sent a welcoming email          -> nothing
@@ -12,7 +17,7 @@ from django.utils.encoding import python_2_unicode_compatible
                                                 * create rubric for peers
 4, 5, 6, 7, 8, 9                             -> Everytime the document is
                                                 submitted (again)
-10  Document is submit and set; no more updates are possible
+10  Document is submitted and set; no more updates are possible
 
 
 
@@ -97,9 +102,9 @@ class Trigger(models.Model):
                         help_text='If inactive: will skip this trigger.')
     name = models.CharField(max_length=100, help_text='For database display')
 
-    description = models.TextField(max_length=500,
+    description = models.TextField(max_length=500, default='',
                                    help_text='Internal description')
-    entry = models.ForeignKey('basic.EntryPoint')
+    entry_point = models.ForeignKey('basic.EntryPoint')
     function = models.CharField(max_length=100,
                                 help_text='function from the views.py file')
     args = models.TextField(blank=True, help_text='Comma separated entries')
@@ -129,21 +134,23 @@ class GroupConfig(models.Model):
     Contains the configuration of the internal groups during the review process.
     """
     class Meta:
-        unique_together = (('group_name', 'course'), )
+        unique_together = (('group_name', 'entry_point'), )
+    class Lock:
+        locked = False
 
 
     group_name = models.CharField(max_length=100,
                                   help_text='If empty, will be auto-generated',
                                   blank=True, null=True)
-    course = models.ForeignKey('basic.Course')
-    learner = models.ManyToManyField('basic.Person',
+    entry_point = models.ForeignKey('basic.EntryPoint', null=True, blank=True)
+    members = models.ManyToManyField('basic.Person',
                                      through='Membership',
-                                     #through_fields=('group', 'learner'),
                                      )
     created_on = models.DateTimeField(auto_now_add=True)
 
+
     def __str__(self):
-        return '[{0}] {1}'.format(self.course,
+        return '[{0}] {1}'.format(self.entry_point,
                                    self.group_name)
 
     def save(self, *args, **kwargs):
@@ -151,7 +158,7 @@ class GroupConfig(models.Model):
             super(GroupConfig, self).save(*args, **kwargs)
             return
 
-        prior_groups = GroupConfig.objects.filter(course=self.course)
+        prior_groups = GroupConfig.objects.filter(entry_point=self.entry_point)
         highest_number = 0
         for item in prior_groups:
             parts = item.group_name.lower().split('group ')
@@ -166,14 +173,14 @@ class GroupConfig(models.Model):
         # but verify no group already exists with that name:
 
         highest_number += 1
-        prior_groups = GroupConfig.objects.filter(course=self.course,
+        prior_groups = GroupConfig.objects.filter(entry_point=self.entry_point,
                                                   group_name='Group {}'.format(
                                                         highest_number))
         while prior_groups.count() > 0:
             highest_number += 1
-            prior_groups = GroupConfig.objects.filter(course=self.course,
-                                                  group_name='Group {}'.format(
-                                                              highest_number))
+            prior_groups = GroupConfig.objects.filter(\
+                                entry_point=self.entry_point,
+                                group_name='Group {}'.format(highest_number))
         self.group_name = 'Group {}'.format(highest_number)
         super(GroupConfig, self).save(*args, **kwargs)
 
@@ -185,8 +192,57 @@ class Membership(models.Model):
              ('Review', "Reviewer"),
              )
 
-    group = models.ForeignKey(GroupConfig, on_delete=models.CASCADE)
     learner = models.ForeignKey('basic.Person', on_delete=models.CASCADE)
-    member_role = ()
+    group = models.ForeignKey(GroupConfig, on_delete=models.CASCADE)
     role = models.CharField(choices=ROLES, max_length=6)
+    fixed = models.BooleanField(default=False,
+            help_text='Once fixed, this membership cannot be changed')
 
+    def __str__(self):
+        return '[{0}] is {{{1}}}: {2}'.format(self.group.group_name,
+                                                self.role,
+                                                self.learner)
+
+
+
+@python_2_unicode_compatible
+class ReviewReport(models.Model):
+    """
+    Used for coordinating the review process between submitter and reviewers.
+
+    The key point is that the ``ReviewReport`` instance is associated with the
+    reviewer. When they visit the page, the review is assigned to them; not
+    ahead of time. Once assigned, the submitter cannot re-upload
+    """
+    # Was ``learner`` when we copied this from v1.
+    reviewer = models.ForeignKey('basic.Person')
+
+    have_emailed = models.BooleanField(default=False)
+
+    group = models.ForeignKey('basic.Group', blank=True, null=True,
+        default=None, help_text="If a group submission, links to group.")
+
+    trigger = models.ForeignKey(Trigger, blank=True, null=True,
+            help_text='Which trigger is this associated with?')
+
+    submission = models.ForeignKey('submissions.Submission', null=True,
+            help_text='Not known, until the reviewer visits the page')
+    grpconf = models.ForeignKey(GroupConfig, null=True, blank=True,
+            help_text='Not known, until the reviewer visits the page')
+
+    unique_code = models.CharField(max_length=16, editable=False, blank=True)
+
+    created = models.DateTimeField(auto_now_add=True)
+    last_viewed = models.DateTimeField(auto_now=True)
+
+
+    # This is used to access the report in an external tab
+    def save(self, *args, **kwargs):
+        if not(self.unique_code):
+            self.unique_code = generate_random_token(token_length=16)
+        super(ReviewReport, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return u'Report for: {0}; Sub: {1} [{2}]'.format(self.reviewer,
+                                                         self.submission,
+                                                         self.unique_code)

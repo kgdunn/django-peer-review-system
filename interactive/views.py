@@ -4,21 +4,40 @@ from django.http import HttpResponse
 from django.template.context_processors import csrf
 from django.template import Context, Template, loader
 
-# Python imports
+# Python and 3rd party imports
 import sys
 import json
+import time
 import datetime
+from random import shuffle
+
+import networkx as nx
 
 # This app
-from .models import Trigger
+from .models import Trigger, GroupConfig, Membership, ReviewReport
+
 
 # Our other apps
 from grades.models import GradeItem, LearnerGrade
 from submissions.views import get_submission, upload_submission
+from submissions.models import Submission
 from submissions.forms import (UploadFileForm_one_file,
                                UploadFileForm_multiple_file)
 from utils import send_email
 
+# Logging
+import logging
+logger = logging.getLogger(__name__)
+
+
+# SHOULD THIS GO TO entry_point instances?
+class GLOBAL_Class(object):
+    pass
+GLOBAL = GLOBAL_Class()
+GLOBAL.num_peers = 2
+GLOBAL.min_in_pool_before_grouping_starts = 3
+GLOBAL.min_extras_before_more_groups_added = 3
+assert(GLOBAL.min_extras_before_more_groups_added >= (GLOBAL.num_peers+1))
 
 def starting_point(request, course=None, learner=None, entry_point=None):
     """
@@ -43,7 +62,7 @@ def starting_point(request, course=None, learner=None, entry_point=None):
 
 
     # Step 2: Call all triggers:
-    triggers = Trigger.objects.filter(entry=entry_point,
+    triggers = Trigger.objects.filter(entry_point=entry_point,
                                       is_active=True).order_by('order')
     module = sys.modules[__name__]
     now_time = datetime.datetime.now(datetime.timezone.utc)
@@ -75,7 +94,7 @@ def starting_point(request, course=None, learner=None, entry_point=None):
 
 
     html = []
-    html.append('<h3>Welcome {0}</h3>'.format(learner))
+    html.append('<h2>{}</h2>'.format(learner.email))
     overall_summary = ''
 
     global_page = """{% extends "basic/base.html" %}{% block content %}<hr>
@@ -190,10 +209,9 @@ def submission_form(trigger, learner, *args, entry_point=None, gitem=None,
     Settings possible in the kwargs, with the defaults are shown.
     {  "accepted_file_types_comma_separated": "PDF",
        "max_file_upload_size_MB": <unlimited>,  [specify as 10 (not a string)]
-        "allow_multiple_files": "false",
-        "send_email_on_success": "true"
+       "allow_multiple_files": "false",
+       "send_email_on_success": "true"
     }
-    allow_multiple_files
 
     """
     html_text = summary_line = ''
@@ -237,8 +255,6 @@ def submission_form(trigger, learner, *args, entry_point=None, gitem=None,
     if not(hasattr(trigger, 'send_email_on_success')):
         trigger.send_email_on_success = True
 
-
-
     if getattr(trigger, 'allow_multiple_files', False):
         file_upload_form = UploadFileForm_multiple_file()
     else:
@@ -247,6 +263,30 @@ def submission_form(trigger, learner, *args, entry_point=None, gitem=None,
     submission_error_message = ''
     if request.FILES:
         submit_inst = upload_submission(request, learner, entry_point, trigger)
+
+        # One final check: has a reviewer been allocated to this review yet?
+        sub = Membership.objects.filter(role='Submit', learner=learner)
+        if sub.count():
+            group = sub[0].group
+            reviewers = Membership.objects.filter(role='Review',
+                                                  group=group,
+                                                  fixed=True)
+
+            if reviewers.count():
+                logger.debug(('New submission set to False: {0} as item has '
+                          'just started review.'.format(submit_inst)))
+                submit_inst.is_valid = False
+                submit_inst.save()
+
+                prior_submission.is_valid = True
+                prior_submission.save()
+
+                gitem.value = 10.0
+                gitem.save(push=True)
+                submit_inst = (submit_inst, ('Your submission has been refused;'
+                               ' a peer has just started reviewing your work.'))
+
+
         if isinstance(submit_inst, tuple):
             # Problem with the upload
             submission_error_message = submit_inst[1]
@@ -255,9 +295,27 @@ def submission_form(trigger, learner, *args, entry_point=None, gitem=None,
             # Successfully uploaded a document
             submission_error_message = ''
             submission = submit_inst
-            gitem.value = 3.0
+            gitem.value += 1
+            gitem.value = min(max(gitem.value, 3.0), 9.0)
             gitem.save(push=True)
-            schedule_review(learner, submission)
+
+            # Create a group with this learner as the submitter
+            already_exists = Membership.objects.filter(learner=learner,
+                                                       role='Submit',
+                                                       fixed=True).count()
+            if not(already_exists):
+                new_group = GroupConfig(entry_point=trigger.entry_point)
+                new_group.save()
+                member = Membership(learner=learner,
+                                    group=new_group,
+                                    role='Submit',
+                                    fixed=True)
+                member.save()
+
+
+            # Finished creating a new group. Now check if we have enough
+            # reviewers to invite.
+            invite_reviewers(learner, trigger)
             summary_line = ['You uploaded on ...', 'LINK'] # what if there's an error?
     else:
         submission = prior_submission
@@ -270,7 +328,10 @@ def submission_form(trigger, learner, *args, entry_point=None, gitem=None,
 
     html_text = trigger.template
 
-    trigger.allow_submit = True  # False, if no more submissions allowed
+    if gitem.value  < 10.0:
+        trigger.allow_submit = True  # False, if no more submissions allowed
+    else:
+        trigger.allow_submit = False
 
     return html_text, summary_line
 
@@ -280,6 +341,14 @@ def submitted_already(trigger, learner, *args, entry_point=None, gitem=None,
 
     """
     Simply displays the prior submission, if any.
+
+    Fields that can be used in the template:
+        ??{{submission}}                The ``Submission`` model instance
+        ??{{submission_error_message}}  Any error message
+
+    Settings possible in the kwargs, with the defaults are shown.
+        None
+
     """
     # Get the (prior) submission
     trigger.submission = get_submission(learner, entry_point)
@@ -288,17 +357,286 @@ def submitted_already(trigger, learner, *args, entry_point=None, gitem=None,
     return (trigger.template, summary_line)
 
 
+
+def get_learners_reviews(learner, gitem, entry_point):
+    """
+    Returns a list. Each item contains a tuple. The first entry is the CSS
+    class, for formatting. The second entry is the actual text, link, HTML, etc.
+    """
+
+    grouping = get_learner_grouping(learner, entry_point)
+
+    if len(grouping['reviewer']) == 0:
+        # Simplest case: no reviews are allocated to learner yet
+        out = []
+        for idx in range(GLOBAL.num_peers):
+            out.append(('', 'Waiting for peer to submit their work ...'))
+        return out
+
+    # Find which reviews are allocated, and provide links:
+    out = []
+    for idx in range(GLOBAL.num_peers):
+        member = grouping['reviewer'][idx]
+
+        # TODO: Is it true that if a ReviewReport will exist?
+        allocated = ReviewReport.objects.filter(grpconf=member.group,
+                                                reviewer=learner)[0]
+
+
+
+        out.append(('', '<a href="/{0}">Start your review</a>'.format(\
+                                                        allocated.unique_code)))
+
+    #   grouping['reviewer'][0].group.membership_set.filter(role='Submit')
+
+    return out
+
+def get_if_peer_has_read(learner, gitem, entry_point):
+    out = []
+    for idx in range(GLOBAL.num_peers):
+        out.append(('future-text', 'text here'))
+
+    return out
+
+
+def get_peers_evaluation_of_review(learner, gitem, entry_point):
+    out = []
+    for idx in range(GLOBAL.num_peers):
+        if gitem.value <= 60:
+            out.append(('future-text','peers evaluation of your review link'))
+
+    return out
+
+
+def get_assess_rebuttal(learner, gitem, entry_point):
+    out = []
+    for idx in range(GLOBAL.num_peers):
+        if gitem.value <= 80:
+            out.append(('future-text', 'assess their rebuttal of your review link'))
+
+    return out
+
+
 def interactions_to_come(trigger, learner, *args, entry_point=None, gitem=None,
                          request=None, ctx_objects=dict(), **kwargs):
     """
-    Does nothing of note, other than display the remaining steps for the user.
+    WRONG: Does nothing of note, other than display the remaining steps for
+    the user.
+
+    Fields that can be used in the template:
+        {{future_reviews|safe}}
+
+    Settings possible in the kwargs, with the defaults are shown.
+        {{}}
     """
+    template = trigger.template
+    trigger.future_reviews = ''
+
+    peer = {}  # Reviewer's evaluation of their peers' work stored in here.
+
+    peer['start_or_completed_review'] = get_learners_reviews(learner,
+                                                             gitem,
+                                                             entry_point)
+    peer['peer_has_read'] = get_if_peer_has_read(learner,
+                                                 gitem,
+                                                 entry_point)
+    peer['evaluation_of'] = get_peers_evaluation_of_review(learner,
+                                                           gitem,
+                                                           entry_point)
+    peer['assess_rebut'] = get_assess_rebuttal(learner,
+                                               gitem,
+                                               entry_point)
+
+
+
+
+
+    for idx in range(GLOBAL.num_peers):
+        trigger.future_reviews += """
+        <span class="you-peer">
+        <b>Your review of peer {0}</b>:
+        <ul>
+            <li class="{1}">{2}</li>
+            <li class="{3}">{4}</li>
+            <li class="{5}">{6}</li>
+            <li class="{7}">{8}</li>
+        </ul>
+        </span>
+        """.format(idx+1,
+                   peer['start_or_completed_review'][idx][0],
+                   peer['start_or_completed_review'][idx][1],
+                   peer['peer_has_read'][idx][0],
+                   peer['peer_has_read'][idx][1],
+                   peer['evaluation_of'][idx][0],
+                   peer['evaluation_of'][idx][1],
+                   peer['assess_rebut'][idx][0],
+                   peer['assess_rebut'][idx][1],
+                )
+
     summary_line = ''
     return (trigger.template, summary_line)
 
 
-def schedule_review(learner, submission):
+def invite_reviewers(learner, trigger):
     """
-    Pushes a schedule: the learner submission will be queued for processing.
+    Invites reviewers to start the review process
     """
-    pass
+    valid_subs = Submission.objects.filter(trigger=trigger, is_valid=True)
+    if not(valid_subs.count() >= GLOBAL.min_in_pool_before_grouping_starts):
+        return
+
+    # We have enough Submissions instances for the current trigger to send
+    # emails to all potential reviewers: it is time to start reviewing.
+
+    graph = group_graph(trigger)
+    for valid_sub in valid_subs:
+
+        # Has a reviewer been allocated this submission yet?
+        allocated = ReviewReport.objects.filter(trigger=trigger,
+                                                submission=valid_sub,
+                                                have_emailed=True)
+        if allocated.count() >= GLOBAL.num_peers:
+            return
+
+        if (GLOBAL.num_peers * graph.order()) > graph.number_of_edges():
+            # We can still assign some reviewers to the submissions
+
+
+            reviewer = get_next_reviewer(graph,
+                                         exclude=valid_sub.submitted_by)
+
+            if not(reviewer):
+                return
+
+            # We found a valid reviewer; Which group is this associated with
+            # as the Submitter?
+            member_sub = Membership.objects.get(learner=valid_sub.submitted_by,
+                                                role='Submit')
+            member_rev = Membership(learner=reviewer,
+                                    group=member_sub.group,
+                                    role='Review',
+                                    fixed=False)
+            member_rev.save()
+
+            review, _ = ReviewReport.objects.get_or_create(trigger=trigger,
+                                                    grpconf=member_rev.group,
+                                                    reviewer=reviewer,
+                                                    submission=valid_sub)
+
+            graph.add_edge(valid_sub.submitted_by, reviewer, weight=0.25)
+
+            # Then send them an email, but only once
+            message = """Your code is {0}""".format(review.unique_code)
+            subject = 'Get reviewing'
+
+            if not(review.have_emailed):
+                send_email(reviewer.email,
+                           subject,
+                           messages=message,
+                           delay_secs=0)
+
+                # Do this in the return hook
+                review.have_emailed = True
+                review.save()
+
+
+# Functions related to the graph and grouping
+# -------------------------------------------
+def group_graph(trigger):
+    """
+    Creates the group graph.
+
+    ## How many Submissions are currently in groups?
+    ## Is it below the minimum to start?
+    ## Do we have extra that have come by?
+    #max_iter = 20
+    #itern = 0
+    #while (GroupConfig.Lock.locked) and (itern < max_iter):
+        #logger.debug('GroupConfig locked: sleeping {0}'.format(itern))
+        #itern += 1
+        #time.sleep(0.25)
+    #if itern == max_iter:
+        #logger.error(('Maximum sleep experienced; something hanging? [{0}] '
+                      #'[{1}] [{2}]'.format(learner, trigger, submission)))
+
+
+    ## Do the group formation / regrouping here
+    #GroupConfig.Lock.locked = True
+    """
+    groups = GroupConfig.objects.filter(entry_point=trigger.entry_point)
+    graph = nx.DiGraph()
+    submitters = []
+    for group in groups:
+
+        submitter = group.membership_set.filter(role='Submit')[0]
+        submitters.append(submitter)
+        confirmed_reviewers = group.membership_set.filter(role='Review',
+                                                          fixed=True)
+        graph.add_node(submitter.learner)
+        for reviewer in confirmed_reviewers:
+            graph.add_node(reviewer.learner)
+            graph.add_edge(submitter.learner, reviewer.learner, weight=1)
+
+        unconfirmed_reviewers = group.membership_set.filter(role='Review',
+                                                            fixed=False)
+        for reviewer in unconfirmed_reviewers:
+            graph.add_node(reviewer.learner)
+            graph.add_edge(submitter.learner, reviewer.learner, weight=0.25)
+
+
+    return graph
+
+def get_next_reviewer(graph, exclude=None):
+    """
+    Given the graph, get the next available reviewer.
+
+    You can optionally specify the ``
+    """
+    potential = graph.nodes()
+    if exclude:
+        index = potential.index(exclude)
+        potential.pop(index)
+
+    shuffle(potential)
+    in_degree = []
+    for idx, node in enumerate(potential):
+        in_degree.append((graph.in_degree(node), idx))
+
+    in_degree.sort()
+    next_one = in_degree.pop(0)
+
+    if next_one[0] <= GLOBAL.num_peers:
+        return potential[next_one[1]]
+    else:
+        return None
+
+def get_learner_grouping(learner, entry_point):
+    """
+    Returns a dictionary where:
+        out['submitter'] = Membership instance
+        out['reviewer] = [Membership instance, Membership instance, ...]
+    """
+    out = {}
+    submit = Membership.objects.filter(learner=learner,
+                                       group__entry_point=entry_point,
+                                       fixed=True,
+                                       role='Submit')
+    if submit.count() == 0:
+        out['submitter'] = None
+    else:
+        if submit.count() > 1:
+            logger.error(('Learner {0} is submitter in more than 1 group. Not '
+                          'possible. Investigate.'.format(learner)))
+        out['submitter'] = submit[0]
+
+
+    review = Membership.objects.filter(learner=learner,
+                                       group__entry_point=entry_point,
+                                       role='Review')
+    if review.count() > GLOBAL.num_peers:
+        logger.error(('Learner {0} is reviewer in too many grades. Not '
+                              'possible. Investigate.'.format(learner)))
+    else:
+        out['reviewer'] = list(review)
+
+    return out

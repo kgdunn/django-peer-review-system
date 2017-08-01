@@ -102,7 +102,11 @@ LOGGING = {
         'submissions.views': {
             'handlers': ['file', ],
             'level': 'DEBUG',
-        }
+        },
+        'interactive.views': {
+            'handlers': ['file', ],
+            'level': 'DEBUG',
+        },
     },
 }
 

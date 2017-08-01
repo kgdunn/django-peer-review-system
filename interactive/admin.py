@@ -1,24 +1,30 @@
 from django.contrib import admin
-from .models import Trigger, GroupConfig, Membership
+from .models import Trigger, GroupConfig, Membership, ReviewReport
 
 
 class TriggerAdmin(admin.ModelAdmin):
     list_display = ("name", "order", "lower", "upper", "function", "is_active",
-                    "entry", "start_dt", "end_dt")
+                    "entry_point", "start_dt", "end_dt")
     ordering = ['order', 'name']
-    list_filter = ['entry']
+    list_filter = ['entry_point']
 admin.site.register(Trigger, TriggerAdmin)
 
 
 class GroupConfigAdmin(admin.ModelAdmin):
-    list_display = ("group_name", "course",)
-    ordering = ['course', '-group_name']
+    list_display = ("group_name", "entry_point",)
+    ordering = ['entry_point', '-group_name']
 admin.site.register(GroupConfig, GroupConfigAdmin)
 
 
 class MembershipAdmin(admin.ModelAdmin):
     list_display = ("group", "learner", "role")
-    #ordering = ['course', '-group_name']
 admin.site.register(Membership, MembershipAdmin)
+
+
+
+class ReviewReportAdmin(admin.ModelAdmin):
+    list_display = ("reviewer", "trigger", "submission", "grpconf",
+                    "unique_code")
+admin.site.register(ReviewReport, ReviewReportAdmin)
 
 

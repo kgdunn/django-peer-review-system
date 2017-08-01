@@ -238,9 +238,6 @@ def create_thumbnail():
 def upload_submission(request, learner, entry, trigger, no_thumbnail=True):
     """
     Handles the upload of the user's submission.
-
-    TODO: if the filesize is OK and    <-- not checked yet
-
     """
     base_dir_for_file_uploads = settings.MEDIA_ROOT
     thumbnail_file_name_django = ''
