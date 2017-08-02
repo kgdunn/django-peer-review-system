@@ -20,13 +20,13 @@ def entry_point_discovery(request):
 
     """
     message = ''
-    course_ID = request.POST.get('context_id', None) or (settings.DEBUG and \
-                                    request.GET.get('context_id', None))
+    course_ID = request.POST.get('context_id', '') or (settings.DEBUG and \
+                                    request.GET.get('context_id', ''))
     entry_ID = request.POST.get('resource_link_id', None)or(settings.DEBUG and \
                                     request.GET.get('resource_link_id', None))
     logger.debug('Entering: {0} || {1}'.format(course_ID, entry_ID))
 
-    if (course_ID is None) or (entry_ID is None):
+    if (course_ID is '') or (entry_ID is None):
         return HttpResponse(("No course, or entry point were specified. "
                              "Cannot continue. Sorry."))
 
