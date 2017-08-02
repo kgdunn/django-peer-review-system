@@ -159,7 +159,7 @@ def starting_point(request, course=None, learner=None, entry_point=None):
 
 
 
-def kick_off_email(trigger, learner, *args, entry_point=None, gitem=None,
+def kick_off_email(trigger, learner, entry_point=None, gitem=None,
                    request=None, **kwargs):
     """
     Initiates the kick-off email to the student, to encourage an upload.
@@ -175,8 +175,8 @@ def kick_off_email(trigger, learner, *args, entry_point=None, gitem=None,
 
     return ('', '')
 
-def submitted_doc(trigger, learner, *args, ctx_objects=None,
-                  entry_point=None, gitem=None, **kwargs):
+def submitted_doc(trigger, learner, ctx_objects=None, entry_point=None,
+                  gitem=None, **kwargs):
     """
     The user has submitted their document:
     * send email to thank them
@@ -196,7 +196,7 @@ def submitted_doc(trigger, learner, *args, ctx_objects=None,
 
 
 
-def submission_form(trigger, learner, *args, entry_point=None, gitem=None,
+def submission_form(trigger, learner, entry_point=None, gitem=None,
                    request=None, ctx_objects=dict(), **kwargs):
     """
     Displays the submission form, and handles the upload of it.
@@ -337,7 +337,7 @@ def submission_form(trigger, learner, *args, entry_point=None, gitem=None,
     return html_text, summary_line
 
 
-def submitted_already(trigger, learner, *args, entry_point=None, gitem=None,
+def submitted_already(trigger, learner, entry_point=None, gitem=None,
                     request=None, ctx_objects=dict(), **kwargs):
 
     """
@@ -415,7 +415,7 @@ def get_assess_rebuttal(learner, gitem, trigger):
     return out
 
 
-def interactions_to_come(trigger, learner, *args, entry_point=None, gitem=None,
+def interactions_to_come(trigger, learner, entry_point=None, gitem=None,
                          request=None, ctx_objects=dict(), **kwargs):
     """
     WRONG: Does nothing of note, other than display the remaining steps for
