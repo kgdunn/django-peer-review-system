@@ -129,11 +129,12 @@ def get_create_student(request, course):
         if LTI_consumer == 'edx' and 'Administrator' in role:
             role = 'Admin'
 
-        learner_preenrolled = Person.objects.filter(email=email,
+        existing_learner = Person.objects.filter(email=email,
+                                                    user_ID=user_ID,
                                                     role=role)
-        if learner_preenrolled:
+        if existing_learner:
             newbie = False
-            learner = learner_preenrolled[0]
+            learner = existing_learner[0]
         else:
             learner, newbie = Person.objects.get_or_create(email=email,
                                                            user_ID=user_ID,
