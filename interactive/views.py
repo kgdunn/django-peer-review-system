@@ -648,6 +648,13 @@ def get_learner_grouping(learner, entry_point):
 
 
 def review(request, unique_code=None):
+    """
+    The review process starts here:
+    * create the rubric
+    * get the submission
+    * populate the rubric with the template
+    * prevent the document from being re-uploaded by submitter (fixed=True)
+    """
 
     text = 'Return <a href="/">home</a>'
     return HttpResponse(text)
