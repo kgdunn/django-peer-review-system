@@ -290,9 +290,12 @@ def upload_submission(request, learner, entry_point, trigger, no_thumbnail=True)
     strike1 = False
     if 'pdf' in trigger.accepted_file_types_comma_separated.lower():
         try:
-            mime = magic.from_file(full_path, mime=True).decode('utf-8')
+            mime = magic.from_file(full_path, mime=True)
+            if not(isinstance(mime, str)):
+                mime = mime.decode('utf-8')
         except Exception as exp:
             logger.error('Could not determine MIME type: ' + str(exp))
+            mime = ''
             strike1 = True
 
         if 'application/pdf' not in mime.lower():

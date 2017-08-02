@@ -21,8 +21,6 @@ def entry_point_discovery(request):
     ``EntryPoint``.
 
     """
-    import sys
-    logger.debug(sys.version)
     message = ''
     course_ID = request.POST.get('context_id', '') or (settings.DEBUG and \
                                     request.GET.get('context_id', ''))
