@@ -170,6 +170,7 @@ def kick_off_email(trigger, learner, entry_point=None, gitem=None,
 
     return ('', '')
 
+
 def submitted_doc(trigger, learner, ctx_objects=None, entry_point=None,
                   gitem=None, **kwargs):
     """
@@ -349,6 +350,10 @@ def submitted_already(trigger, learner, entry_point=None, gitem=None,
     # Get the (prior) submission
     trigger.submission = get_submission(learner, entry_point)
 
+    # Should any reviewers be invited?
+    assert(False)
+    invite_reviewers(learner, trigger)
+
     summary_line = ['You uploaded on ...', 'LINK'] # what if there's an error?
     return (trigger.template, summary_line)
 
@@ -377,7 +382,7 @@ def get_learners_reviews(learner, gitem, trigger):
             review = allocated_reviews.pop()
 
             out.append(('',
-                        '<a href="/review/{0}">Start your review</a>'.format(\
+                    '<a href="/interactive/{0}">Start your review</a>'.format(\
                                                         review.unique_code)))
         except IndexError:
             out.append(('', 'Waiting for a peer to submit their work ...'))
@@ -515,7 +520,7 @@ def invite_reviewers(learner, trigger):
             """.format(GLOBAL.num_peers,
                        trigger.entry_point.course,
                        trigger.entry_point.LTI_title,
-                       settings.BASE_URL + '/review/' + review.unique_code)
+                       settings.BASE_URL + '/interactive/' + review.unique_code)
             subject = '[{0}]: start your peer review'.format(\
                                                 trigger.entry_point.course)
 
@@ -640,3 +645,9 @@ def get_learner_grouping(learner, entry_point):
         out['reviewer'] = list(review)
 
     return out
+
+
+def review(request, unique_code=None):
+
+    text = 'Return <a href="/">home</a>'
+    return HttpResponse(text)

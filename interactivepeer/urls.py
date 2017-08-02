@@ -28,6 +28,10 @@ urlpatterns = [
     # If you extend the LTI tool, add a URLs file.
     url(r'grades/', include('grades.urls')),
 
+
+    #
+    url(r'interactive/', include('interactive.urls')),
+
 ]
 
 if settings.DEBUG:
