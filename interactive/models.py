@@ -107,7 +107,6 @@ class Trigger(models.Model):
     entry_point = models.ForeignKey('basic.EntryPoint')
     function = models.CharField(max_length=100,
                                 help_text='function from the views.py file')
-    args = models.TextField(blank=True, help_text='Comma separated entries')
     kwargs = models.TextField(blank=True,
                               help_text='Comma separated key-value pairs')
     template = models.TextField(blank=True,
