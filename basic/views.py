@@ -19,7 +19,7 @@ def entry_point_discovery(request):
     ``EntryPoint``.
 
     """
-    logger.debug(request)
+    logger.debug(settings)
     message = ''
     course_ID = request.POST.get('context_id', '') or (settings.DEBUG and \
                                     request.GET.get('context_id', ''))
@@ -27,7 +27,7 @@ def entry_point_discovery(request):
                                     request.GET.get('resource_link_id', None))
     logger.debug('Entering: {0} || {1}'.format(course_ID, entry_ID))
 
-    if (course_ID is '') or (entry_ID is None):
+    if not(course_ID) or not(entry_ID):
         return HttpResponse(("No course, or entry point were specified. "
                              "Cannot continue. Sorry."))
 
