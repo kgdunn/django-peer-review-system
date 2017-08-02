@@ -2,6 +2,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost', ]  # only checked in production
 
+BASE_URL = 'http://127.0.0.1'
+
 # 02 January 2017: to test LetsEncrypt
 CSRF_TRUSTED_ORIGINS = [".edx.org", '127.0.0.1']
 

@@ -3,6 +3,7 @@
 from django.http import HttpResponse
 from django.template.context_processors import csrf
 from django.template import Context, Template, loader
+from django.conf import settings
 
 # Python and 3rd party imports
 import sys
@@ -358,40 +359,37 @@ def submitted_already(trigger, learner, *args, entry_point=None, gitem=None,
 
 
 
-def get_learners_reviews(learner, gitem, entry_point):
+def get_learners_reviews(learner, gitem, trigger):
     """
     Returns a list. Each item contains a tuple. The first entry is the CSS
     class, for formatting. The second entry is the actual text, link, HTML, etc.
     """
-
-    grouping = get_learner_grouping(learner, entry_point)
-
-    if len(grouping['reviewer']) == 0:
+    valid_subs = Submission.objects.filter(entry_point=trigger.entry_point,
+                                           is_valid=True)
+    if not(valid_subs.count() >= GLOBAL.min_in_pool_before_grouping_starts):
         # Simplest case: no reviews are allocated to learner yet
         out = []
         for idx in range(GLOBAL.num_peers):
-            out.append(('', 'Waiting for peer to submit their work ...'))
+            out.append(('', 'Waiting for a peer to submit their work ...'))
         return out
 
     # Find which reviews are allocated, and provide links:
     out = []
+    allocated_reviews = list(ReviewReport.objects.filter(reviewer=learner)\
+                             .order_by('-created'))
     for idx in range(GLOBAL.num_peers):
-        member = grouping['reviewer'][idx]
+        try:
+            review = allocated_reviews.pop()
 
-        # TODO: Is it true that if a ReviewReport will exist?
-        allocated = ReviewReport.objects.filter(grpconf=member.group,
-                                                reviewer=learner)[0]
-
-
-
-        out.append(('', '<a href="/{0}">Start your review</a>'.format(\
-                                                        allocated.unique_code)))
-
-    #   grouping['reviewer'][0].group.membership_set.filter(role='Submit')
-
+            out.append(('',
+                        '<a href="/review/{0}">Start your review</a>'.format(\
+                                                        review.unique_code)))
+        except IndexError:
+            out.append(('', 'Waiting for a peer to submit their work ...'))
     return out
 
-def get_if_peer_has_read(learner, gitem, entry_point):
+
+def get_if_peer_has_read(learner, gitem, trigger):
     out = []
     for idx in range(GLOBAL.num_peers):
         out.append(('future-text', 'text here'))
@@ -399,7 +397,7 @@ def get_if_peer_has_read(learner, gitem, entry_point):
     return out
 
 
-def get_peers_evaluation_of_review(learner, gitem, entry_point):
+def get_peers_evaluation_of_review(learner, gitem, trigger):
     out = []
     for idx in range(GLOBAL.num_peers):
         if gitem.value <= 60:
@@ -408,7 +406,7 @@ def get_peers_evaluation_of_review(learner, gitem, entry_point):
     return out
 
 
-def get_assess_rebuttal(learner, gitem, entry_point):
+def get_assess_rebuttal(learner, gitem, trigger):
     out = []
     for idx in range(GLOBAL.num_peers):
         if gitem.value <= 80:
@@ -436,20 +434,16 @@ def interactions_to_come(trigger, learner, *args, entry_point=None, gitem=None,
 
     peer['start_or_completed_review'] = get_learners_reviews(learner,
                                                              gitem,
-                                                             entry_point)
+                                                             trigger)
     peer['peer_has_read'] = get_if_peer_has_read(learner,
                                                  gitem,
-                                                 entry_point)
+                                                 trigger)
     peer['evaluation_of'] = get_peers_evaluation_of_review(learner,
                                                            gitem,
-                                                           entry_point)
+                                                           trigger)
     peer['assess_rebut'] = get_assess_rebuttal(learner,
                                                gitem,
-                                               entry_point)
-
-
-
-
+                                               trigger)
 
     for idx in range(GLOBAL.num_peers):
         trigger.future_reviews += """
@@ -486,58 +480,55 @@ def invite_reviewers(learner, trigger):
         return
 
     # We have enough Submissions instances for the current trigger to send
-    # emails to all potential reviewers: it is time to start reviewing.
-
+    # emails to all potential reviewers: it is time to start reviewing
+    #
+    # The number of Submissions should be equal to the nubmer of nodes in graph:
     graph = group_graph(trigger)
-    for valid_sub in valid_subs:
+    if len(valid_subs) != graph.order():
+        logger.warn(('Number of valid subs [{0}]is not equal to graph '
+                     'order [{1}]'.format(len(valid_subs), graph.order())))
 
+    for learner in graph.nodes():
+        # These ``Persons`` have a valid submission. Invite them to review.
         # Has a reviewer been allocated this submission yet?
         allocated = ReviewReport.objects.filter(trigger=trigger,
-                                                submission=valid_sub,
+                                                reviewer=learner,
                                                 have_emailed=True)
         if allocated.count() >= GLOBAL.num_peers:
             return
 
-        if (GLOBAL.num_peers * graph.order()) > graph.number_of_edges():
-            # We can still assign some reviewers to the submissions
+        review, _ = ReviewReport.objects.get_or_create(trigger=trigger,
+                                                       reviewer=learner,
+                                                       have_emailed=False)
 
+        # Then send them an email, but only once
+        message = """
+        Reviewing and interacting with the work of other students helps
+        stimulate learning and insight you might not have developed otherwise.
 
-            reviewer = get_next_reviewer(graph,
-                                         exclude=valid_sub.submitted_by)
+        So for the course {1} you are required to completed {0} reviews of work
+        from your peers. This is for the component of the course: {2}.
 
-            if not(reviewer):
-                return
+        Please complete the reviews as soon as possible to progress to the next
+        stages: evaluation, assessment and rebuttal.
 
-            # We found a valid reviewer; Which group is this associated with
-            # as the Submitter?
-            member_sub = Membership.objects.get(learner=valid_sub.submitted_by,
-                                                role='Submit')
-            member_rev = Membership(learner=reviewer,
-                                    group=member_sub.group,
-                                    role='Review',
-                                    fixed=False)
-            member_rev.save()
+        You can start the review with <a href="{3}">this link</a>.
 
-            review, _ = ReviewReport.objects.get_or_create(trigger=trigger,
-                                                    grpconf=member_rev.group,
-                                                    reviewer=reviewer,
-                                                    submission=valid_sub)
+        You will receive an email for every review you are to complete.
 
-            graph.add_edge(valid_sub.submitted_by, reviewer, weight=0.25)
+        Good luck!
+        """.format(GLOBAL.num_peers,
+                   trigger.entry_point.course,
+                   trigger.entry_point.LTI_title,
+                   settings.BASE_URL + '/review/' + review.unique_code)
+        subject = '[{0}]: start your peer review'.format(trigger.entry_point.course)
 
-            # Then send them an email, but only once
-            message = """Your code is {0}""".format(review.unique_code)
-            subject = 'Get reviewing'
+        if not(review.have_emailed):
+            send_email(learner.email, subject, messages=message, delay_secs=0)
 
-            if not(review.have_emailed):
-                send_email(reviewer.email,
-                           subject,
-                           messages=message,
-                           delay_secs=0)
-
-                # Do this in the return hook
-                review.have_emailed = True
-                review.save()
+            # Ideally this is in the return hook, but for now leave it here.
+            review.have_emailed = True
+            review.save()
 
 
 # Functions related to the graph and grouping
@@ -545,6 +536,15 @@ def invite_reviewers(learner, trigger):
 def group_graph(trigger):
     """
     Creates the group graph.
+
+    Rules:
+    1. Nodes are ``Person`` instances. We get the email address from the node.
+    2. A node is added to the graph if, and only if, the person has submitted.
+    3. Edges are directed. From a submitter, to a reviewer.
+    4. An edge is only created if the reviewer has opened (therefore seen) the
+       allocated review.
+       A review is allocated in real time, when the reviewer wants to start.o
+    5. The edge contains a ``Submission`` instance.
 
     ## How many Submissions are currently in groups?
     ## Is it below the minimum to start?
@@ -570,18 +570,14 @@ def group_graph(trigger):
 
         submitter = group.membership_set.filter(role='Submit')[0]
         submitters.append(submitter)
-        confirmed_reviewers = group.membership_set.filter(role='Review',
-                                                          fixed=True)
         graph.add_node(submitter.learner)
-        for reviewer in confirmed_reviewers:
+
+        reviewers = group.membership_set.filter(role='Review', fixed=True)
+        for reviewer in reviewers:
             graph.add_node(reviewer.learner)
             graph.add_edge(submitter.learner, reviewer.learner, weight=1)
 
-        unconfirmed_reviewers = group.membership_set.filter(role='Review',
-                                                            fixed=False)
-        for reviewer in unconfirmed_reviewers:
-            graph.add_node(reviewer.learner)
-            graph.add_edge(submitter.learner, reviewer.learner, weight=0.25)
+
 
 
     return graph

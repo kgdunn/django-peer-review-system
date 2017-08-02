@@ -40,7 +40,8 @@ class Submission(models.Model):
     group_submitted = models.ForeignKey('basic.Group', blank=True, null=True,
         default=None, help_text="If a group submission, it links back to it.")
     status = models.CharField(max_length=2, choices=STATUS, default='N')
-    entry = models.ForeignKey('basic.EntryPoint', verbose_name="Entry point")
+    entry_point = models.ForeignKey('basic.EntryPoint',
+                                    verbose_name="Entry point")
 
     # By eliminating ``phase`` (which is now replaced by ``Trigger``) we might
     # be limiting ourselves to one submission per EntryPoint. Confirm still.

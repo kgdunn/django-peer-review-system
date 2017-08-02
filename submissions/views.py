@@ -22,7 +22,7 @@ def get_submission(learner, entry_point):
     Gets the ``submission`` instance at the particular ``trigger`` in the
     process.
     Allow some flexibility in the function signature here, to allow retrieval
-    via the ``entry`` in the future.
+    via the ``entry_point`` in the future.
     """
     # Whether or not we are submitting, we might have a prior submission
     # to display
@@ -32,7 +32,7 @@ def get_submission(learner, entry_point):
 
 
     submission = None
-    subs = Submission.objects.filter(is_valid=True, entry=entry_point)
+    subs = Submission.objects.filter(is_valid=True, entry_point=entry_point)
     if entry_point.uses_groups:
         # NOTE: an error condition can develop if a learner isn't
         #       allocated into a group, and you are using group submissions.
@@ -68,8 +68,8 @@ def create_thumbnail():
     if len(files) == 1:
         filename = files[0].name
         extension = filename.split('.')[-1].lower()
-        submitted_file_name_django = 'uploads/{0}/{1}'.format(entry.id,
-                                                              generate_random_token(token_length=16) + '.' + extension)
+        submitted_file_name_django = 'uploads/{0}/{1}'.format(entry_point.id,
+                    generate_random_token(token_length=16) + '.' + extension)
         full_path = base_dir_for_file_uploads + submitted_file_name_django
         with open(full_path, 'wb+') as dst:
             for chunk in files[0].chunks():
@@ -91,7 +91,7 @@ def create_thumbnail():
         from reportlab.lib.pagesizes import A4, landscape
         from reportlab.lib.units import cm
         full_path = base_dir_for_file_uploads + 'uploads/{0}/{1}'.format(
-            entry.id, generate_random_token(token_length=16) + '.pdf')
+            entry_point.id, generate_random_token(token_length=16) + '.pdf')
 
         try:
             c = canvas.Canvas(full_path, pagesize=A4, )
@@ -120,23 +120,23 @@ def create_thumbnail():
 
 
 
-    group_members = get_group_information(learner, entry.gf_process)
+    group_members = get_group_information(learner, entry_point.gf_process)
 
 
-    if (group_members['group_instance'] is None) and (entry.uses_groups\
+    if (group_members['group_instance'] is None) and (entry_point.uses_groups\
                                                       ==False):
         # Uses individual submissions:
         prior = Submission.objects.filter(status='S',
                                           submitted_by=learner,
-                                entry=entry,
+                                entry_point=entry_point,
                                 trigger=trigger,
                                 is_valid=True)
 
     else:
         # Has this group submitted this before?
         prior = Submission.objects.filter(status='S',
-                                          group_submitted=group_members['group_instance'],
-                                entry=entry,
+                                group_submitted=group_members['group_instance'],
+                                entry_point=entry_point,
                                 trigger=trigger,
                                 is_valid=True)
 
@@ -171,11 +171,11 @@ def create_thumbnail():
         image = Image(width=imageFromPdf.width, height=imageFromPdf.height)
         image.composite(imageFromPdf.sequence[0], top=0, left=0)
         image.format = "png"
-        thumbnail_filename = submitted_file_name_django.split('uploads/{0}/'.format(entry.id))[1]
+        thumbnail_filename = submitted_file_name_django.split('uploads/{0}/'.format(entry_point.id))[1]
         thumbnail_full_name = thumbnail_dir + \
             thumbnail_filename.replace('.'+extension,
                                                                '.png')
-        thumbnail_file_name_django = 'uploads/{0}/tmp/{1}'.format(entry.id,
+        thumbnail_file_name_django = 'uploads/{0}/tmp/{1}'.format(entry_point.id,
                                                                   thumbnail_filename.replace('.'+extension, '.png'))
 
 
@@ -193,7 +193,7 @@ def create_thumbnail():
     sub = Submission(submitted_by=learner,
                      group_submitted=group_members['group_instance'],
                      status='S',
-                     entry=entry,
+                     entry_point=entry_point,
                      trigger=trigger,
                      is_valid=True,
                      file_upload=submitted_file_name_django,
@@ -222,8 +222,8 @@ def create_thumbnail():
                '\n--\n'
                'This is an automated message. Please do not reply to this '
                'email address.\n')
-    message = message.format(first_line, entry.LTI_title,
-                             entry.course.name,
+    message = message.format(first_line, entry_point.LTI_title,
+                             entry_point.course.name,
                              extra_line)
 
     if trigger.send_email_on_success:
@@ -235,7 +235,7 @@ def create_thumbnail():
 
 
 
-def upload_submission(request, learner, entry, trigger, no_thumbnail=True):
+def upload_submission(request, learner, entry_point, trigger, no_thumbnail=True):
     """
     Handles the upload of the user's submission.
     """
@@ -248,7 +248,7 @@ def upload_submission(request, learner, entry, trigger, no_thumbnail=True):
 
     # Is the storage space reachable?
     deepest_dir = base_dir_for_file_uploads + 'uploads/{0}/tmp/'.format(
-        entry.id)
+        entry_point.id)
 
     try:
         os.makedirs(deepest_dir)
@@ -313,14 +313,14 @@ def upload_submission(request, learner, entry, trigger, no_thumbnail=True):
 
 
 
-    group_members = None #get_group_information(learner, entry.gf_process)
+    group_members = None #get_group_information(learner, entry_point.gf_process)
     group_members = {'group_instance': None}
-    if (group_members['group_instance'] is None) and (entry.uses_groups\
+    if (group_members['group_instance'] is None) and (entry_point.uses_groups\
                                                       ==False):
         # Uses individual submissions:
         prior = Submission.objects.filter(status='S',
                                             submitted_by=learner,
-                                            entry=entry,
+                                            entry_point=entry_point,
                                             trigger=trigger,
                                             is_valid=True
                                          )
@@ -329,7 +329,7 @@ def upload_submission(request, learner, entry, trigger, no_thumbnail=True):
         # Has this group submitted this before?
         prior = Submission.objects.filter(status='S',
                                 group_submitted=group_members['group_instance'],
-                                entry=entry,
+                                entry_point=entry_point,
                                 trigger=trigger,
                                 is_valid=True)
 
@@ -343,7 +343,7 @@ def upload_submission(request, learner, entry, trigger, no_thumbnail=True):
     sub = Submission(submitted_by=learner,
                      group_submitted=group_members['group_instance'],
                      status='S',
-                     entry=entry,
+                     entry_point=entry_point,
                      trigger=trigger,
                      is_valid=True,
                      file_upload=submitted_file_name_django,
@@ -372,8 +372,8 @@ def upload_submission(request, learner, entry, trigger, no_thumbnail=True):
                '\n--\n'
                'This is an automated message. Please do not reply to this '
                'email address.\n')
-    message = message.format(first_line, entry.LTI_title,
-                             entry.course.name,
+    message = message.format(first_line, entry_point.LTI_title,
+                             entry_point.course.name,
                              extra_line)
 
     if trigger.send_email_on_success:

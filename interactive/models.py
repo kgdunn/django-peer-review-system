@@ -225,8 +225,10 @@ class ReviewReport(models.Model):
     trigger = models.ForeignKey(Trigger, blank=True, null=True,
             help_text='Which trigger is this associated with?')
 
-    submission = models.ForeignKey('submissions.Submission', null=True,
+    submission = models.ForeignKey('submissions.Submission',
+                                   null=True, blank=True,
             help_text='Not known, until the reviewer visits the page')
+
     grpconf = models.ForeignKey(GroupConfig, null=True, blank=True,
             help_text='Not known, until the reviewer visits the page')
 
