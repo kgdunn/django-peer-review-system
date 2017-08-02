@@ -7,7 +7,6 @@ from django.utils import timezone
 #from django.core.mail import send_mail as _send_mail
 from django.core.mail import send_mass_mail
 from django.template import Context, Template
-from pygments import formatters, highlight, lexers
 
 from django_q.tasks import async, schedule
 from django_q.tasks import async_chain
