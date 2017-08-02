@@ -489,41 +489,48 @@ def invite_reviewers(learner, trigger):
         allocated = ReviewReport.objects.filter(trigger=trigger,
                                                 reviewer=learner,
                                                 have_emailed=True)
-        if allocated.count() >= GLOBAL.num_peers:
-            return
+        while allocated.count() <= GLOBAL.num_peers:
 
-        review, _ = ReviewReport.objects.get_or_create(trigger=trigger,
-                                                       reviewer=learner,
-                                                       have_emailed=False)
+            review, _ = ReviewReport.objects.get_or_create(trigger=trigger,
+                                                           reviewer=learner,
+                                                           have_emailed=False)
 
-        # Then send them an email, but only once
-        message = """
-        Reviewing and interacting with the work of other students helps
-        stimulate learning and insight you might not have developed otherwise.
+            # Then send them an email, but only once
+            message = """
+            Reviewing and interacting with the work of other students helps
+            stimulate learning and insight you might not have developed
+            otherwise.
 
-        So for the course {1} you are required to completed {0} reviews of work
-        from your peers. This is for the component of the course: {2}.
+            So for the course {1} you are required to completed {0} reviews of
+            work from your peers. This is for the component of the course: {2}.
 
-        Please complete the reviews as soon as possible to progress to the next
-        stages: evaluation, assessment and rebuttal.
+            Please complete the reviews as soon as possible to progress to the
+            next stages: evaluation, assessment and rebuttal.
 
-        You can start the review with <a href="{3}">this link</a>.
+            You can start the review with <a href="{3}">this link</a>.
 
-        You will receive an email for every review you are to complete.
+            You will receive an email for every review you are to complete.
 
-        Good luck!
-        """.format(GLOBAL.num_peers,
-                   trigger.entry_point.course,
-                   trigger.entry_point.LTI_title,
-                   settings.BASE_URL + '/review/' + review.unique_code)
-        subject = '[{0}]: start your peer review'.format(trigger.entry_point.course)
+            Good luck!
+            """.format(GLOBAL.num_peers,
+                       trigger.entry_point.course,
+                       trigger.entry_point.LTI_title,
+                       settings.BASE_URL + '/review/' + review.unique_code)
+            subject = '[{0}]: start your peer review'.format(\
+                                                trigger.entry_point.course)
 
-        if not(review.have_emailed):
-            send_email(learner.email, subject, messages=message, delay_secs=0)
+            if not(review.have_emailed):
+                send_email(learner.email, subject, messages=message,
+                           kedelay_secs=0)
 
-            # Ideally this is in the return hook, but for now leave it here.
-            review.have_emailed = True
-            review.save()
+                # Ideally this is in the return hook, but for now leave it here.
+                review.have_emailed = True
+                review.save()
+
+            # Update the allocation list
+            allocated = ReviewReport.objects.filter(trigger=trigger,
+                                                    reviewer=learner,
+                                                    have_emailed=True)
 
 
 # Functions related to the graph and grouping

@@ -63,7 +63,7 @@ class Person(models.Model):
     modified = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return u'{0}'.format(self.email)
+        return u'{0} [{1}]'.format(self.email, self.user_ID[0:5])
 
 
 
