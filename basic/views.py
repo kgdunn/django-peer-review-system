@@ -1,15 +1,17 @@
 from django.http import HttpResponse
 from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.clickjacking import xframe_options_exempt
 
 # Our imports
 from .models import Person, Course, EntryPoint
-#from submissions.models import Submission
-
 
 # Logging
 import logging
 logger = logging.getLogger(__name__)
 
+@csrf_exempt
+@xframe_options_exempt
 def entry_point_discovery(request):
     """
     All entries from the 3rd party LTI page start here. Bootstrap code to run
