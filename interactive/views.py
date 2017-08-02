@@ -489,7 +489,7 @@ def invite_reviewers(learner, trigger):
         allocated = ReviewReport.objects.filter(trigger=trigger,
                                                 reviewer=learner,
                                                 have_emailed=True)
-        while allocated.count() <= GLOBAL.num_peers:
+        while allocated.count() < GLOBAL.num_peers:
 
             review, _ = ReviewReport.objects.get_or_create(trigger=trigger,
                                                            reviewer=learner,
@@ -570,14 +570,16 @@ def group_graph(trigger):
     submitters = []
     for group in groups:
 
-        submitter = group.membership_set.filter(role='Submit')[0]
-        submitters.append(submitter)
-        graph.add_node(submitter.learner)
+        submitter = group.membership_set.filter(role='Submit')
+        if submitter.count() == 0:
+            continue
+        submitters.append(submitter[0])
+        graph.add_node(submitter[0].learner)
 
         reviewers = group.membership_set.filter(role='Review', fixed=True)
         for reviewer in reviewers:
             graph.add_node(reviewer.learner)
-            graph.add_edge(submitter.learner, reviewer.learner, weight=1)
+            graph.add_edge(submitter[0].learner, reviewer.learner, weight=1)
 
 
 
