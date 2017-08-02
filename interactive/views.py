@@ -521,7 +521,7 @@ def invite_reviewers(learner, trigger):
 
             if not(review.have_emailed):
                 send_email(learner.email, subject, messages=message,
-                           kedelay_secs=0)
+                           delay_secs=0)
 
                 # Ideally this is in the return hook, but for now leave it here.
                 review.have_emailed = True
