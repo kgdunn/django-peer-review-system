@@ -6,3 +6,5 @@ db.sqlite3
 .*\.json
 todo.txt
 documents
+local_settings.py
+
