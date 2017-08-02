@@ -122,10 +122,6 @@ def starting_point(request, course=None, learner=None, entry_point=None):
             continue
 
         func = getattr(module, trigger.function)
-        args = []
-        for item in trigger.args.split(','):
-            args.append(item)
-
         if trigger.kwargs:
             kwargs = json.loads(trigger.kwargs.replace('\r','')\
                                 .replace('\n','')\
@@ -144,7 +140,6 @@ def starting_point(request, course=None, learner=None, entry_point=None):
         # Call the function, finally.
         html_template, summary_template = func(trigger,
                                                 learner,
-                                                args,
                                                 ctx_objects=ctx_objects,
                                                 entry_point=entry_point,
                                                 gitem=gitem,
