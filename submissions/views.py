@@ -261,7 +261,7 @@ def upload_submission(request, learner, entry_point, trigger, no_thumbnail=True)
     if len(files) == 1:
         filename = files[0].name
         extension = filename.split('.')[-1].lower()
-        submitted_file_name_django = 'uploads/{0}/{1}'.format(entry.id,
+        submitted_file_name_django = 'uploads/{0}/{1}'.format(entry_point.id,
                       generate_random_token(token_length=16) + '.' + extension)
         full_path = base_dir_for_file_uploads + submitted_file_name_django
         with open(full_path, 'wb+') as dst:
