@@ -1,6 +1,5 @@
 from django.db import models
 from django.utils import timezone
-from django.utils.encoding import python_2_unicode_compatible
 from utils import generate_random_token
 """
 
@@ -82,7 +81,7 @@ Key assumptions:
 
 100 Process completed
 """
-@python_2_unicode_compatible
+
 class Trigger(models.Model):
     """
     Triggers are initiated when the learner gets to a certain score.
@@ -204,7 +203,7 @@ class Membership(models.Model):
 
 
 
-@python_2_unicode_compatible
+
 class ReviewReport(models.Model):
     """
     Used for coordinating the review process between submitter and reviewers.

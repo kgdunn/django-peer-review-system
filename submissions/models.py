@@ -1,6 +1,5 @@
 from django.db import models
 #from django.utils import timezone
-from django.utils.encoding import python_2_unicode_compatible
 from utils import generate_random_token
 import os
 
@@ -19,7 +18,6 @@ def peerreview_directory_path(instance, filename, randomize=True):
                                     os.sep,
                                     instance.entry.id,
                                     filename)
-@python_2_unicode_compatible
 class Submission(models.Model):
     """
     An instance of a submission for a learner/group of learners.

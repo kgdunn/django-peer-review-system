@@ -649,12 +649,23 @@ def get_learner_grouping(learner, entry_point):
 
 def review(request, unique_code=None):
     """
-    The review process starts here:
-    * create the rubric
-    * get the submission
-    * populate the rubric with the template
-    * prevent the document from being re-uploaded by submitter (fixed=True)
+    A review link (with ``unique_code``) is created the moment we have enough
+    submitters to pool up. The link is created, and shown in the user-interface
+    and (perhaps) they are emailed. When they visit that link, the review
+    process starts:
+    1/ create the rubric
+    2/ get the submission
+    3/ populate the rubric with the template
+    4/ prevent the document from being re-uploaded by submitter (fixed=True)
     """
+    reports = ReviewReport.objects.filter(unique_code=unique_code)
+    if reports.count() == 0:
+        return HttpResponse(("You've used an incorrect link. Please check the "
+                             'web address to ensure there was not a typing '
+                             'error.<p>No peer review found with that link.'))
+
+    # 1. Create the rubric
+
 
     text = 'Return <a href="/">home</a>'
     return HttpResponse(text)

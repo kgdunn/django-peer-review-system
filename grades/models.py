@@ -1,8 +1,6 @@
 from django.db import models
-from django.utils.encoding import python_2_unicode_compatible
 
 
-@python_2_unicode_compatible
 class GradeBook(models.Model):
     """
     A gradebook for a course.
@@ -20,7 +18,6 @@ class GradeBook(models.Model):
 
 # Our models for the phases uses ideas from:
 # https://docs.djangoproject.com/en/1.10/topics/db/models/#model-inheritance
-@python_2_unicode_compatible
 class GradeCategory(models.Model):
     """
     A category contains one or more GradeItems. A gradebook consists of
@@ -49,7 +46,7 @@ class GradeCategory(models.Model):
                                                     self.display_name,
                                                     self.weight*100)
 
-@python_2_unicode_compatible
+
 class GradeItem(models.Model):
     """
     An item in the gradebook. Each gradebook consists of one or more items
@@ -77,7 +74,6 @@ class GradeItem(models.Model):
         return '{0}. Item: {1}'.format(self.order, self.display_name)
 
 
-@python_2_unicode_compatible
 class LearnerGrade(models.Model):
     """
     A grade for the learner.
@@ -102,11 +98,4 @@ class LearnerGrade(models.Model):
             # Put code here to push the grades to Brightspace
             pass
         super(LearnerGrade, self).save(*args, **kwargs)
-
-
-
-
-
-
-
 

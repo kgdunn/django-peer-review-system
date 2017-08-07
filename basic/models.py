@@ -1,6 +1,5 @@
 from django.db import models
 from django.utils import timezone
-from django.utils.encoding import python_2_unicode_compatible
 #from django.core.urlresolvers import reverse
 #from django.core.exceptions import ValidationError
 #import os
@@ -12,7 +11,7 @@ from django.utils.encoding import python_2_unicode_compatible
 # Our imports
 from utils import generate_random_token
 
-@python_2_unicode_compatible
+
 class Course(models.Model):
     """ Which courses are being supported."""
     name = models.CharField(max_length=300, verbose_name="Course name")
@@ -38,7 +37,7 @@ class Course(models.Model):
 
 
 
-@python_2_unicode_compatible
+
 class Person(models.Model):
     """
     A learner, with their details provided from the LTI system.
@@ -67,7 +66,6 @@ class Person(models.Model):
 
 
 
-@python_2_unicode_compatible
 class Group(models.Model):
     """ Used when learners work/submit in groups."""
     #gp = models.ForeignKey(Group_Formation_Process)
@@ -96,7 +94,6 @@ class GroupEnrolled(models.Model):
     modified = models.DateTimeField(auto_now=True)
 
 
-@python_2_unicode_compatible
 class EntryPoint(models.Model):
     """ Describes the EntryPoint: requirements and deadlines.
 
@@ -145,6 +142,3 @@ class EntryPoint(models.Model):
 
     def __str__(self):
         return self.LTI_title
-
-
-
