@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'interactive',
     'submissions',
     'rubric',
+    'stats',
 
     # 3rd party imports
     'django_q',

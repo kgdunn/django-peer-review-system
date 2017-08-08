@@ -1,0 +1,49 @@
+{% extends "review/base.html" %}
+{% block content %}
+<style>
+body {
+    font-size: 11pt;
+}
+.main-container {
+  float: left;
+  position: relative;
+  left: 50%;
+  padding-top:3em;
+}
+.fixer-container {
+  float: left;
+  position: relative;
+  left: -50%;
+}
+
+.clear {clear: both;}
+</style>
+
+
+<div class="main-container">
+  <div class="fixer-container">
+    {% if n_missing %}
+    <p><span style="color:red"><b>There are missing items in your review, and it is therefore incomplete.</b></span> Further, the average review has {{median_words|floatformat}} words. Your review had {{word_count}} word{{word_count|pluralize:",s"}}*.
+    <p>Please <a href="/PUT_URL_HERE/{{return_URI_code}}/">click here to go back</a> and add the {{n_missing}} missing entr{{ n_missing|pluralize:"y,ies" }}.
+    <br><br><br>* We value <em>quality</em>, over <em>quantity</em>, however a low word count is associated with relatively less-helpful feedback.
+{% else %}
+    <p>Thank you. <span style="color:darkgreen"><b>Your review has been successfully received.</b></span>
+    <p>You may close this tab/window, and return back.
+    <br>
+    <p>Should you wish to update your review, you can always do so from the main course page, or by <a href="/PUT_URL_HERE/{{return_URI_code}}/">using this link</a>.
+    <p>
+    <br><br>The average review has {{median_words|floatformat}} words. Your review had {{word_count}} word{{word_count|pluralize:",s"}}*.
+    <br>* We value <em>quality</em>, over <em>quantity</em>, however a low word count is associated with relatively less-helpful feedback.
+    <br><hr><b>You gave this report a score of {{total_score|floatformat}} points</b> out of {{max_score|floatformat}}, or {{percentage|floatformat}}%
+    
+{% endif %}
+  </div>
+</div>
+
+
+
+{% endblock %}
+{% block footer %}
+
+
+{% endblock %}

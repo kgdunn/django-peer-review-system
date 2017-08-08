@@ -29,8 +29,11 @@ urlpatterns = [
     url(r'grades/', include('grades.urls')),
 
 
-    #
+    # The interactive (main page)
     url(r'interactive/', include('interactive.urls')),
+
+    # The review/rubric filling part, (re)submitting, XHR events
+    url(r'review/', include('rubric.urls')),
 
 ]
 
