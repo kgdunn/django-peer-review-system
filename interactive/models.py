@@ -18,7 +18,7 @@ Key assumptions:
                                                 submitted (again)
 10  Document is submitted and set; no more updates are possible
 
-
+SUBMISSION_FIXED = 10
 
 ---- Evaluation (by the student of their peer)
 
@@ -210,7 +210,7 @@ class ReviewReport(models.Model):
 
     The key point is that the ``ReviewReport`` instance is associated with the
     reviewer. When they visit the page, the review is assigned to them; not
-    ahead of time. Once assigned, the submitter cannot re-upload
+    ahead of time. Once assigned, the submitter cannot re-upload.
     """
     # Was ``learner`` when we copied this from v1.
     reviewer = models.ForeignKey('basic.Person')
@@ -230,11 +230,13 @@ class ReviewReport(models.Model):
     grpconf = models.ForeignKey(GroupConfig, null=True, blank=True,
             help_text='Not known, until the reviewer visits the page')
 
+
+    # This field is the linking key between ``ReviewReport`` and ``RubricActual``
+    # We could have merged both models, but they do belong logically separate.
     unique_code = models.CharField(max_length=16, editable=False, blank=True)
 
     created = models.DateTimeField(auto_now_add=True)
     last_viewed = models.DateTimeField(auto_now=True)
-
 
     # This is used to access the report in an external tab
     def save(self, *args, **kwargs):

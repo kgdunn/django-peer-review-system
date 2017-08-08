@@ -19,6 +19,8 @@ from .models import Trigger, GroupConfig, Membership, ReviewReport
 
 
 # Our other apps
+from rubric.views import handle_review, get_create_actual_rubric
+from rubric.models import RubricTemplate, RubricActual
 from grades.models import GradeItem, LearnerGrade
 from submissions.views import get_submission, upload_submission
 from submissions.models import Submission
@@ -38,6 +40,7 @@ GLOBAL = GLOBAL_Class()
 GLOBAL.num_peers = 2
 GLOBAL.min_in_pool_before_grouping_starts = 3
 GLOBAL.min_extras_before_more_groups_added = 3
+GLOBAL.SUBMISSION_FIXED = 10
 assert(GLOBAL.min_extras_before_more_groups_added >= (GLOBAL.num_peers+1))
 
 def starting_point(request, course=None, learner=None, entry_point=None):
@@ -55,11 +58,11 @@ def starting_point(request, course=None, learner=None, entry_point=None):
     else:
         return HttpResponse('Please create a GradeItem attached to this Entry')
 
-    gitem, first_time = LearnerGrade.objects.get_or_create(gitem=gitem,
+    grade, first_time = LearnerGrade.objects.get_or_create(gitem=gitem,
                                                            learner=learner)
     if first_time:
-        gitem.value = 0.0
-        gitem.save()
+        grade.value = 0.0
+        grade.save()
 
 
     # Step 2: Call all triggers:
@@ -114,9 +117,9 @@ def starting_point(request, course=None, learner=None, entry_point=None):
         run_trigger = True
         if (trigger.start_dt > now_time) and (trigger.end_dt <= now_time):
             run_trigger = False
-        if gitem.value > trigger.upper:
+        if grade.value > trigger.upper:
             run_trigger = False
-        if gitem.value < trigger.lower:
+        if grade.value < trigger.lower:
             run_trigger = False
         if not(run_trigger):
             continue
@@ -142,7 +145,7 @@ def starting_point(request, course=None, learner=None, entry_point=None):
                                                 learner,
                                                 ctx_objects=ctx_objects,
                                                 entry_point=entry_point,
-                                                gitem=gitem,
+                                                grade=grade,
                                                 request=request
                                                )
         html_trigger = Template(html_template).render(Context(ctx_objects))
@@ -154,7 +157,7 @@ def starting_point(request, course=None, learner=None, entry_point=None):
 
 
 
-def kick_off_email(trigger, learner, entry_point=None, gitem=None,
+def kick_off_email(trigger, learner, entry_point=None, grade=None,
                    request=None, **kwargs):
     """
     Initiates the kick-off email to the student, to encourage an upload.
@@ -164,15 +167,15 @@ def kick_off_email(trigger, learner, entry_point=None, gitem=None,
     template += '<br>kick_off_email'
     send_email(learner.email, subject, messages=template, delay_secs=0)
 
-    # Assume the email is successfully sent. Adjust the ``gitem``:
-    gitem.value = 1.0
-    gitem.save(push=True)
+    # Assume the email is successfully sent. Adjust the ``grade``:
+    grade.value = 1.0
+    grade.save(push=True)
 
     return ('', '')
 
 
 def submitted_doc(trigger, learner, ctx_objects=None, entry_point=None,
-                  gitem=None, **kwargs):
+                  grade=None, **kwargs):
     """
     The user has submitted their document:
     * send email to thank them
@@ -185,14 +188,14 @@ def submitted_doc(trigger, learner, ctx_objects=None, entry_point=None,
     template += '<br>submitted_doc'
     #send_email(learner.email, subject, messages=template, delay_secs=0)
 
-    # Email is successfully sent. Adjust the ``gitem`` to avoid spamming.
-    #gitem.value +1.0
-    #gitem.save(push=True)
+    # Email is successfully sent. Adjust the ``grade`` to avoid spamming.
+    #grade.value +1.0
+    #grade.save(push=True)
 
 
 
 
-def submission_form(trigger, learner, entry_point=None, gitem=None,
+def submission_form(trigger, learner, entry_point=None, grade=None,
                    request=None, ctx_objects=dict(), **kwargs):
     """
     Displays the submission form, and handles the upload of it.
@@ -278,8 +281,8 @@ def submission_form(trigger, learner, entry_point=None, gitem=None,
                 prior_submission.is_valid = True
                 prior_submission.save()
 
-                gitem.value = 10.0
-                gitem.save(push=True)
+                grade.value = 10.0
+                grade.save(push=True)
                 submit_inst = (submit_inst, ('Your submission has been refused;'
                                ' a peer has just started reviewing your work.'))
 
@@ -292,9 +295,9 @@ def submission_form(trigger, learner, entry_point=None, gitem=None,
             # Successfully uploaded a document
             submission_error_message = ''
             submission = submit_inst
-            gitem.value += 1
-            gitem.value = min(max(gitem.value, 3.0), 9.0)
-            gitem.save(push=True)
+            grade.value += 1
+            grade.value = min(max(grade.value, 3.0), 9.0)
+            grade.save(push=True)
 
             # Create a group with this learner as the submitter
             already_exists = Membership.objects.filter(learner=learner,
@@ -325,7 +328,7 @@ def submission_form(trigger, learner, entry_point=None, gitem=None,
 
     html_text = trigger.template
 
-    if gitem.value  < 10.0:
+    if grade.value  < 10.0:
         trigger.allow_submit = True  # False, if no more submissions allowed
     else:
         trigger.allow_submit = False
@@ -333,7 +336,7 @@ def submission_form(trigger, learner, entry_point=None, gitem=None,
     return html_text, summary_line
 
 
-def submitted_already(trigger, learner, entry_point=None, gitem=None,
+def submitted_already(trigger, learner, entry_point=None, grade=None,
                     request=None, ctx_objects=dict(), **kwargs):
 
     """
@@ -350,16 +353,12 @@ def submitted_already(trigger, learner, entry_point=None, gitem=None,
     # Get the (prior) submission
     trigger.submission = get_submission(learner, entry_point)
 
-    # Should any reviewers be invited?
-    assert(False)
-    invite_reviewers(learner, trigger)
-
     summary_line = ['You uploaded on ...', 'LINK'] # what if there's an error?
     return (trigger.template, summary_line)
 
 
 
-def get_learners_reviews(learner, gitem, trigger):
+def get_learners_reviews(learner, grade, trigger):
     """
     Returns a list. Each item contains a tuple. The first entry is the CSS
     class, for formatting. The second entry is the actual text, link, HTML, etc.
@@ -389,7 +388,7 @@ def get_learners_reviews(learner, gitem, trigger):
     return out
 
 
-def get_if_peer_has_read(learner, gitem, trigger):
+def get_if_peer_has_read(learner, grade, trigger):
     out = []
     for idx in range(GLOBAL.num_peers):
         out.append(('future-text', 'text here'))
@@ -397,25 +396,25 @@ def get_if_peer_has_read(learner, gitem, trigger):
     return out
 
 
-def get_peers_evaluation_of_review(learner, gitem, trigger):
+def get_peers_evaluation_of_review(learner, grade, trigger):
     out = []
     for idx in range(GLOBAL.num_peers):
-        if gitem.value <= 60:
+        if grade.value <= 60:
             out.append(('future-text','peers evaluation of your review link'))
 
     return out
 
 
-def get_assess_rebuttal(learner, gitem, trigger):
+def get_assess_rebuttal(learner, grade, trigger):
     out = []
     for idx in range(GLOBAL.num_peers):
-        if gitem.value <= 80:
+        if grade.value <= 80:
             out.append(('future-text', 'assess their rebuttal of your review link'))
 
     return out
 
 
-def interactions_to_come(trigger, learner, entry_point=None, gitem=None,
+def interactions_to_come(trigger, learner, entry_point=None, grade=None,
                          request=None, ctx_objects=dict(), **kwargs):
     """
     WRONG: Does nothing of note, other than display the remaining steps for
@@ -433,16 +432,16 @@ def interactions_to_come(trigger, learner, entry_point=None, gitem=None,
     peer = {}  # Reviewer's evaluation of their peers' work stored in here.
 
     peer['start_or_completed_review'] = get_learners_reviews(learner,
-                                                             gitem,
+                                                             grade,
                                                              trigger)
     peer['peer_has_read'] = get_if_peer_has_read(learner,
-                                                 gitem,
+                                                 grade,
                                                  trigger)
     peer['evaluation_of'] = get_peers_evaluation_of_review(learner,
-                                                           gitem,
+                                                           grade,
                                                            trigger)
     peer['assess_rebut'] = get_assess_rebuttal(learner,
-                                               gitem,
+                                               grade,
                                                trigger)
 
     for idx in range(GLOBAL.num_peers):
@@ -484,11 +483,11 @@ def invite_reviewers(learner, trigger):
     #
     # The number of Submissions should be equal to the nubmer of nodes in graph:
     graph = group_graph(trigger)
-    if len(valid_subs) != graph.order():
+    if len(valid_subs) != graph.graph.order():
         logger.warn(('Number of valid subs [{0}]is not equal to graph '
-                     'order [{1}]'.format(len(valid_subs), graph.order())))
+                'order [{1}]'.format(len(valid_subs), graph.graph.order())))
 
-    for learner in graph.nodes():
+    for learner in graph.graph.nodes():
         # These ``Persons`` have a valid submission. Invite them to review.
         # Has a reviewer been allocated this submission yet?
         allocated = ReviewReport.objects.filter(trigger=trigger,
@@ -540,7 +539,7 @@ def invite_reviewers(learner, trigger):
 
 # Functions related to the graph and grouping
 # -------------------------------------------
-def group_graph(trigger):
+class group_graph(object):
     """
     Creates the group graph.
 
@@ -570,50 +569,99 @@ def group_graph(trigger):
     ## Do the group formation / regrouping here
     #GroupConfig.Lock.locked = True
     """
-    groups = GroupConfig.objects.filter(entry_point=trigger.entry_point)
-    graph = nx.DiGraph()
-    submitters = []
-    for group in groups:
+    def __init__(self, trigger):
 
-        submitter = group.membership_set.filter(role='Submit')
-        if submitter.count() == 0:
-            continue
-        submitters.append(submitter[0])
-        graph.add_node(submitter[0].learner)
+        groups = GroupConfig.objects.filter(entry_point=trigger.entry_point)
+        self.graph = nx.DiGraph()
+        self.trigger = trigger
+        submitters = []
+        for group in groups:
 
-        reviewers = group.membership_set.filter(role='Review', fixed=True)
-        for reviewer in reviewers:
-            graph.add_node(reviewer.learner)
-            graph.add_edge(submitter[0].learner, reviewer.learner, weight=1)
+            submitter = group.membership_set.filter(role='Submit')
+            if submitter.count() == 0:
+                continue
+            submitters.append(submitter[0])
+            self.graph.add_node(submitter[0].learner)
+
+            reviewers = group.membership_set.filter(role='Review', fixed=True)
+            for reviewer in reviewers:
+                self.graph.add_node(reviewer.learner)
+                self.graph.add_edge(submitter[0].learner,
+                                    reviewer.learner,
+                                    weight=1)
+
+
+    def get_next_review(self, exclude=None):
+        """
+        Given the graph, get the next reviewer.
+
+        You can optionally specify the ``
+        """
+        potential = self.graph.nodes()
+        if exclude:
+            index = potential.index(exclude)
+            potential.pop(index)
+
+        shuffle(potential)
+        in_degree = []
+        for idx, node in enumerate(potential):
+            in_degree.append((self.graph.in_degree(node), idx))
+
+        in_degree.sort()
+        next_one = in_degree.pop(0)
+
+        if next_one[0] <= GLOBAL.num_peers:
+            return potential[next_one[1]]
+        else:
+            return None
+
+
+    def get_submitter_to_review(self, exclude_reviewer):
+        """
+        Get the next submitter's work to review. You must specify the
+        reviewer's Person instance, to ensure they are excluded as a
+        potential submission to evaluate.
+
+
+        Rules:
+        1. Arrows go FROM the submitter, and TO the reviewer.
+        2. Avoid an arrow back to the submitter
+        3. If unavoidable, go to the person with the least number of allocated
+           reviews (incoming arrows)
+        4. After that, assign randomly.
+        """
+
+        # TODO: ensure the submitter's work is not reviewed too many times
+
+        potential = self.graph.nodes()
+        if exclude_reviewer:
+            index = potential.index(exclude_reviewer)
+            potential.pop(index)
+
+        # Important to shuffle here, so the indices are randomized
+        shuffle(potential)
+
+        # tuple-order: (outdegree, indegree, node_index)
+        allocate = []
+        for idx, node in enumerate(potential):
+            allocate.append((self.graph.out_degree(node),
+                             self.graph.in_degree(node),
+                             idx))
+
+        # Even now when we sort, we are sorting on indices that have been
+        # randomly allocated
+        allocate.sort()
+
+        next_one = allocate.pop(0)
+        while (next_one[0] <= GLOBAL.num_peers) and (self.graph.has_edge(\
+                potential[next_one[2]], exclude_reviewer)):
+            next_one = allocate.pop(0)
+
+        return potential[next_one[2]]
 
 
 
 
-    return graph
-
-def get_next_reviewer(graph, exclude=None):
-    """
-    Given the graph, get the next available reviewer.
-
-    You can optionally specify the ``
-    """
-    potential = graph.nodes()
-    if exclude:
-        index = potential.index(exclude)
-        potential.pop(index)
-
-    shuffle(potential)
-    in_degree = []
-    for idx, node in enumerate(potential):
-        in_degree.append((graph.in_degree(node), idx))
-
-    in_degree.sort()
-    next_one = in_degree.pop(0)
-
-    if next_one[0] <= GLOBAL.num_peers:
-        return potential[next_one[1]]
-    else:
-        return None
 
 def get_learner_grouping(learner, entry_point):
     """
@@ -647,25 +695,95 @@ def get_learner_grouping(learner, entry_point):
     return out
 
 
+
+
+
 def review(request, unique_code=None):
     """
     A review link (with ``unique_code``) is created the moment we have enough
     submitters to pool up. The link is created, and shown in the user-interface
     and (perhaps) they are emailed. When they visit that link, the review
     process starts:
-    1/ create the rubric
-    2/ get the submission
-    3/ populate the rubric with the template
-    4/ prevent the document from being re-uploaded by submitter (fixed=True)
+    1/ Select a submission to attach this to, if not already attached.
+    2/ prevent the document from being re-uploaded by submitter (fixed=True)
+    3/ create rubric / Get the rubric (with prior filled in answers)
+    4/ Return the rendered HTML to the reviewer.
     """
     reports = ReviewReport.objects.filter(unique_code=unique_code)
-    if reports.count() == 0:
+    if reports.count() != 1:
+        logger.error('Incorrect review requested: {}'.format(unique_code))
         return HttpResponse(("You've used an incorrect link. Please check the "
                              'web address to ensure there was not a typing '
                              'error.<p>No peer review found with that link.'))
 
-    # 1. Create the rubric
+    report = reports[0]
 
 
-    text = 'Return <a href="/">home</a>'
-    return HttpResponse(text)
+    # 1. Select a submission to attach this to, if not already attached.
+    if report.submission:
+        return handle_review(request, unique_code)
+
+
+    graph = group_graph(report.trigger)
+    submitter = graph.get_submitter_to_review(exclude_reviewer=\
+                                                         report.reviewer)
+
+    valid_subs = Submission.objects.filter(is_valid=True,
+                                    entry_point=report.trigger.entry_point,
+                                    submitted_by=submitter)
+    if valid_subs.count() != 1:
+        logger.error(('Found more than 1 valid Submission for {} in entry '
+                      'point {}'.format(valid_subs,
+                                        report.trigger.entry_point)))
+    submission = valid_subs[0]
+    report.submission = submission
+    report.save()
+
+    # 2. Prevent the document from being re-uploaded by submitter
+    #    Do this by altering the grade of the submitter to have a minimum
+    #    value of 10.
+    gitem = GradeItem.objects.get(entry=report.trigger.entry_point)
+    grade = LearnerGrade.objects.get(gitem=gitem, learner=submitter)
+    grade.value = max(GLOBAL.SUBMISSION_FIXED, grade.value)
+    grade.save()
+
+
+
+    if report.grpconf is None: # which it also should be ...
+        submitter_member = Membership.objects.get(learner=submitter,
+                                                  role='Submit',
+                                                  fixed=True,
+                            group__entry_point=report.trigger.entry_point)
+
+        new_membership, _ = Membership.objects.get_or_create(role='Review',
+                                                             fixed=True,
+                                            learner=report.reviewer,
+                                            group=submitter_member.group)
+
+
+        report.grpconf = new_membership.group
+        report.save()
+
+
+    # Lastly, also create a RubricActual instance
+
+    # Creates a new actual rubric for a given ``learner`` (the person
+    # doing the) evaluation. It will be based on the parent template
+    # defined in ``template``, and for the given ``submission`` (either
+    # their own submission if it is a self-review, or another person's
+    # submission for peer-review).
+
+    get_create_actual_rubric(learner=report.reviewer,
+                             trigger=report.trigger,
+                             submission=submission,
+                             rubric_code=unique_code)
+
+
+
+    # Finally, return to the same point as if we were at the top of this func.
+    return handle_review(request, unique_code)
+
+
+
+
+

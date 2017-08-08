@@ -37,7 +37,13 @@ class Submission(models.Model):
     submitted_by = models.ForeignKey('basic.Person')
     group_submitted = models.ForeignKey('basic.Group', blank=True, null=True,
         default=None, help_text="If a group submission, it links back to it.")
+
+
+    # ``status`` is probably not used in the old code, and definitely not in
+    # the new version
     status = models.CharField(max_length=2, choices=STATUS, default='N')
+
+
     entry_point = models.ForeignKey('basic.EntryPoint',
                                     verbose_name="Entry point")
 

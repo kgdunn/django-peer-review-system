@@ -1,0 +1,294 @@
+{% extends "basic/base.html" %}
+{% block header %}
+
+<style>
+.box a:hover {
+    text-decoration: none;
+}
+
+.button {
+  font-size: 1em;
+  padding: 2px;
+  color: #00f;
+  text-decoration: none;
+  cursor: pointer;
+  border-radius: 15px;
+}
+.box {
+  width: 50%;
+  margin: 0 auto;
+  padding: 2px;
+  border: 2px solid #fff;
+  border-radius: 25px;
+  text-align: center;
+}
+
+.button:hover {
+  background: #FFFFFF;
+    margin: 0 auto;
+}
+.overlay {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.2);
+  visibility: hidden;
+  opacity: 0;
+}
+.overlay:target {
+  visibility: visible;
+  opacity: 1;
+}
+.popup {
+  margin: 30px auto;
+  padding: 20px;
+  background: #fff;
+  border-radius: 5px;
+  width: 30%;
+  margin-right:100px;
+  float:right;
+}
+.popup h2 {
+    font-size:1.5em;
+  margin-top: 0;
+  color: #333;
+  font-family: sans-serif;
+}
+.popup .close {
+  position: absolute;
+  float:right;
+  top: 30px;
+  right: 110px;
+  font-size: 30px;
+  font-weight: bold;
+  text-decoration: none;
+  color: #333;
+}
+.popup .close:hover {
+  color: #FF0000;
+}
+.popup .content {
+  max-height: 80%;
+  overflow: auto;
+}
+
+@media screen and (max-width: 700px){
+  .box{
+    width: 70%;
+  }
+  .popup{
+    width: 70%;
+  }
+}
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div id="header">
+    <div id="review-realtime-feedback" style="float:right; padding-top: 1em; padding-right: 1em;"></div>
+    <h2>Hello {{person.display_name}}</h2>
+    {% if show_feedback %}
+        Your report is shown below, with the review from {{report.n_reviews}} reviewer{{report.n_reviews|pluralize}}
+        {% if self_review %}. If this is a self-review, some of the comments and scores might be your own. <span style="color: orange">Your average score is {{report.learner_average}}.</span>
+        {% else %} (including instructor/TA). <span style="color: orange">The scores include the instructor and peer scores (randomized).</span>
+                  Comments, and grades, from your peers are in random order (if you reload the page you will notice that the order changes).
+        {% endif %}{# self_review #}
+
+    {% else %}
+        <p>The work you are required to review is shown below. <span style="color: orange">You can start the review, come back later to continue editing and adding feedback. Your work is continually saved as you type and evaluate your peers.</span> <br>If you do not see any document here then you should please <a href="/{{submission.file_upload.url}}" target="_blank">first download it</a>.
+    {% endif %}
+
+</div>
+
+<div class="colmask rightmenu">
+    <div class="colleft">
+        <div class="col1">
+            <!-- Column 1 start -->
+            <object data="/{{submission.file_upload.url}}" type="application/pdf"
+                width="100%" height="84%">
+                alt : <a href="/{{submission.file_upload.url}}">Peer review document</a>
+            </object>
+            <!-- Column 1 end -->
+        </div>
+        <div class="col2">
+            <!-- Column 2 start -->
+
+        {% spaceless %}
+        {% if not show_feedback %}
+            {{rubric.general_instructions|safe}}
+            <br>
+            <form action="{% url 'submit_peer_review_feedback' ractual_code=ractual_code %}"
+                  method="POST" enctype="multipart/form-data">{% csrf_token %}
+            <div class="submit_button" ><input  type="submit" name="{{ractual_code}}" value="Submit your review"></div>
+            <hr>
+        {% endif %}
+        <div class="clear"></div>
+
+            {% for item in r_item_actuals %} {# This alternates the major ITEMS in the rubric #}
+                <fieldset id="fieldset-item-{{item.ritem_template.order}}" class="{% cycle 'odd' 'even' %}">
+                {# Criterion is given here #}
+                {% if rubric.show_order %}{{item.ritem_template.order}}. {% endif %}
+                {{item.ritem_template.criterion|safe}} <span style="float:right; margin-bottom:10px">(maximum score: <b>{{item.ritem_template.max_score|floatformat}} point{{item.ritem_template.max_score|pluralize}}</b>)</span>
+                <hr>
+
+                {% for option in item.options %}
+                    {% if item.ritem_template.option_type == 'Radio' %}
+                    <div class="radio">
+                        <label><span class="radio_button peeroption"><input type="radio" name="item-{{item.ritem_template.order}}" id="item-{{item.ritem_template.order}}" value="option-{{option.order}}"
+                        {%if option.selected and not show_feedback %}checked="checked"{% endif %} {%if show_feedback%}disabled="disabled" {% endif %}></span><span class="radio_text"><b>{{option.score|floatformat}} point{{option.score|pluralize}}</b>: {{option.criterion|safe}} </span></label>
+                    </div>
+                    {% endif %}
+                    {% if item.ritem_template.option_type == 'Chcks' %}
+                        <div class="checkbox">
+                            <label><span class="checkbox peeroption"><input type="checkbox" name="item-{{item.ritem_template.order}}" value="option-{{option.order}}"
+                            {%if option.selected%}checked="checked"{% endif %}></span><span class="checkbox_text">{{option.criterion|safe}}</span></label>
+                        </div>
+                    {% endif %}
+                    {% if item.ritem_template.option_type == 'DropD' %}
+                       {% if option.criterion %}
+                           <ul><b>{{option.score|floatformat}} point{{option.score|pluralize}}</b>: {{option.criterion|safe}}</ul>
+                       {% endif %}
+                    {% endif %}
+
+                    {% if item.ritem_template.option_type == 'LText' %}
+                        <div  class="LText" style="display: block;" id="item-{{item.ritem_template.order}}">
+                            <label for="item-{{item.ritem_template.order}}" id="item-{{item.ritem_template.order}}"></label>
+                            {% if show_feedback %}
+                                {% if item.results.0 %}
+                                    The feedback you received from your peers was:
+                                    <div class="textwrapper">
+                                        <textarea cols="2" rows="10" name="item-{{item.ritem_template.order}}" readonly>{{item.results.0}}</textarea>
+                                    </div>
+                                {% endif %}
+                                {% if item.results.4%}
+                                The feedback you received from your instructor/TA/expert was:
+                                <div class="textwrapper">
+                                    <textarea cols="2" rows="10" name="item-{{item.ritem_template.order}}" readonly>{{item.results.4}}</textarea>
+                                </div>
+                                {% endif %}
+                            {% else %}
+                                <div class="textwrapper">
+                                    <textarea class="pr-textarea" cols="2" rows="10" name="item-{{item.ritem_template.order}}" placeholder="{{option.criterion}}">{{option.prior_text}}</textarea>
+                                </div>
+                            {% endif %}
+
+                        </div>
+                    {% endif %}
+                {% endfor %} {#for: option in item.options #}
+                {% if show_feedback %} {# show peer/self feedback #}
+                    {% if item.ritem_template.option_type == 'LText' %}{% endif%}
+                    {% if item.ritem_template.option_type == 'DropD' or item.ritem_template.option_type == 'Radio' %}
+                        <em>Score received</em>:
+                        {{item.results.0}}; average value = {{item.results.2|floatformat}}
+                    {% endif %}
+                {% else %}
+                    {%if item.ritem_template.option_type == 'DropD'%}
+                    <div class="dropdown-score" style="padding:	10px">
+                    Your evaluation:
+                    <select id="item-{{item.ritem_template.order}}" name="item-{{item.ritem_template.order}}" required>
+                    <option value="option-NA" selected disabled>Based on the above descriptions, please give a score ...</option>
+                        {% for option in item.options %}
+                            <option class="peeroption" value="option-{{option.order}}"{%if option.selected%} selected="selected"{% endif %}>{{option.score|floatformat}} point{{option.score|pluralize}}</option>
+                        {% endfor %}
+                    </select>
+                    </div>
+                    {% endif %} {#item.ritem_template.option_type#}
+                {% endif %} {# ``show_feedback``: show peer/self feedback #}
+
+
+                </fieldset>
+            <hr>
+            {% endfor %}
+        {% if not show_feedback %}
+            <span class="submit_button" ><input type="submit" name="below-{{ractual_code}}" value="Submit your review"></span>
+            </form>
+            Don't forget to submit your review when complete.
+        {% endif %}
+        {% endspaceless %}
+            <!-- Column 2 end -->
+        </div>
+    </div>
+</div>
+
+<div id="footer">
+</div>
+
+{% endblock %}
+{% block footer %}
+
+<script language="javascript" type="text/javascript">
+{% if not show_feedback %}
+$( "input" ).click(function (event) {
+    var postdata = {'csrfmiddlewaretoken': '{{ csrf_token }}',
+                    'option': event.target.value,
+                    'item': event.target.id};
+    $.ajax({
+        method: "POST",
+        url: '{% url 'xhr_store' ractual_code=ractual_code %}',
+        data: postdata,
+        cache: false,
+        dataType: 'html'
+    })
+    .always(function(html_response) {
+        $('#review-realtime-feedback').html(html_response);
+    });
+
+}).change();
+{% endif %}
+
+$( "select" ).change(function (event) {
+    var postdata = {'csrfmiddlewaretoken': '{{ csrf_token }}',
+                    'option': event.target.value,
+                    'item': event.target.id};
+    $.ajax({
+        method: "POST",
+        url: '{% url 'xhr_store' ractual_code=ractual_code %}',
+        data: postdata,
+        cache: false,
+        dataType: 'html'
+    })
+    .always(function(html_response) {
+        $('#review-realtime-feedback').html(html_response);
+    });
+
+}).change();
+
+
+$(document).ready(function() {
+    var timer = null;
+    $('.pr-textarea').on("keydown", function(event) {
+        if (timer){
+            window.clearTimeout(timer);
+        };
+        timer = window.setTimeout(function(event)
+        {
+            var postdata = {'csrfmiddlewaretoken': '{{ csrf_token }}'};
+            $('.pr-textarea').each(function() {
+                postdata[$(this).attr('name')] = $(this).val();
+            });
+
+            $.ajax(
+            {
+                type: "POST",
+                url: '{% url 'xhr_store_text' ractual_code=ractual_code %}',
+                data: postdata,
+                cache: false,
+                success: function(html_response) {$('#review-realtime-feedback').html(html_response);},
+                error: function (response, desc, exception) {// custom error
+                }
+            });
+        }, 1000);
+    });
+});
+{# http://stackoverflow.com/questions/1620602/javascript-jquery-make-an-ajax-request-when-a-user-is-typing-in-a-textarea    http://stackoverflow.com/questions/10018437/jquery-ajax-autosave-for-textareas #}
+</script>
+
+
+</script>
+{% endblock %}
+
+
+

@@ -5,7 +5,13 @@ from .models import RItemTemplate, RItemActual
 from .models import ROptionTemplate, ROptionActual
 
 
-admin.site.register(RubricTemplate)
+class RubricTemplateAdmin(admin.ModelAdmin):
+    list_display = ("title", "entry_point", "trigger", "maximum_score",
+                    "show_order", "created", "modified")
+    list_max_show_all = 500
+    list_per_page = 500
+admin.site.register(RubricTemplate, RubricTemplateAdmin)
+
 
 
 class RubricActualAdmin(admin.ModelAdmin):
@@ -46,6 +52,6 @@ class ROptionTemplateAdmin(admin.ModelAdmin):
     ordering = ['rubric_item', 'order']
 
     list_filter = ['rubric_item__r_template',
-                   'rubric_item__r_template__pr_process', ]
+                   'rubric_item__r_template__entry_point', ]
 admin.site.register(ROptionTemplate, ROptionTemplateAdmin)
 

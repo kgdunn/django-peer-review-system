@@ -15,12 +15,16 @@ class RubricTemplate(models.Model):
     title = models.CharField(max_length=300, verbose_name="Peer review rubric")
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
-    pr_process = models.ForeignKey('basic.EntryPoint', default=None,
+
+    # Was: ``pr_process``
+    entry_point = models.ForeignKey('basic.EntryPoint', default=None,
                                    null=True, blank=True)
 
     # Make this the primary way to access the rubric (through a Trigger, not
     # an EntryPoint)
-    phase = models.ForeignKey('interactive.Trigger', default=None,
+
+    # Was ``phase``
+    trigger = models.ForeignKey('interactive.Trigger', default=None,
                               null=True, blank=True)
 
     general_instructions = models.TextField(default='')
