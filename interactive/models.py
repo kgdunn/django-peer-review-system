@@ -6,6 +6,20 @@ from utils import generate_random_token
 Key assumptions:
 * You have to submit before you can start reviewing others
 
+3	Submitted a document the first time      -> update text in page; thank email
+10  Document is submitted and set; no more updates are possible
+11 Has read received reviews
+15 Has read received reviews
+20	Started review of peer's work
+25	Completed review of peer's work     -> web update for both sides
+31 Has completely evaluated review from peer 1 -> weblink to see peer's eval
+41 Has read evaluation received back from peer 1
+61 Has written rebuttal to peers
+71 Has read the rebuttal received from peer 1
+81 Has assessed the rebuttal received from peer 1
+91 Has seen assessment from peer 1
+100 Process completed
+
 
 ---- Submission (by the student)
 0	Not started, visited the starting page   -> send email
@@ -22,24 +36,26 @@ SUBMISSION_FIXED = 10
 
 ---- Evaluation (by the student of their peer)
 
-11 Has read received review from peer 1  -> web update only (both sides)
-12 Has read received review from peer 2  -> web update only & email after == N
-13 Has read received review from peer 3
-14 Has read received review from peer 4
-15 Has read received review from peer 5  -> web update only & email after == N
-                                            * email submitter. Reviews are in,
-                                              and time to evaluate feedback from peers.
+# Cannot be tracked with grades
+#11 Has read received review from peer 1  -> web update only (both sides)
+#12 Has read received review from peer 2  -> web update only & email after == N
+#13 Has read received review from peer 3
+#14 Has read received review from peer 4
+#15 Has read received review from peer 5  -> web update only & email after == N
+#                                            * email submitter. Reviews are in,
+#                                              and time to evaluate feedback from peers.
 
 ---- Review (by the student of their peers)
 20	Started review of peer 1's work
-21	Completed review of peer 1's work     -> web update for both sides
-22	Started review of peer 2's work
-23	Completed review of peer 2's work     -> web update for both sides
-24	Started review of peer 3's work
-25	Completed review of peer 3's work
-26	Started review of peer 4's work
-27	Completed review of peer 4's work
-28	Started review of peer 5's work
+21	Started review of peer 2's work
+22	Started review of peer 3's work
+23	Started review of peer 4's work
+24	Started review of peer 5's work
+
+25	Completed review of peer 1's work     -> web update for both sides
+26	Completed review of peer 2's work     -> web update for both sides
+27	Completed review of peer 3's work
+28	Completed review of peer 4's work
 29	Completed review of peer 5's work
 
 
@@ -234,6 +250,12 @@ class ReviewReport(models.Model):
     # This field is the linking key between ``ReviewReport`` and ``RubricActual``
     # We could have merged both models, but they do belong logically separate.
     unique_code = models.CharField(max_length=16, editable=False, blank=True)
+
+    # This code is filled in only when the submitter of the original submission
+    # can come read the review. Prior to that the review is editable for the
+    # reviewer.
+    submitter_read = models.CharField(max_length=16, editable=False, blank=True)
+
 
     created = models.DateTimeField(auto_now_add=True)
     last_viewed = models.DateTimeField(auto_now=True)

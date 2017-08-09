@@ -5,5 +5,5 @@ from . import views
 urlpatterns = [
     url(r'^(?P<unique_code>.+)/$',
         views.review,
-        name='review')
+        name='review_with_unique_code')
 ]

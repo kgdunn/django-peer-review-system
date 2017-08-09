@@ -5,10 +5,16 @@ from django.template.context_processors import csrf
 from django.views.decorators.clickjacking import xframe_options_exempt
 from django.utils import timezone
 
+# Python and 3rd party imports
+import re
+import datetime
+import numpy as np
+
 # 3rd party models
 from stats.views import create_hit
+from grades.models import GradeItem, LearnerGrade
 
-
+# Our imports
 from .models import RubricTemplate, RubricActual
 from .models import RItemTemplate, RItemActual
 from .models import ROptionTemplate, ROptionActual
@@ -24,22 +30,20 @@ logger = logging.getLogger(__name__)
 def handle_review(request, ractual_code):
     """
     From the unique URL:
-
     1. Get the ``RubricActual`` instance
     2. Format the text for the user
-    3. Handle interactions and XHR saving.
 
     The user coming here is either:
-    a) reviewing their own report (self-review)
-    b) reviewing a peer's report (peer-review)
-    c) self-review, but with their group's feedback (read-only mode)
-    d) peer-review, but with their peer's feedback (peer-review, read-only)
+    a) reviewing a peer's report (peer-review)
+    b) the submitter, looking at their peers' feedback (peer-review, read-only)
     """
-    self_review = False
+    show_feedback = False       # True for case (b) above, else it is case (a)
     report = {}
     r_actual, reviewer = get_learner_details(ractual_code)
 
-    # TODO: code here incase the r_actual was not found
+    # The submitter is coming to read the review.
+    #submitter_read
+
 
     logger.debug('Getting review for {0}:'.format(reviewer))
 
@@ -98,13 +102,21 @@ def handle_review(request, ractual_code):
         create_hit(request, item=r_actual, event='start-a-review-session',
                    user=reviewer, other_info='Fresh start')
 
+        gitem = GradeItem.objects.get(entry=r_actual.rubric_template.entry_point)
+        grade = LearnerGrade.objects.get(gitem=gitem, learner=reviewer)
+        THRESHOLD_REVIEW_STARTING = 20.0
+        THRESHOLD_REVIEW_ENDING = 24.0
+        grade.value = min(THRESHOLD_REVIEW_ENDING,
+                          max(THRESHOLD_REVIEW_STARTING, grade.value+1))
+        grade.save()
+
     ctx = {'ractual_code': ractual_code,
            'submission': r_actual.submission,
            'person': reviewer,
            'r_item_actuals' : r_item_actuals,
            'rubric' : r_actual.rubric_template,
            'report': report,
-           'self_review': self_review,
+           'show_feedback': False
            }
     return render(request, 'rubric/review_peer.html', ctx)
 
@@ -119,8 +131,8 @@ def submit_peer_review_feedback(request, ractual_code):
     # 2. Create OptionActuals
     # 3. Calculate score for evaluations?
 
-    r_actual, learner = get_learner_details(ractual_code)
-    if learner is None:
+    r_actual, reviewer = get_learner_details(ractual_code)
+    if reviewer is None:
         # This branch only happens with error conditions.
         return r_actual
 
@@ -171,55 +183,153 @@ def submit_peer_review_feedback(request, ractual_code):
     words = [r.word_count for r in RubricActual.objects.filter(status='C')]
     words = np.array(words)
     median_words = np.median(words[words!=0])
+    if np.isnan(median_words):
+        median_words = 0
 
     if request.POST:
+        request.POST._mutable = True
         request.POST.pop('csrfmiddlewaretoken', None) # don't want this in stats
+        request.POST._mutable = False
     if len(items) == 0:
-        # And once we have processed all options and all items, we can also:
+        # Once we have processed all options, and all items, the length is
+        # zero, so we can also:
         r_actual.submitted = True
-        r_actual.completed = datetime.datetime.utcnow()
+        r_actual.completed = timezone.now()
         r_actual.status = 'C' # completed
         r_actual.word_count = word_count
         r_actual.score = total_score
         r_actual.save()
 
         # Also mark the Submission as having one extra completed review:
-        r_actual.submission.number_reviews_completed += 1
-        r_actual.submission.save()
+        #r_actual.submission.number_reviews_completed += 1
+        #r_actual.submission.save()
+
+        # Set the student's grade
+        gitem = GradeItem.objects.get(entry=r_actual.rubric_template.entry_point)
+        grade = LearnerGrade.objects.get(gitem=gitem, learner=reviewer)
+        THRESHOLD_REVIEW_COMPLETED_START = 25.0
+        THRESHOLD_REVIEW_COMPLETED_END = 29.0
+        grade.value = min(THRESHOLD_REVIEW_COMPLETED_END,
+                          max(THRESHOLD_REVIEW_COMPLETED_START,
+                                  grade.value+1))
+        grade.save()
 
 
 
         logger.debug('ALL-DONE: {0}. Median={1} vs Actual={2}; Score={3}'\
-                     .format(learner, median_words, word_count, total_score))
+                     .format(reviewer, median_words, word_count, total_score))
         create_hit(request, item=r_actual, event='ending-a-review-session',
-                   user=learner, other_info=('COMPLETE; Median={0} vs '
+                   user=reviewer, other_info=('COMPLETE; Median={0} vs '
                      'Actual={1}; Score={2}||').format(median_words, word_count,
                                     total_score) + str(request.POST))
     else:
         r_actual.submitted = False
         r_actual.completed = r_actual.started
-        r_actual.status = 'P' # In progress
+        r_actual.status = 'P' # Still in progress
         r_actual.word_count = word_count
         r_actual.save()
         create_hit(request, item=r_actual, event='ending-a-review-session',
-                   user=learner, other_info='MISSING {0}'.format(len(items))\
+                   user=reviewer, other_info='MISSING {0}'.format(len(items))\
                                                      + str(request.POST)  )
         logger.debug('MISSING[{0}]: {1}'.format(len(items),
-                                                learner))
+                                                reviewer))
     try:
         percentage = total_score/r_actual.rubric_template.maximum_score*100
     except ZeroDivisionError:
         percentage = 0.0
     ctx = {'n_missing': len(items),
-           'return_URI_code': ractual_code,
+           'r_actual': r_actual,
            'median_words': median_words,
            'word_count': word_count,
-           'person': learner,
+           'person': reviewer,
            'total_score': total_score,
-           'max_score': r_actual.rubric_template.maximum_score,
            'percentage': percentage
            }
     return render(request, 'rubric/thankyou_problems.html', ctx)
+
+
+def process_POST_review(key, options, items):
+    """
+    Each ``key`` in ``request.POST`` has a list (usually with 1 element)
+    associated with it. This function processes that(those) element(s) in the
+    list.
+
+    The ``items`` dict, created in the calling function, contains the template
+    for each item and its associated options.
+
+    If unsuccessfully processed (because it is an empty ``option``), it will
+    return "False" as the 1st returned item.
+    """
+    r_opt_template = None
+    item_number = int(key.split('item-')[1])
+    comment = ''
+    did_succeed = False
+    words = 0
+    if items[item_number]['template'].option_type in ('Chcks',):
+        prior_options_submitted = ROptionActual.objects.filter(
+                                    ritem_actual=items[item_number]['item_obj'])
+
+        prior_options_submitted.delete()
+
+    for value in options:
+
+        if items[item_number]['template'].option_type == 'LText':
+            r_opt_template = items[item_number]['options'][0]
+            if value:
+                comment = value
+                words += len(re.split('\s+', comment))
+                did_succeed = True
+            else:
+                # We get for text feedback fields that they can be empty.
+                # In these cases we must continue as if they were not filled
+                # in.
+                #continue
+                pass  # <--- this is a better option, in case user wants to
+                      #      remove their comment entirely.
+
+        elif items[item_number]['template'].option_type in ('Radio', 'DropD',
+                                                             'Chcks'):
+            selected = int(value.split('option-')[1])
+
+            # in "selected-1": the '-1' part is critical
+            try:
+                r_opt_template = items[item_number]['options'][selected-1]
+                did_succeed = True
+            except (IndexError, AssertionError):
+                continue
+
+        if items[item_number]['template'].option_type in ('Radio', 'DropD',
+                                                          'LText'):
+            # Checkboxes ('Chks') should NEVER DELETE, nor ALTER, the prior
+            # ``ROptionActual`` instances for this item type, as you might
+            # otherwise see for dropdowns, radio buttons, or text fields.
+
+            # If necessary, prior submissions for the same option are adjusted
+            # as being .submitted=False (perhaps the user changed their mind)
+            prior_options_submitted = ROptionActual.objects.filter(
+                                   ritem_actual=items[item_number]['item_obj'])
+
+            prior_options_submitted.update(submitted=False)
+
+
+        # Then set the "submitted" field on each OPTION
+        ROptionActual.objects.get_or_create(roption_template=r_opt_template,
+
+                            # This is the way we bind it back to the user!
+                            ritem_actual=items[item_number]['item_obj'],
+                            submitted=True,
+                            comment=comment)
+
+        # Set the RItemActual.submitted = True for this ITEM
+        items[item_number]['item_obj'].submitted = True
+        items[item_number]['item_obj'].save()
+
+    if did_succeed:
+        return item_number, r_opt_template.score, words
+    else:
+        return did_succeed, 0.0, 0
+
+
 
 @xframe_options_exempt
 def xhr_store(request, ractual_code):
@@ -230,9 +340,6 @@ def xhr_store(request, ractual_code):
     option = request.POST.get('option', None)
     if option is None or option=='option-NA':
         return HttpResponse('')
-
-
-    assert(False) # Why do we have two XHR_store functions? why called on load?
 
     item_post = request.POST.get('item', None)
     if item_post.startswith('item-'):
@@ -276,10 +383,9 @@ def xhr_store(request, ractual_code):
             return HttpResponse(('<b>Invalid</b>. This should never occur. '
                                 'Please report it.'))
 
-    # If necessary, prior submissions for the same option are adjusted
-    # as being .submitted=False (perhaps the user changed their mind)
+    # If necessary, prior submissions for the same option are deleted!
     prior_options_submitted = ROptionActual.objects.filter(ritem_actual=r_item)
-    prior_options_submitted.update(submitted=False)
+    prior_options_submitted.delete()
 
     # Then set the "submitted" field on each OPTION
     ROptionActual.objects.get_or_create(roption_template=r_opt_template,

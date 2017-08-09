@@ -19,14 +19,16 @@ from .models import Trigger, GroupConfig, Membership, ReviewReport
 
 
 # Our other apps
-from rubric.views import handle_review, get_create_actual_rubric
+from rubric.views import (handle_review, get_create_actual_rubric,
+                          get_learner_details)
 from rubric.models import RubricTemplate, RubricActual
 from grades.models import GradeItem, LearnerGrade
 from submissions.views import get_submission, upload_submission
 from submissions.models import Submission
 from submissions.forms import (UploadFileForm_one_file,
                                UploadFileForm_multiple_file)
-from utils import send_email
+
+from utils import send_email, insert_evaluate_variables
 
 # Logging
 import logging
@@ -380,9 +382,18 @@ def get_learners_reviews(learner, grade, trigger):
         try:
             review = allocated_reviews.pop()
 
+            # What is the status of this review. Cross check with RubricActual
+            prior = RubricActual.objects.filter(rubric_code=review.unique_code)
+            status = 'Start your review'
+            if prior.count():
+                if prior[0].status == 'C':
+                    status = 'Completed'
+                elif prior[0].status == 'P':
+                    status = 'Continue your review'
+
             out.append(('',
-                    '<a href="/interactive/{0}">Start your review</a>'.format(\
-                                                        review.unique_code)))
+                    '<a href="/interactive/{1}">{0}</a>'.format(status,
+                                                           review.unique_code)))
         except IndexError:
             out.append(('', 'Waiting for a peer to submit their work ...'))
     return out
@@ -414,6 +425,46 @@ def get_assess_rebuttal(learner, grade, trigger):
     return out
 
 
+def get_read_evaluate_feedback(learner, reviews):
+    """
+    Get the evaluations from all ``review`` of the ``learner`` submission.
+    Allow the submitter (learner) to read the combined reviews.
+    """
+    if len(reviews) == 0:
+        return ('future-text', 'Read and evaluate their feedback ...')
+
+    return ('', 'Read and evaluate their feedback: LINK ...')
+
+
+
+    # Pick one of the reviews, and use that R_actual (even though the r_actual
+    # is from the original reviewer).
+    # Set the r_actual review to be locked (read-only)
+    # Assign a submitter code (``submitted)
+
+    # Indicate the submitter has read the reviews: so the reviewers see that
+
+    # Create a rubric for evaluation of the review (submitter prompted to fill)
+
+
+
+
+def get_provide_rebuttal(learner, grade, trigger):
+    """
+    Get, or provide the rebuttal form to the submitter to respond back to the
+    reviewers.
+    """
+    out = ('future-text', 'provide a rebuttal back to peers:')
+    return out
+
+def get_rebuttal_status(learner, grade, trigger):
+    """
+    Displays the rebuttal status.
+    """
+    out = ('future-text', 'rebuttal was read and assessed')
+    return out
+
+
 def interactions_to_come(trigger, learner, entry_point=None, grade=None,
                          request=None, ctx_objects=dict(), **kwargs):
     """
@@ -421,13 +472,15 @@ def interactions_to_come(trigger, learner, entry_point=None, grade=None,
     the user.
 
     Fields that can be used in the template:
-        {{future_reviews|safe}}
+        {{review_to_peers|safe}}
+        {{peers_back_to_submitter|safe}}
 
     Settings possible in the kwargs, with the defaults are shown.
         {{}}
     """
     template = trigger.template
-    trigger.future_reviews = ''
+    trigger.review_to_peers = ''
+    trigger.peers_back_to_submitter = '0 peers have reviewed your work.'
 
     peer = {}  # Reviewer's evaluation of their peers' work stored in here.
 
@@ -445,7 +498,7 @@ def interactions_to_come(trigger, learner, entry_point=None, grade=None,
                                                trigger)
 
     for idx in range(GLOBAL.num_peers):
-        trigger.future_reviews += """
+        trigger.review_to_peers += """
         <span class="you-peer">
         <b>Your review of peer {0}</b>:
         <ul>
@@ -465,6 +518,80 @@ def interactions_to_come(trigger, learner, entry_point=None, grade=None,
                    peer['assess_rebut'][idx][0],
                    peer['assess_rebut'][idx][1],
                 )
+
+
+    trigger.peers_back_to_submitter
+    my_submission = Submission.objects.filter(entry_point=entry_point,
+                                              is_valid=True,
+                                              submitted_by=learner)
+    reports = [False, ] * GLOBAL.num_peers
+    completed = [False,] * GLOBAL.num_peers
+    #in_progress = [False,] * GLOBAL.num_peers
+    idx = 0
+    my_reviews = []
+    for submission in my_submission:
+        my_reviews = ReviewReport.objects.filter(submission=submission)
+        for report in my_reviews:
+            # There should be at most "GLOBAL.num_peers" reviews
+            reports[idx] = report
+            try:
+                rubric = RubricActual.objects.get(\
+                                           rubric_code=reports[idx].unique_code)
+            except RubricActual.DoesNotExist:
+                continue
+            if rubric.submitted:
+                completed[idx] = True
+
+
+            # Bump the counter and get the rest of the reviews.
+            idx += 1
+
+
+    # This message is overridden later for the case when everyone is completed.
+    header = """{{n_reviewed}} peer{{ n_reviewed|pluralize:" has,s have" }}
+     completely reviewed your work. Waiting for {{n_more}} more
+        peer{{n_more|pluralize}} to start (or complete) their review."""
+
+    head = insert_evaluate_variables(header, {'n_reviewed': sum(completed),
+                                              'n_more': GLOBAL.num_peers - \
+                                                               sum(completed)}
+                                     )
+
+
+    trigger.peers_back_to_submitter = head
+
+
+    # Now the rest of the section, but only if
+    if sum(completed) == GLOBAL.num_peers:
+
+
+        peer['read_evaluate_feedback'] = get_read_evaluate_feedback(learner,
+                                                                    my_reviews)
+        peer['provide_rebuttal'] = get_provide_rebuttal(learner,
+                                                        grade,
+                                                        trigger)
+        peer['rebuttal_status'] = get_rebuttal_status(learner,
+                                                      grade,
+                                                      trigger)
+
+
+        trigger.peers_back_to_submitter = """All peers have reviewed your work.
+        <style>.peers_to_you{{list-style-type:None}}</style>
+
+        <span class="indent">
+        <ul>
+            <li class="peers_to_you {0}" type="a">(a) {1}</li>
+            <li class="peers_to_you {2}" type="a">(b) {3}</li>
+            <li class="peers_to_you {4}" type="a">(c) {5}</li>
+        </ul>
+        </span>
+        """.format(peer['read_evaluate_feedback'][0],
+                   peer['read_evaluate_feedback'][1],
+                   peer['provide_rebuttal'][0],
+                   peer['provide_rebuttal'][1],
+                   peer['rebuttal_status'][0],
+                   peer['rebuttal_status'][1])
+
 
     summary_line = ''
     return (trigger.template, summary_line)
@@ -721,7 +848,15 @@ def review(request, unique_code=None):
 
     # 1. Select a submission to attach this to, if not already attached.
     if report.submission:
-        return handle_review(request, unique_code)
+        # This is going to be called later by the handle_review function. Might
+        # as well check that the user's rubric etc is correctly created.
+        r_actual, reviewer = get_learner_details(report.unique_code)
+        if reviewer is None:
+            # This branch only happens with error conditions. Maybe the
+            # RubricActual has been deleted from the DB manually, etc.
+            pass
+        else:
+            return handle_review(request, unique_code)
 
 
     graph = group_graph(report.trigger)
@@ -777,7 +912,6 @@ def review(request, unique_code=None):
                              trigger=report.trigger,
                              submission=submission,
                              rubric_code=unique_code)
-
 
 
     # Finally, return to the same point as if we were at the top of this func.

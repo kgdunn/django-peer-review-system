@@ -216,24 +216,24 @@ def generate_random_token(token_length=16, base_address='', easy_use=False):
 
 
 
-def insert_evaluate_variables(text, var_dict):
+def insert_evaluate_variables(input_text, var_dict):
     """
     Uses the Django template library to insert and evaluate expressions.
     A list of strings and the variable dictionary of key-value pairs to
     insert must be provided.
     """
-    if isinstance(text, list):
-        text.insert(0, '{% load quest_render_tags %}')
-        rndr_string = '\n'.join(text)
-    else:
-        rndr_string = r'{% load quest_render_tags %} ' + text
+    #if isinstance(text, list):
+    #    text.insert(0, '{% load quest_render_tags %}')
+    #    rndr_string = '\n'.join(text)
+    #else:
+    #    rndr_string = r'{% load quest_render_tags %} ' + text
 
-    var_dict_rendered = {}
-    for key, values in var_dict.iteritems():
-        var_dict_rendered[key] = values[1]
+    #var_dict_rendered = {}
+    #for key, values in var_dict.iteritems():
+    #    var_dict_rendered[key] = values[1]
 
-    tmplte = Template(rndr_string)
-    cntxt = Context(var_dict_rendered)
+    tmplte = Template(input_text)
+    cntxt = Context(var_dict)
     return tmplte.render(cntxt)
 
 def grade_display(actual, max_grade):

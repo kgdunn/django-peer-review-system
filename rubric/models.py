@@ -35,6 +35,11 @@ class RubricTemplate(models.Model):
             help_text=('Shows the order numbers. e.g "1. Assess ..."; else '
                        'it just shows: "Assess ..."'))
 
+    submit_button_also_shown_on_top = models.BooleanField(default=True)
+
+    show_maximum_score_per_item = models.BooleanField(default=True,
+            help_text='Can be over-ridden on a per-item basis also.')
+
     def __str__(self):
         return u'%s' % self.title
 
@@ -55,7 +60,8 @@ class RubricActual(models.Model):
     """
     STATUS = (('A', 'Assigned to grader'),
               ('P', 'Progressing...'),
-              ('C', 'Completed'))
+              ('C', 'Completed'),
+              ('L', 'Locked')) # read-only
 
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
