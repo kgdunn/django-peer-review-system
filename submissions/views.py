@@ -370,11 +370,12 @@ def upload_submission(request, learner, entry_point, trigger, no_thumbnail=True)
     message = ('{0} have successfully submitted a document for: {1}.\n'
                'This is for the course: {2}.\n'
                '\n'
-               'You may submit multiple times, up to the deadline. Only the '
-               'most recent submission is kept. {3}\n'
+               'You may submit multiple times, up to the deadline, or until '
+               'your report is sent out for peer review. Only the most recent '
+               'submission is kept. {3}\n'
                '\n--\n'
                'This is an automated message. Please do not reply to this '
-               'email address.\n')
+               'email address. It will not be received by anyone.\n')
     message = message.format(first_line, entry_point.LTI_title,
                              entry_point.course.name,
                              extra_line)

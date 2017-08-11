@@ -386,7 +386,7 @@ def submitted_already(trigger, learner, entry_point=None, grade=None,
 
     summary = Summary(date=trigger.submission.datetime_submitted,
                       action='You successfully submitted your document',
-                      link='<a href="/{0}" target="_blank">{1}</a>'.format(\
+                      link='<a href="{0}" target="_blank">{1}</a>'.format(\
                                     trigger.submission.file_upload.url, "View"),
                       catg='sub')
 
