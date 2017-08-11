@@ -118,8 +118,9 @@ def starting_point(request, course=None, learner=None, entry_point=None):
 
 
     html = []
-    html.append('<h2>{}</h2>'.format(learner.email))
-    overall_summary = ''
+    if settings.DEBUG:
+        html.append('<h2>{}</h2>'.format(learner.email))
+
 
     global_page = """{% extends "basic/base.html" %}{% block content %}<hr>
     <!--SPLIT HERE-->\n{% endblock %}"""
