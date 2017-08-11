@@ -408,7 +408,7 @@ def get_learners_reviews(learner, grade, trigger, summaries):
     if this_learner:
         summary = Summary(date=this_learner[0].datetime_submitted,
                           action='You successfully submitted your document',
-                link='<a href="/{0}" target="_blank">{1}</a>'.format(\
+                link='<a href="{0}" target="_blank">{1}</a>'.format(\
                     this_learner[0].file_upload.url, "View"),
                 catg='sub')
         summaries.append(summary)
