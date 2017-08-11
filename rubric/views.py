@@ -98,6 +98,10 @@ def handle_review(request, ractual_code):
                    user=reviewer, other_info='Returning back')
 
     else:
+
+        r_actual.status = 'V'
+        r_actual.save()
+
         logger.debug('Start-review: {0}'.format(reviewer))
         create_hit(request, item=r_actual, event='start-a-review-session',
                    user=reviewer, other_info='Fresh start')
@@ -399,7 +403,7 @@ def xhr_store(request, ractual_code):
     r_item.submitted = True
     r_item.save()
 
-    if r_actual.status == 'A':
+    if r_actual.status in ('A', 'V'):
         r_actual.status = 'P'
         r_actual.started = timezone.now()
         r_actual.save()
@@ -477,7 +481,7 @@ def xhr_store_text(request, ractual_code):
         r_item.submitted = True
         r_item.save()
 
-        if r_actual.status == 'A':
+        if r_actual.status in ('A', 'V'):
             r_actual.status = 'P'
             r_actual.started = timezone.now()
             r_actual.save()

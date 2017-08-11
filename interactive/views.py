@@ -11,6 +11,7 @@ import json
 import time
 import datetime
 from random import shuffle
+from collections import namedtuple
 
 import networkx as nx
 
@@ -33,6 +34,23 @@ from utils import send_email, insert_evaluate_variables
 # Logging
 import logging
 logger = logging.getLogger(__name__)
+
+# Summary structure
+class Summary(object):
+    def __init__(self, date=None, action='', link='', catg=''):
+        if date is None:
+            self.date = datetime.datetime.now()
+        else:
+            self.date = date
+        self.action = action
+        self.link = link
+        self.catg = catg
+
+    def __str__(self):
+        return '[{0}] {1}'.format(self.date.strftime('%d %B %Y at %H:%M'),
+                                  self.action)
+
+    __repr__ = __str__
 
 
 # SHOULD THIS GO TO entry_point instances?
@@ -111,7 +129,7 @@ def starting_point(request, course=None, learner=None, entry_point=None):
     page_header, page_footer = page_header_footer.split('<!--SPLIT HERE-->')
     html.append(page_header)
 
-
+    all_summaries = []
     for trigger in triggers:
         # Then actually run each trigger, but only if the requirements are
         # met, and we are within the time range for it.
@@ -143,20 +161,26 @@ def starting_point(request, course=None, learner=None, entry_point=None):
         ctx_objects['self'] = trigger
 
         # Call the function, finally.
-        html_template, summary_template = func(trigger,
-                                                learner,
-                                                ctx_objects=ctx_objects,
-                                                entry_point=entry_point,
-                                                grade=grade,
-                                                request=request
-                                               )
+        html_template, summary_list = func(trigger,
+                                            learner,
+                                            ctx_objects=ctx_objects,
+                                            entry_point=entry_point,
+                                            grade=grade,
+                                            request=request
+                                           )
+        for summary in summary_list:
+            if summary.action:
+                all_summaries.append(summary)
         html_trigger = Template(html_template).render(Context(ctx_objects))
         html.append(html_trigger)
 
+    # The last step is to create the Summaries, and add that to the end of the
+    # HTML
+    if summary_list:
+        html += loader.render_to_string('interactive/summary.html',
+                                        {'summary_list': summary_list})
 
     return HttpResponse(html)
-
-
 
 
 def kick_off_email(trigger, learner, entry_point=None, grade=None,
@@ -216,7 +240,8 @@ def submission_form(trigger, learner, entry_point=None, grade=None,
     }
 
     """
-    html_text = summary_line = ''
+    html_text = ''
+    summary_line = Summary(action='FIX THIS', link='FIX THIS')
 
     # Remove the prior submission from the dict, so that PRs that use
     # multiple submission steps get the correct phase's submission
@@ -318,7 +343,10 @@ def submission_form(trigger, learner, entry_point=None, grade=None,
             # Finished creating a new group. Now check if we have enough
             # reviewers to invite.
             invite_reviewers(learner, trigger)
-            summary_line = ['You uploaded on ...', 'LINK'] # what if there's an error?
+
+            # what if there's an error?
+            #summary_line.action = ['You uploaded on ...', 'LINK']
+
     else:
         submission = prior_submission
 
@@ -330,12 +358,12 @@ def submission_form(trigger, learner, entry_point=None, grade=None,
 
     html_text = trigger.template
 
-    if grade.value  < 10.0:
+    if grade.value  < GLOBAL.SUBMISSION_FIXED:
         trigger.allow_submit = True  # False, if no more submissions allowed
     else:
         trigger.allow_submit = False
 
-    return html_text, summary_line
+    return html_text, [summary_line,]
 
 
 def submitted_already(trigger, learner, entry_point=None, grade=None,
@@ -355,18 +383,38 @@ def submitted_already(trigger, learner, entry_point=None, grade=None,
     # Get the (prior) submission
     trigger.submission = get_submission(learner, entry_point)
 
-    summary_line = ['You uploaded on ...', 'LINK'] # what if there's an error?
-    return (trigger.template, summary_line)
+    summary = Summary(date=trigger.submission.datetime_submitted,
+                      action='You successfully submitted your document',
+                      link='<a href="/{0}" target="_blank">{1}</a>'.format(\
+                                    trigger.submission.file_upload.url, "View"),
+                      catg='sub')
+
+    return (trigger.template, [summary, ])
 
 
 
-def get_learners_reviews(learner, grade, trigger):
+def get_learners_reviews(learner, grade, trigger, summaries):
     """
     Returns a list. Each item contains a tuple. The first entry is the CSS
     class, for formatting. The second entry is the actual text, link, HTML, etc.
     """
+
     valid_subs = Submission.objects.filter(entry_point=trigger.entry_point,
                                            is_valid=True)
+
+    # Get this learner's submission, if it exists:
+    this_learner = valid_subs.filter(submitted_by=learner)
+    if this_learner:
+        summary = Summary(date=this_learner[0].datetime_submitted,
+                          action='You successfully submitted your document',
+                link='<a href="/{0}" target="_blank">{1}</a>'.format(\
+                    this_learner[0].file_upload.url, "View"),
+                catg='sub')
+        summaries.append(summary)
+
+
+
+
     if not(valid_subs.count() >= GLOBAL.min_in_pool_before_grouping_starts):
         # Simplest case: no reviews are allocated to learner yet
         out = []
@@ -375,12 +423,24 @@ def get_learners_reviews(learner, grade, trigger):
         return out
 
     # Find which reviews are allocated, and provide links:
+
     out = []
     allocated_reviews = list(ReviewReport.objects.filter(reviewer=learner)\
                              .order_by('-created'))
+
+    if len(allocated_reviews):
+        summary = Summary(date=allocated_reviews[0].created,
+                          action='Peer reviews were allocated to you',
+                          catg='rev')
+        summaries.append(summary)
+
+
     for idx in range(GLOBAL.num_peers):
         try:
             review = allocated_reviews.pop()
+            if not(review.order):
+                review.order = idx+1
+                review.save()
 
             # What is the status of this review. Cross check with RubricActual
             prior = RubricActual.objects.filter(rubric_code=review.unique_code)
@@ -388,89 +448,107 @@ def get_learners_reviews(learner, grade, trigger):
             if prior.count():
                 if prior[0].status == 'C':
                     status = 'Completed'
-                elif prior[0].status == 'P':
+                    summary = Summary(date=prior[0].completed,
+                       action='Review number {0} completed; thank you!'\
+                                  .format(review.order, GLOBAL.num_peers),
+                       link='<a href="/interactive/{0}">View</a>'.format(\
+                                                           review.unique_code),
+                       catg='rev')
+                    summaries.append(summary)
+
+                elif prior[0].status in ('P', 'V'):
                     status = 'Continue your review'
 
             out.append(('',
                     '<a href="/interactive/{1}">{0}</a>'.format(status,
                                                            review.unique_code)))
         except IndexError:
-            out.append(('', 'Waiting for a peer to submit their work ...'))
+            out.append(('', 'You must submit before you can review others.'))
     return out
 
 
-def get_if_peer_has_read(learner, grade, trigger):
+def get_if_peer_has_read(learner, grade, trigger, summaries):
     out = []
     for idx in range(GLOBAL.num_peers):
-        out.append(('future-text', 'text here'))
+        out.append(('future-text',
+                    'Waiting for peer to read your review'))
 
     return out
 
 
-def get_peers_evaluation_of_review(learner, grade, trigger):
+def get_peers_evaluation_of_review(learner, grade, trigger, summaries):
     out = []
     for idx in range(GLOBAL.num_peers):
         if grade.value <= 60:
-            out.append(('future-text','peers evaluation of your review link'))
+            out.append(('future-text',
+                        "Waiting for peer's evaluation of your review"))
 
     return out
 
 
-def get_assess_rebuttal(learner, grade, trigger):
+def get_assess_rebuttal(learner, grade, trigger, summaries):
     out = []
     for idx in range(GLOBAL.num_peers):
         if grade.value <= 80:
-            out.append(('future-text', 'assess their rebuttal of your review link'))
+            out.append(('future-text',
+                        "Waiting for peer's rebuttal of your review"))
 
     return out
 
 
-def get_read_evaluate_feedback(learner, reviews):
+def get_read_evaluate_feedback(learner, grade, trigger, my_submission,
+                               summaries):
     """
-    Get the evaluations from all ``review`` of the ``learner`` submission.
     Allow the submitter (learner) to read the combined reviews.
     """
-    if len(reviews) == 0:
-        return ('future-text', 'Read and evaluate their feedback ...')
+    rubrics = RubricActual.objects.filter(submission=my_submission)
 
-    return ('', 'Read and evaluate their feedback: LINK ...')
-
-
-
-    # Pick one of the reviews, and use that R_actual (even though the r_actual
-    # is from the original reviewer).
-    # Set the r_actual review to be locked (read-only)
-    # Assign a submitter code (``submitted)
-
-    # Indicate the submitter has read the reviews: so the reviewers see that
-
-    # Create a rubric for evaluation of the review (submitter prompted to fill)
+    for idx, ractual in enumerate(rubrics):
+        summary = Summary(date=ractual.created, link='', catg='sub',
+                          action='Peer {} opened your review'.format(idx+1))
+        summaries.append(summary)
+        if ractual.status == 'C' and ractual.submitted:
+            summary = Summary(date=ractual.completed, link='', catg='sub',
+                action='Peer {} completed a review of your work'.format(idx+1))
+            summaries.append(summary)
 
 
+    if rubrics.filter(status='C').count() < GLOBAL.num_peers:
+        return ('future-text', 'Read and evaluate their feedback')
+
+    # If we have reached this point it is because the submitter can now
+    # view their feedback.
+
+    # 1/ Pick one of the reviews, and use that R_actual (even though the
+    #    r_actual is from the original reviewer).
+    # 2/ Set the r_actual review to be locked (read-only)
+    # 3/ Assign a submitter code (``submitted)
+    # 4/ Indicate the submitter has read the reviews: so the reviewers see that
+    # 5/ Create a rubric for evaluation of the review (submitter prompted to fill)
 
 
-def get_provide_rebuttal(learner, grade, trigger):
+    return ('', 'Read and evaluate their feedback: LINK start the evaluation')
+
+
+def get_provide_rebuttal(learner, grade, trigger, summaries):
     """
     Get, or provide the rebuttal form to the submitter to respond back to the
     reviewers.
     """
-    out = ('future-text', 'provide a rebuttal back to peers:')
+    out = ('future-text', 'Provide a rebuttal back to peers')
     return out
 
-def get_rebuttal_status(learner, grade, trigger):
+def get_rebuttal_status(learner, grade, trigger, summaries):
     """
     Displays the rebuttal status.
     """
-    out = ('future-text', 'rebuttal was read and assessed')
+    out = ('future-text', 'Rebuttal was read and assessed')
     return out
 
 
 def interactions_to_come(trigger, learner, entry_point=None, grade=None,
                          request=None, ctx_objects=dict(), **kwargs):
     """
-    WRONG: Does nothing of note, other than display the remaining steps for
-    the user.
-
     Fields that can be used in the template:
         {{review_to_peers|safe}}
         {{peers_back_to_submitter|safe}}
@@ -478,6 +556,8 @@ def interactions_to_come(trigger, learner, entry_point=None, grade=None,
     Settings possible in the kwargs, with the defaults are shown.
         {{}}
     """
+
+    summaries = []
     template = trigger.template
     trigger.review_to_peers = ''
     trigger.peers_back_to_submitter = '0 peers have reviewed your work.'
@@ -486,16 +566,20 @@ def interactions_to_come(trigger, learner, entry_point=None, grade=None,
 
     peer['start_or_completed_review'] = get_learners_reviews(learner,
                                                              grade,
-                                                             trigger)
+                                                             trigger,
+                                                             summaries)
     peer['peer_has_read'] = get_if_peer_has_read(learner,
                                                  grade,
-                                                 trigger)
+                                                 trigger,
+                                                 summaries)
     peer['evaluation_of'] = get_peers_evaluation_of_review(learner,
                                                            grade,
-                                                           trigger)
+                                                           trigger,
+                                                           summaries)
     peer['assess_rebut'] = get_assess_rebuttal(learner,
                                                grade,
-                                               trigger)
+                                               trigger,
+                                               summaries)
 
     for idx in range(GLOBAL.num_peers):
         trigger.review_to_peers += """
@@ -530,7 +614,8 @@ def interactions_to_come(trigger, learner, entry_point=None, grade=None,
     idx = 0
     my_reviews = []
     for submission in my_submission:
-        my_reviews = ReviewReport.objects.filter(submission=submission)
+        my_reviews = ReviewReport.objects.filter(submission=submission).\
+                        order_by('created') # to ensure consistency in display
         for report in my_reviews:
             # There should be at most "GLOBAL.num_peers" reviews
             reports[idx] = report
@@ -561,40 +646,42 @@ def interactions_to_come(trigger, learner, entry_point=None, grade=None,
     trigger.peers_back_to_submitter = head
 
 
-    # Now the rest of the section, but only if
+    peer['read_evaluate_feedback'] = get_read_evaluate_feedback(learner,
+                                                                grade,
+                                                                trigger,
+                                                                my_submission,
+                                                                summaries)
+    peer['provide_rebuttal'] = get_provide_rebuttal(learner,
+                                                    grade,
+                                                    trigger,
+                                                    summaries)
+    peer['rebuttal_status'] = get_rebuttal_status(learner,
+                                                  grade,
+                                                  trigger,
+                                                  summaries)
+
     if sum(completed) == GLOBAL.num_peers:
+        trigger.peers_back_to_submitter = "All peers have reviewed your work."
+
+    trigger.peers_back_to_submitter  += """
+    <style>.peers_to_you{{list-style-type:None}}</style>
+
+    <span class="indent">
+    <ul>
+        <li class="peers_to_you {0}" type="a">(a) {1}</li>
+        <li class="peers_to_you {2}" type="a">(b) {3}</li>
+        <li class="peers_to_you {4}" type="a">(c) {5}</li>
+    </ul>
+    </span>
+    """.format(peer['read_evaluate_feedback'][0],
+               peer['read_evaluate_feedback'][1],
+               peer['provide_rebuttal'][0],
+               peer['provide_rebuttal'][1],
+               peer['rebuttal_status'][0],
+               peer['rebuttal_status'][1])
 
 
-        peer['read_evaluate_feedback'] = get_read_evaluate_feedback(learner,
-                                                                    my_reviews)
-        peer['provide_rebuttal'] = get_provide_rebuttal(learner,
-                                                        grade,
-                                                        trigger)
-        peer['rebuttal_status'] = get_rebuttal_status(learner,
-                                                      grade,
-                                                      trigger)
-
-
-        trigger.peers_back_to_submitter = """All peers have reviewed your work.
-        <style>.peers_to_you{{list-style-type:None}}</style>
-
-        <span class="indent">
-        <ul>
-            <li class="peers_to_you {0}" type="a">(a) {1}</li>
-            <li class="peers_to_you {2}" type="a">(b) {3}</li>
-            <li class="peers_to_you {4}" type="a">(c) {5}</li>
-        </ul>
-        </span>
-        """.format(peer['read_evaluate_feedback'][0],
-                   peer['read_evaluate_feedback'][1],
-                   peer['provide_rebuttal'][0],
-                   peer['provide_rebuttal'][1],
-                   peer['rebuttal_status'][0],
-                   peer['rebuttal_status'][1])
-
-
-    summary_line = ''
-    return (trigger.template, summary_line)
+    return (trigger.template, summaries)
 
 
 def invite_reviewers(learner, trigger):
@@ -699,6 +786,11 @@ class group_graph(object):
     def __init__(self, trigger):
 
         groups = GroupConfig.objects.filter(entry_point=trigger.entry_point)
+
+        # Added these two lines, so the graphs are always created randomly
+        groups = list(groups)
+        shuffle(groups)
+
         self.graph = nx.DiGraph()
         self.trigger = trigger
         submitters = []

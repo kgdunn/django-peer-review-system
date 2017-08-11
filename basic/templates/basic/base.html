@@ -1,7 +1,10 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/tabulator/2.11.0/tabulator.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css?family=Lato|Raleway" rel="stylesheet">
+<link rel="stylesheet" type="text/css" href="//cdn.datatables.net/1.10.15/css/dataTables.bootstrap.min.css">
+
+
+
 <style>
 
 body {
@@ -183,124 +186,12 @@ h2{
     margin-bottom: 10px;
 }
 
-/* http://zurb.com/playground/css3-polaroids */
-.front-image{
-    width: 300px;
-}
-ul.polaroids li {
-    display: inline;
-}
-ul.polaroids a {
-    background: #fff;
-    display: inline;
-    float: left;
-    margin: 0 0 27px 30px;
-    width: 30%;
-    padding: 10px 10px 15px;
-    text-align: center;
-    font-family: sans-serif;
-    text-decoration: none;
-    color: #333;
-    font-size: 1em;
-    -webkit-box-shadow: 0 3px 6px rgba(0,0,0,.25);
-    -moz-box-shadow: 0 3px 6px rgba(0,0,0,.25);
-    <!---webkit-transform: rotate(-1deg);-->
-    -webkit-transition: -webkit-transform .15s linear;
-    <!---moz-transform: rotate(-2deg);-->
-}
-ul.polaroids li {
-    padding-left: 0;
-}
-@media screen and (max-width: 768px) {
-    ul.polaroids li a {
-        margin-left: 0;
-    }
-
-}
-ul.polaroids img {
-    display: block;
-    width: 100%;
-    margin-bottom: 12px;
-}
-ul.polaroids a:after {
-    content: attr(title);
-}
-ul.polaroids li:nth-child(even) a {
-    <!---webkit-transform: rotate(2deg);-->
-    <!---moz-transform: rotate(2deg);-->
-}
-ul.polaroids li:nth-child(3n) a {
-    -webkit-transform: none;
-    position: relative;
-    top: -5px;
-    -moz-transform: none;
-}
-ul.polaroids li:nth-child(5n) a {
-    <!---webkit-transform: rotate(5deg);-->
-    position: relative;
-    right: 5px;
-    <!---moz-transform: rotate(5deg);-->
-}
-ul.polaroids li:nth-child(8n) a {
-    position: relative;
-    right: 5px;
-    top: 8px;
-}
-ul.polaroids li:nth-child(11n) a {
-    position: relative;
-    left: -5px;
-    top: 3px;
-}
-ul.polaroids li.messy a {
-    margin-top: -400px;
-    position: relative;
-    left: 160px;
-}
-
-<!---webkit-transform: scale(1.25);-->
-<!---moz-transform: scale(1.25);-->
-
-ul.polaroids li a:hover {
-    -webkit-box-shadow: 0 3px 6px rgba(0,0,0,.5);
-    -moz-box-shadow: 0 3px 6px rgba(0,0,0,.5);
-    position: relative;
-    z-index: 5;
-}
-h2.polaroid-overlay {
-    position: absolute;
-    top: 200px;
-    left: 0;
-    width: 100%;
-}
-h3.polaroid-overlay {
-    position: absolute;
-    top: 30px;
-    left: 0;
-    width: 100%;
-}
-
-h2.polaroid-overlay span {
-    color: white;
-    font: bold 36px/45px Helvetica, Sans-Serif;
-    background: rgb(0, 0, 0); /* fallback color */
-    background: rgba(0, 0, 0, 0.7);
-    padding: 10px;
-}
-h3.polaroid-overlay span {
-    color: white;
-    font: bold 16px/26px Helvetica, Sans-Serif;
-    background: rgb(0, 0, 0); /* fallback color */
-    background: rgba(0, 0, 0, 0.7);
-    padding: 5px;
-    float: left;
-}
 
 /* Admin view tables*/
-table.pr-admin {
-    margin-left: 0px;
-}
+
 .pr-admin th {
     text-align: center;
+    border-bottom: 2px solid black;
 }
 .pr-admin td, th {
     padding-left: 10px;
@@ -308,10 +199,10 @@ table.pr-admin {
     border-left: 1px solid black;
     border-right: 1px solid black;
 }
-.pr-admin-odd{
+.summary-odd{
     background-color: #eee;
 }
-.pr-admin-even{
+.summary-even{
     background-color: #fff;
 }
 
@@ -321,42 +212,7 @@ table.pr-admin {
 .pr-admin tr:last-child{
    border-bottom: 1px solid black;
 }
-.ui-accordion .ui-accordion-header {
-    display: inline-block;
-    cursor: pointer;
-    position: relative;
-    margin: 2px 0 0 0;
-    padding: .5em .5em .5em .7em;
-    font-size: 100%;
-    background: #009fff;
-}
-.ui-accordion .ui-accordion-content {
-    padding: 1em 2.2em;
-    border-top: 0;
-    overflow: auto;
-}
-.ui-state-active,
-.ui-widget-content .ui-state-active,
-.ui-widget-header .ui-state-active,
-a.ui-button:active,
-.ui-button:active,
-.ui-button.ui-state-active:hover {
-    border: 1px solid #003eff;
-    background: #00fff;
-    font-weight: normal;
-    color: #ffffff;
-}
-.ui-icon-background,
-.ui-state-active .ui-icon-background {
-    border: #007fff;
-    background-color: #ffffff;
-}
-.ui-state-active a,
-.ui-state-active a:link,
-.ui-state-active a:visited {
-    color: #ffffff;
-    text-decoration: none;
-}
+
 </style>
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
@@ -364,6 +220,9 @@ a.ui-button:active,
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
 <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/tabulator/2.11.0/tabulator.min.js"></script>
+
+<script type="text/javascript" charset="utf8" src="//cdn.datatables.net/1.10.15/js/jquery.dataTables.js"></script>
+<script type="text/javascript" charset="utf8" src="//cdn.datatables.net/1.10.15/js/dataTables.bootstrap.min.js"</script>
 
 
 <script>

@@ -74,6 +74,34 @@ class GradeItem(models.Model):
         return '{0}. Item: {1}'.format(self.order, self.display_name)
 
 
+class LearnerChecklistTemplate(models.Model):
+    """
+    A sequence of events that learners must/should complete.
+    """
+    category = models.ForeignKey(GradeCategory)
+    item_name = models.CharField(max_length=50)  # e.g. reviewed_peer
+    order = models.PositiveSmallIntegerField(default=0)
+
+
+class LearnerChecklistItem(models.Model):
+    learner = models.ForeignKey('basic.Person')
+    checklist = models.ForeignKey(LearnerChecklistTemplate)
+    done = models.BooleanField()
+
+    def has(self):
+        """
+        Allows constructions in the code, such as:
+        >> learner.has['reviewed_peer']
+        >> learner.has['submitted']
+
+        Where, in the LearnerChecklistTemplate we have defined an instance
+        with ``item_name`` of "reviewed_peer" or "submitted", which is
+        associated with a numeric ``order`` value too.
+        """
+        self.checklist
+
+
+
 class LearnerGrade(models.Model):
     """
     A grade for the learner.

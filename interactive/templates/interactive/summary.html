@@ -1,0 +1,46 @@
+<h2 style="display:inline; clear:none;">Summaries</h2>
+<script>
+$(document).ready( function () {
+
+  $('#interactive_summary').DataTable( {
+    paging: false,
+    searching: false,
+    fixedHeader: {
+        header: false,
+        footer: true
+    },
+    bInfo: false,
+    bAutoWidth: true,
+  } );
+} );
+</script>
+
+<style>
+.rev{
+  color: darkgreen;
+}
+.sub{
+  color: purple;
+}
+</style>
+
+<table class="summaries pr-admin" id="interactive_summary">
+<thead>
+<tr>
+  <th>Date and time</th>
+  <th>Action</th>
+  <th>Link</th>
+</tr>
+</thead>
+<tbody>
+{% for summary in summary_list %}
+<tr class="summary-{% cycle 'odd' 'even' %}">
+  <td data-search="{{summary.date|date:"d F Y"}} {{summary.date|date:"H:i"}}"
+      data-order="{{summary.date.timestamp}}">
+      {{summary.date|date:"d F Y"}} {{summary.date|date:"H:i"}}</td>
+  <td class="{{summary.catg}}">{{summary.action}}</td>
+  <td>{{summary.link|safe}}</td>
+</tr>
+{% endfor %}
+</tbody></table>
+<hr>

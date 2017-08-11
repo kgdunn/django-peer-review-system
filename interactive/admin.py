@@ -24,7 +24,7 @@ admin.site.register(Membership, MembershipAdmin)
 
 class ReviewReportAdmin(admin.ModelAdmin):
     list_display = ("reviewer", "trigger", "submission", "grpconf",
-                    "unique_code", "created", "last_viewed")
+                    "unique_code", "created", "last_viewed", "order")
 admin.site.register(ReviewReport, ReviewReportAdmin)
 
 

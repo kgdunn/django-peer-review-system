@@ -59,6 +59,7 @@ class RubricActual(models.Model):
 
     """
     STATUS = (('A', 'Assigned to grader'),
+              ('V', 'Grader has viewed it, at least once'),
               ('P', 'Progressing...'),
               ('C', 'Completed'),
               ('L', 'Locked')) # read-only
