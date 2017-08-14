@@ -175,7 +175,6 @@ def render_template(trigger, ctx_objects):
     ctx_objects['self'] = trigger
     return Template(trigger.template).render(Context(ctx_objects))
 
-
 def has(learner, achievement):
     """
     See's if a user has completed a certain achievement.
@@ -203,7 +202,9 @@ def completed(learner, achievement):
     completed.done = True
     completed.save()
 
-
+# ------------------------------
+# The various trigger functions
+# ------------------------------
 def kick_off_email(trigger, learner, entry_point=None, **kwargs):
     """
     Initiates the kick-off email to the student, to encourage an upload.
@@ -220,26 +221,7 @@ def kick_off_email(trigger, learner, entry_point=None, **kwargs):
     completed(learner, 'kick_off_email')
 
 
-def submitted_doc(trigger, learner, ctx_objects=None, entry_point=None,
-                  request=None, **kwargs):
-    """
-    The user has submitted their document:
-    * send email to thank them
-    * indicate that they can upload a new version
-    * however, we wait until a pool of reviewers are available.
-    """
-    subject = '[{}] Your PDF upload has been received: '.format(\
-        entry_point.LTI_title)
-    template = """Thank you for your upload. Please wait for N submissions."""
-    template += '<br>submitted_doc'
-    send_email(learner.email, subject, messages=template, delay_secs=0)
-
-    # Email is successfully sent. Adjust the ``grade`` to avoid spamming.
-    #grade.value +1.0
-    #grade.save(push=True)
-
-
-def submission_form(trigger, learner, entry_point=None, summaries=list(),
+def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
                    ctx_objects=dict(), **kwargs):
     """
     Displays the submission form, and handles the upload of it.
@@ -330,6 +312,23 @@ def submission_form(trigger, learner, entry_point=None, summaries=list(),
             #grade.value = min(max(grade.value, 3.0), 9.0)
             #grade.save(push=True)
 
+
+            # Send an email
+            assert(False)
+            """
+            The user has submitted their document:
+            * send email to thank them
+            * indicate that they can upload a new version
+            * however, we wait until a pool of reviewers are available.
+            """
+
+            subject = '[{}] Your PDF upload has been received: '.format(\
+                entry_point.LTI_title)
+            template = """Thank you for your upload. Please wait for N submissions."""
+            template += '<br>submitted_doc'
+            send_email(learner.email, subject, messages=template, delay_secs=0)
+
+
             # Create a group with this learner as the submitter
             already_exists = Membership.objects.filter(learner=learner,
                                                        role='Submit',
@@ -379,134 +378,144 @@ def submission_form(trigger, learner, entry_point=None, summaries=list(),
     ctx_objects['submission'] = render_template(trigger, ctx_objects)
 
 
+def your_reviews_of_your_peers(trigger, learner, entry_point=None,
+                         summaries=list(), ctx_objects=dict(), **kwargs):
+    """
+    We are filling in this template multiple times; once per GLOBAL.num_peers:
+
+    <span class="you-peer">
+        <b>Your review of peer {0}</b>:
+        <ul>
+            <li class="{1}">{2}</li>
+            <li class="{3}">{4}</li>
+            <li class="{5}">{6}</li>
+            <li class="{7}">{8}</li>
+        </ul>
+    </span>
+    """
+    review_to_peers = ''
+    peer = {}
+    peer['line1'] = get_line1(learner, trigger, summaries)
+    peer['line2'] = get_line2(learner, trigger, summaries)
+    peer['line3'] = get_line3(learner, trigger, summaries)
+    peer['line4'] = get_line4(learner, trigger, summaries)
+
+    for idx in range(GLOBAL.num_peers):
+        review_to_peers += """
+        <span class="you-peer">
+        <b>Your review of peer {0}</b>:
+        <ul>
+            <li class="{1}">{2}</li>
+            <li class="{3}">{4}</li>
+            <li class="{5}">{6}</li>
+            <li class="{7}">{8}</li>
+        </ul>
+        </span>
+        """.format(idx+1,
+                   peer['line1'][idx][0],
+                   peer['line1'][idx][1],
+                   peer['line2'][idx][0],
+                   peer['line2'][idx][1],
+                   peer['line3'][idx][0],
+                   peer['line3'][idx][1],
+                   peer['line4'][idx][0],
+                   peer['line4'][idx][1],
+                )
+
+    trigger.template = review_to_peers
+    ctx_objects['review_to_peers'] = render_template(trigger, ctx_objects)
 
 
-
-    # Get the (prior) submission
-    #trigger.submission = get_submission(learner, trigger)
-
-    # If we didn't get a submission, search in the prior trigger
-    #if not(trigger.submission) and has(learner, 'submitted'):
-    #    prior_triggers = Trigger.objects.filter(entry_point=entry_point,
-    #                                            order__lte=trigger.order,
-    #                                        is_active=True).order_by('-order')
-    #    if prior_triggers.count() >= 2:
-    #        # The first trigger will be our current trigger, so take [1]
-    #        prior_trigger = prior_triggers[1]
-    #    trigger.submission = get_submission(learner, prior_trigger)#
-
-
-
-    #ctx_objects['submission'] = trigger.template
-
-
-    #return (trigger.template, [summary, ])
-
-
-
-def get_learners_reviews(trigger, learner, ctx_objects, entry_point,
-                         summaries, **kwargs):
+def get_line1(learner, trigger, summaries):
+    """
+    Fills in line 1 of the template:
+        > Waiting for a peer to submit their work ...
+        > You must submit before you can review others
+        > Start your review
+        > Continue your review
+        > Completed
 
     """
-    Returns a list. Each item contains a tuple. The first entry is the CSS
-    class, for formatting. The second entry is the actual text, link, HTML, etc.
-    """
-
-    valid_subs = Submission.objects.filter(entry_point=trigger.entry_point,
-                                           is_valid=True)
-
-    # Get this learner's submission, if it exists:
-    this_learner = valid_subs.filter(submitted_by=learner)
-    if this_learner:
-        summary = Summary(date=this_learner[0].datetime_submitted,
-                          action='You successfully submitted your document',
-                link='<a href="{0}" target="_blank">{1}</a>'.format(\
-                    this_learner[0].file_upload.url, "View"),
-                catg='sub')
-        summaries.append(summary)
-
-
-
-
-    if not(valid_subs.count() >= GLOBAL.min_in_pool_before_grouping_starts):
-        # Simplest case: no reviews are allocated to learner yet
-        out = []
-        for idx in range(GLOBAL.num_peers):
-            out.append(('', 'Waiting for a peer to submit their work ...'))
-        return out
-
-    # Find which reviews are allocated, and provide links:
-
     out = []
-    allocated_reviews = list(ReviewReport.objects.filter(reviewer=learner)\
-                             .order_by('-created'))
 
-    if len(allocated_reviews):
-        summary = Summary(date=allocated_reviews[0].created,
-                          action='Peer reviews were allocated to you',
-                          catg='rev')
-        summaries.append(summary)
+    # All valid submissions for this EntryPoint
+    valid_subs = Submission.objects.filter(entry_point=trigger.entry_point,
+                                               is_valid=True)
+
+    # All ReviewReport that have been Allocated for Review to this learner
+    allocated_reviews = list(ReviewReport.objects.filter(reviewer=learner)\
+                                 .order_by('-created')) # for consistency
 
 
     for idx in range(GLOBAL.num_peers):
-        try:
-            review = allocated_reviews.pop()
-            if not(review.order):
-                review.order = idx+1
-                review.save()
 
-            # What is the status of this review. Cross check with RubricActual
-            prior = RubricActual.objects.filter(rubric_code=review.unique_code)
-            status = 'Start your review'
-            if prior.count():
-                if prior[0].status == 'C':
-                    status = 'Completed'
-                    summary = Summary(date=prior[0].completed,
-                       action='Review number {0} completed; thank you!'\
-                                  .format(review.order, GLOBAL.num_peers),
-                       link='<a href="/interactive/{0}">View</a>'.format(\
-                                                           review.unique_code),
-                       catg='rev')
-                    summaries.append(summary)
-
-                elif prior[0].status in ('P', 'V'):
-                    status = 'Continue your review'
-
-            out.append(('',
-                    '<a href="/interactive/{1}">{0}</a>'.format(status,
-                                                           review.unique_code)))
-        except IndexError:
+        if not(has(learner, 'submitted')):
             out.append(('', 'You must submit before you can review others.'))
+            continue
+
+        if not(valid_subs.count() >= GLOBAL.min_in_pool_before_grouping_starts):
+            # Simplest case: no reviews are allocated to learner yet
+            for idx in range(GLOBAL.num_peers):
+                out.append(('', 'Waiting for a peer to submit their work ...'))
+            continue
+
+        review = allocated_reviews.pop()
+        if not(review.order):
+            review.order = idx+1
+            review.save()
+
+        # What is the status of this review. Cross check with RubricActual
+        prior = RubricActual.objects.filter(rubric_code=review.unique_code)
+        status = 'Start your review'
+        if prior.count():
+            if prior[0].status in ('C', 'L'):
+                status = 'Completed'
+                summary = Summary(date=prior[0].completed,
+                   action='Review number {0} completed; thank you!'\
+                              .format(review.order, GLOBAL.num_peers),
+                   link='<a href="/interactive/{0}">View</a>'.format(\
+                                                       review.unique_code),
+                   catg='rev')
+                summaries.append(summary)
+
+            elif prior[0].status in ('P', 'V'):
+                status = 'Continue your review'
+
+        out.append(('',
+                '<a href="/interactive/{1}">{0}</a>'.format(status,
+                                                       review.unique_code)))
+
     return out
 
-
-def get_if_peer_has_read(learner, grade, trigger, summaries):
+def get_line2(learner, trigger, summaries):
     out = []
     for idx in range(GLOBAL.num_peers):
         out.append(('future-text',
                     'Waiting for peer to read your review'))
-
     return out
 
-
-def get_peers_evaluation_of_review(learner, grade, trigger, summaries):
+def get_line3(learner, trigger, summaries):
     out = []
     for idx in range(GLOBAL.num_peers):
-        if grade.value <= 60:
-            out.append(('future-text',
-                        "Waiting for peer's evaluation of your review"))
-
+        out.append(('future-text',
+                    "Waiting for peer's evaluation of your review"))
     return out
 
-
-def get_assess_rebuttal(learner, grade, trigger, summaries):
+def get_line4(learner, trigger, summaries):
     out = []
     for idx in range(GLOBAL.num_peers):
-        if grade.value <= 80:
-            out.append(('future-text',
-                        "Waiting for peer's rebuttal of your review"))
-
+        out.append(('future-text',
+                    "Waiting for peer's rebuttal of your review"))
     return out
+
+def get_lineA(learner, trigger, summaries):
+    return ('future-text', 'Provide a rebuttal back to peers')
+
+def get_lineB(learner, trigger, summaries):
+    return ('future-text', 'Provide a rebuttal back to peers')
+
+def get_lineC(learner, trigger, summaries):
+    return ('future-text', 'Rebuttal was read and assessed')
 
 
 def get_read_evaluate_feedback(learner, grade, trigger, my_submission,
@@ -559,20 +568,9 @@ def get_read_evaluate_feedback(learner, grade, trigger, my_submission,
     return ('',  '')
 
 
-def get_provide_rebuttal(learner, grade, trigger, summaries):
-    """
-    Get, or provide the rebuttal form to the submitter to respond back to the
-    reviewers.
-    """
-    out = ('future-text', 'Provide a rebuttal back to peers')
-    return out
 
-def get_rebuttal_status(learner, grade, trigger, summaries):
-    """
-    Displays the rebuttal status.
-    """
-    out = ('future-text', 'Rebuttal was read and assessed')
-    return out
+
+
 
 
 def interactions_to_come(trigger, learner, entry_point=None, grade=None,
@@ -586,51 +584,6 @@ def interactions_to_come(trigger, learner, entry_point=None, grade=None,
         {{}}
     """
 
-    summaries = []
-    template = trigger.template
-    trigger.review_to_peers = ''
-    trigger.peers_back_to_submitter = '0 peers have reviewed your work.'
-
-    peer = {}  # Reviewer's evaluation of their peers' work stored in here.
-
-    peer['start_or_completed_review'] = get_learners_reviews(learner,
-                                                             grade,
-                                                             trigger,
-                                                             summaries)
-    peer['peer_has_read'] = get_if_peer_has_read(learner,
-                                                 grade,
-                                                 trigger,
-                                                 summaries)
-    peer['evaluation_of'] = get_peers_evaluation_of_review(learner,
-                                                           grade,
-                                                           trigger,
-                                                           summaries)
-    peer['assess_rebut'] = get_assess_rebuttal(learner,
-                                               grade,
-                                               trigger,
-                                               summaries)
-
-    for idx in range(GLOBAL.num_peers):
-        trigger.review_to_peers += """
-        <span class="you-peer">
-        <b>Your review of peer {0}</b>:
-        <ul>
-            <li class="{1}">{2}</li>
-            <li class="{3}">{4}</li>
-            <li class="{5}">{6}</li>
-            <li class="{7}">{8}</li>
-        </ul>
-        </span>
-        """.format(idx+1,
-                   peer['start_or_completed_review'][idx][0],
-                   peer['start_or_completed_review'][idx][1],
-                   peer['peer_has_read'][idx][0],
-                   peer['peer_has_read'][idx][1],
-                   peer['evaluation_of'][idx][0],
-                   peer['evaluation_of'][idx][1],
-                   peer['assess_rebut'][idx][0],
-                   peer['assess_rebut'][idx][1],
-                )
 
 
     trigger.peers_back_to_submitter
@@ -913,36 +866,36 @@ class group_graph(object):
 
 
 
-def get_learner_grouping(learner, entry_point):
-    """
-    Returns a dictionary where:
-        out['submitter'] = Membership instance
-        out['reviewer] = [Membership instance, Membership instance, ...]
-    """
-    out = {}
-    submit = Membership.objects.filter(learner=learner,
-                                       group__entry_point=entry_point,
-                                       fixed=True,
-                                       role='Submit')
-    if submit.count() == 0:
-        out['submitter'] = None
-    else:
-        if submit.count() > 1:
-            logger.error(('Learner {0} is submitter in more than 1 group. Not '
-                          'possible. Investigate.'.format(learner)))
-        out['submitter'] = submit[0]
+#def get_learner_grouping(learner, entry_point):
+    #"""
+    #Returns a dictionary where:
+        #out['submitter'] = Membership instance
+        #out['reviewer] = [Membership instance, Membership instance, ...]
+    #"""
+    #out = {}
+    #submit = Membership.objects.filter(learner=learner,
+                                       #group__entry_point=entry_point,
+                                       #fixed=True,
+                                       #role='Submit')
+    #if submit.count() == 0:
+        #out['submitter'] = None
+    #else:
+        #if submit.count() > 1:
+            #logger.error(('Learner {0} is submitter in more than 1 group. Not '
+                          #'possible. Investigate.'.format(learner)))
+        #out['submitter'] = submit[0]
 
 
-    review = Membership.objects.filter(learner=learner,
-                                       group__entry_point=entry_point,
-                                       role='Review')
-    if review.count() > GLOBAL.num_peers:
-        logger.error(('Learner {0} is reviewer in too many grades. Not '
-                              'possible. Investigate.'.format(learner)))
-    else:
-        out['reviewer'] = list(review)
+    #review = Membership.objects.filter(learner=learner,
+                                       #group__entry_point=entry_point,
+                                       #role='Review')
+    #if review.count() > GLOBAL.num_peers:
+        #logger.error(('Learner {0} is reviewer in too many grades. Not '
+                              #'possible. Investigate.'.format(learner)))
+    #else:
+        #out['reviewer'] = list(review)
 
-    return out
+    #return out
 
 
 
@@ -1042,11 +995,3 @@ def review(request, unique_code=None):
 
 
 
-
-
-def reviews_to_submitter(trigger, learner, entry_point=None, grade=None,
-                         request=None, ctx_objects=dict(), **kwargs):
-    """
-    """
-    a = 'asd'
-    return ('', '')
