@@ -508,14 +508,131 @@ def get_line4(learner, trigger, summaries):
                     "Waiting for peer's rebuttal of your review"))
     return out
 
-def get_lineA(learner, trigger, summaries):
+
+def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
+                         summaries=list(), ctx_objects=dict(), **kwargs):
+    """
+    We are filling in this part of the template:
+
+    <span class="indent">
+    <ul>
+        <li class="peers_to_you {0}" type="a">(a) {1}</li>  <--- this line
+        <li class="peers_to_you {2}" type="a">(b) {3}</li>
+        <li class="peers_to_you {4}" type="a">(c) {5}</li>
+    </ul>
+    """
+
+    if has(learner, 'read_and_evaluated_all_reviews'):
+        pass
+
+    if has(learner, 'read_all_evaluations'):
+        pass
+
+    if has(learner, 'completed_rebuttal'):
+        pass
+
     return ('future-text', 'Provide a rebuttal back to peers')
 
-def get_lineB(learner, trigger, summaries):
+def peers_provide_rebuttal(trigger, learner, entry_point=None,
+                         summaries=list(), ctx_objects=dict(), **kwargs):
+    """
+    We are filling in this part of the template:
+
+    <span class="indent">
+    <ul>
+        <li class="peers_to_you {0}" type="a">(a) {1}</li>
+        <li class="peers_to_you {2}" type="a">(b) {3}</li>   <--- this line
+        <li class="peers_to_you {4}" type="a">(c) {5}</li>
+    </ul>
+    """
+
     return ('future-text', 'Provide a rebuttal back to peers')
 
-def get_lineC(learner, trigger, summaries):
+def peers_rebuttal_status(trigger, learner, entry_point=None,
+                         summaries=list(), ctx_objects=dict(), **kwargs):
+    """
+    We are filling in this part of the template:
+
+    <span class="indent">
+    <ul>
+        <li class="peers_to_you {0}" type="a">(a) {1}</li>
+        <li class="peers_to_you {2}" type="a">(b) {3}</li>
+        <li class="peers_to_you {4}" type="a">(c) {5}</li>    <--- this line
+    </ul>
+    """
     return ('future-text', 'Rebuttal was read and assessed')
+
+def peers_summarize(trigger, learner, entry_point=None,
+                         summaries=list(), ctx_objects=dict(), **kwargs):
+    """
+    We are filling in entire template:
+
+    <span class="indent">
+    <ul>
+        <li class="peers_to_you {0}" type="a">(a) {1}</li>
+        <li class="peers_to_you {2}" type="a">(b) {3}</li>
+        <li class="peers_to_you {4}" type="a">(c) {5}</li>
+    </ul>
+    """
+    peers_back_to_submitter = ''
+
+    my_submission = Submission.objects.filter(entry_point=entry_point,
+                                              is_valid=True,
+                                              submitted_by=learner)
+    reports = [False, ] * GLOBAL.num_peers
+    completed = [False,] * GLOBAL.num_peers
+    idx = 0
+    my_reviews = []
+    for submission in my_submission:
+        my_reviews = ReviewReport.objects.filter(submission=submission).\
+            order_by('created') # to ensure consistency in display
+        for report in my_reviews:
+            # There should be at most "GLOBAL.num_peers" reviews
+            reports[idx] = report
+            try:
+                rubric = RubricActual.objects.get(\
+                    rubric_code=reports[idx].unique_code)
+            except RubricActual.DoesNotExist:
+                continue
+            if rubric.submitted:
+                completed[idx] = True
+
+
+            # Bump the counter and get the rest of the reviews.
+            idx += 1
+
+    # This message is overridden later for the case when everyone is completed.
+    header = """{{n_reviewed}} peer{{ n_reviewed|pluralize:" has,s have" }}
+     completely reviewed your work. Waiting for {{n_more}} more
+        peer{{n_more|pluralize}} to start (or complete) their review."""
+
+    head = insert_evaluate_variables(header, {'n_reviewed': sum(completed),
+                                              'n_more': GLOBAL.num_peers - \
+                                              sum(completed)}
+                                     )
+
+
+    peers_back_to_submitter = head
+    if sum(completed) == GLOBAL.num_peers:
+        peers_back_to_submitter = "All peers have reviewed your work."
+
+    peers_back_to_submitter  += """
+    <style>.peers_to_you{{list-style-type:None}}</style>
+
+    <span class="indent">
+    <ul>
+        <li class="peers_to_you {0}" type="a">(a) {1}</li>
+        <li class="peers_to_you {2}" type="a">(b) {3}</li>
+        <li class="peers_to_you {4}" type="a">(c) {5}</li>
+    </ul>
+    </span>
+    """.format(get_lineA[0], get_lineA[1],
+               get_lineB[0], get_lineB[1],
+               get_lineC[0], get_lineC[1],)
+
+    trigger.template = peers_back_to_submitter
+    ctx_objects['peers_back_to_submitter'] = render_template(trigger,
+                                                             ctx_objects)
 
 
 def get_read_evaluate_feedback(learner, grade, trigger, my_submission,
@@ -568,102 +685,6 @@ def get_read_evaluate_feedback(learner, grade, trigger, my_submission,
     return ('',  '')
 
 
-
-
-
-
-
-def interactions_to_come(trigger, learner, entry_point=None, grade=None,
-                         request=None, ctx_objects=dict(), **kwargs):
-    """
-    Fields that can be used in the template:
-        {{review_to_peers|safe}}
-        {{peers_back_to_submitter|safe}}
-
-    Settings possible in the kwargs, with the defaults are shown.
-        {{}}
-    """
-
-
-
-    trigger.peers_back_to_submitter
-    my_submission = Submission.objects.filter(entry_point=entry_point,
-                                              is_valid=True,
-                                              submitted_by=learner)
-    reports = [False, ] * GLOBAL.num_peers
-    completed = [False,] * GLOBAL.num_peers
-    #in_progress = [False,] * GLOBAL.num_peers
-    idx = 0
-    my_reviews = []
-    for submission in my_submission:
-        my_reviews = ReviewReport.objects.filter(submission=submission).\
-                        order_by('created') # to ensure consistency in display
-        for report in my_reviews:
-            # There should be at most "GLOBAL.num_peers" reviews
-            reports[idx] = report
-            try:
-                rubric = RubricActual.objects.get(\
-                                           rubric_code=reports[idx].unique_code)
-            except RubricActual.DoesNotExist:
-                continue
-            if rubric.submitted:
-                completed[idx] = True
-
-
-            # Bump the counter and get the rest of the reviews.
-            idx += 1
-
-
-    # This message is overridden later for the case when everyone is completed.
-    header = """{{n_reviewed}} peer{{ n_reviewed|pluralize:" has,s have" }}
-     completely reviewed your work. Waiting for {{n_more}} more
-        peer{{n_more|pluralize}} to start (or complete) their review."""
-
-    head = insert_evaluate_variables(header, {'n_reviewed': sum(completed),
-                                              'n_more': GLOBAL.num_peers - \
-                                                               sum(completed)}
-                                     )
-
-
-    trigger.peers_back_to_submitter = head
-
-
-    peer['read_evaluate_feedback'] = get_read_evaluate_feedback(learner,
-                                                                grade,
-                                                                trigger,
-                                                                my_submission,
-                                                                summaries)
-    peer['provide_rebuttal'] = get_provide_rebuttal(learner,
-                                                    grade,
-                                                    trigger,
-                                                    summaries)
-    peer['rebuttal_status'] = get_rebuttal_status(learner,
-                                                  grade,
-                                                  trigger,
-                                                  summaries)
-
-    if sum(completed) == GLOBAL.num_peers:
-        trigger.peers_back_to_submitter = "All peers have reviewed your work."
-
-    trigger.peers_back_to_submitter  += """
-    <style>.peers_to_you{{list-style-type:None}}</style>
-
-    <span class="indent">
-    <ul>
-        <li class="peers_to_you {0}" type="a">(a) {1}</li>
-        <li class="peers_to_you {2}" type="a">(b) {3}</li>
-        <li class="peers_to_you {4}" type="a">(c) {5}</li>
-    </ul>
-    </span>
-    """.format(peer['read_evaluate_feedback'][0],
-               peer['read_evaluate_feedback'][1],
-               peer['provide_rebuttal'][0],
-               peer['provide_rebuttal'][1],
-               peer['rebuttal_status'][0],
-               peer['rebuttal_status'][1])
-
-
-    return (trigger.template, summaries)
 
 
 def invite_reviewers(learner, trigger):

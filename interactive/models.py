@@ -73,6 +73,7 @@ SUBMISSION_FIXED = 10
 45 Has read evaluation received back from peer 5
 
 ---- Rebuttal (by the student back to their peer)
+50 ??
 61 Has written rebuttal to peers
 
 71 Has read the rebuttal received from peer 1
