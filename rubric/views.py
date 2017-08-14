@@ -4,6 +4,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.template.context_processors import csrf
 from django.views.decorators.clickjacking import xframe_options_exempt
 from django.utils import timezone
+from django.conf import settings
+
 
 # Python and 3rd party imports
 import re
@@ -13,6 +15,8 @@ import numpy as np
 # 3rd party models
 from stats.views import create_hit
 from grades.models import GradeItem, LearnerGrade
+from utils import generate_random_token
+
 
 # Our imports
 from .models import RubricTemplate, RubricActual
@@ -120,7 +124,8 @@ def handle_review(request, ractual_code):
            'r_item_actuals' : r_item_actuals,
            'rubric' : r_actual.rubric_template,
            'report': report,
-           'show_feedback': False
+           'show_feedback': False,
+           'show_special': False,
            }
     return render(request, 'rubric/review_peer.html', ctx)
 
@@ -217,6 +222,10 @@ def submit_peer_review_feedback(request, ractual_code):
                           max(THRESHOLD_REVIEW_COMPLETED_START,
                                   grade.value+1))
         grade.save()
+
+
+        # Send here an async request to generate the PDF of the review.
+        create_review_report_PDF(r_actual=r_actual)
 
 
 
@@ -603,3 +612,71 @@ def get_create_actual_rubric(learner, trigger, submission, rubric_code=None):
             r_item_actual.save()
 
     return r_actual, new_rubric
+
+
+def create_review_report_PDF(r_actual):
+    """
+    Take an original submission (PDF), and combines an extra page or two,
+    that contains the review (``r_actual``).
+    """
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import cm
+    from django.core.files import File
+    from submissions.models import Submission
+    from interactive.models import EvaluationReport
+
+
+
+    base_dir_for_file_uploads = settings.MEDIA_ROOT
+    token = generate_random_token(token_length=16)
+
+
+    from shutil import copyfile
+    src = r_actual.submission.file_upload.file.name
+    filename = 'uploads/{0}/{1}'.format(
+                            r_actual.rubric_template.entry_point.id,
+                            token + '.pdf')
+    dst = base_dir_for_file_uploads + filename
+    copyfile(src, dst)
+
+
+    #try:
+        #c = canvas.Canvas(full_path, pagesize=A4 )
+        #c.setPageSize(A4)
+        #for f_to_process in files:
+            #c.setFont("Helvetica", 14)
+            #c.drawString(10, 10, "REVIEW STILL TO COME HERE")
+            #c.showPage()
+        #c.save()
+    #except IOError as exp:
+        #logger.error('Exception: ' + str(exp))
+        ## TODO: raise error message
+
+    #with open(dst, 'r') as dst_file:
+
+        #submission_with_review = File(dst_file)
+    new_sub = Submission(submitted_by=r_actual.graded_by,
+                            status='A',
+                            entry_point=r_actual.rubric_template.entry_point,
+                            trigger=r_actual.rubric_template.trigger,
+                            is_valid=True,
+                            file_upload = filename,
+                            submitted_file_name = token + '.pdf',
+                        )
+    new_sub.save()
+
+    # DELETE ANY PRIOR ATTEMPTS FOR THIS trigger/submitted_by combination.
+
+
+
+    review_back_to_submitter = EvaluationReport(\
+                            peer_reviewer=r_actual.graded_by,
+                            evaluator=r_actual.submission.submitted_by,
+                            r_actual= r_actual,
+                            trigger=r_actual.rubric_template.trigger,
+                            submission=new_sub,
+                            unique_code=token,
+                        )
+    review_back_to_submitter.save()
+

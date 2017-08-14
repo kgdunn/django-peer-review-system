@@ -16,7 +16,7 @@ def peerreview_directory_path(instance, filename, randomize=True):
         filename = ''.join(filename.split('.')[0:-1]) + '.' + extension
     return '{0}{1}{2}{1}{3}'.format('uploads',
                                     os.sep,
-                                    instance.entry.id,
+                                    instance.entry_point.id,
                                     filename)
 class Submission(models.Model):
     """

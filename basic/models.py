@@ -1,8 +1,5 @@
 from django.db import models
 from django.utils import timezone
-#from django.core.urlresolvers import reverse
-#from django.core.exceptions import ValidationError
-#import os
 
 # In general, in the rewrite:
 # PR_Process -> EntryPoint
@@ -63,7 +60,6 @@ class Person(models.Model):
 
     def __str__(self):
         return u'{0} [{1}]'.format(self.email, self.user_ID[0:5])
-
 
 
 class Group(models.Model):

@@ -17,6 +17,7 @@ import networkx as nx
 
 # This app
 from .models import Trigger, GroupConfig, Membership, ReviewReport
+from .models import AchieveConfig, Achievement
 
 
 # Our other apps
@@ -117,20 +118,7 @@ def starting_point(request, course=None, learner=None, entry_point=None):
 
 
 
-    html = []
-    if settings.DEBUG:
-        html.append('<h2>{}</h2>'.format(learner.email))
-
-
-    global_page = """{% extends "basic/base.html" %}{% block content %}<hr>
-    <!--SPLIT HERE-->\n{% endblock %}"""
-    template_page = Template(global_page)
-    context = Context(ctx_objects)
-    page_header_footer = template_page.render(context)
-    page_header, page_footer = page_header_footer.split('<!--SPLIT HERE-->')
-    html.append(page_header)
-
-    all_summaries = []
+    summaries = []
     for trigger in triggers:
         # Then actually run each trigger, but only if the requirements are
         # met, and we are within the time range for it.
@@ -138,10 +126,10 @@ def starting_point(request, course=None, learner=None, entry_point=None):
         run_trigger = True
         if (trigger.start_dt > now_time) and (trigger.end_dt <= now_time):
             run_trigger = False
-        if grade.value > trigger.upper:
-            run_trigger = False
-        if grade.value < trigger.lower:
-            run_trigger = False
+        #if grade.value > trigger.upper:
+        #    run_trigger = False
+        #if grade.value < trigger.lower:
+        #    run_trigger = False
         if not(run_trigger):
             continue
 
@@ -162,47 +150,78 @@ def starting_point(request, course=None, learner=None, entry_point=None):
         ctx_objects['self'] = trigger
 
         # Call the function, finally.
-        html_template, summary_list = func(trigger,
-                                            learner,
-                                            ctx_objects=ctx_objects,
-                                            entry_point=entry_point,
-                                            grade=grade,
-                                            request=request
-                                           )
-        for summary in summary_list:
-            if summary.action:
-                all_summaries.append(summary)
-        html_trigger = Template(html_template).render(Context(ctx_objects))
-        html.append(html_trigger)
+        func(trigger,
+             learner=learner,
+             ctx_objects=ctx_objects,
+             entry_point=entry_point,
+             summaries=summaries,
+             request=request
+           )
 
-    # The last step is to create the Summaries, and add that to the end of the
-    # HTML
-    if summary_list:
-        html += loader.render_to_string('interactive/summary.html',
-                                        {'summary_list': summary_list})
+    ctx_objects['summary_list'] = summaries
+    if settings.DEBUG:
+        ctx_objects['header'] = '<h2>{}</h2>'.format(learner.email)
 
+    html = loader.render_to_string('interactive/landing_page.html',
+                                    ctx_objects)
     return HttpResponse(html)
 
 
-def kick_off_email(trigger, learner, entry_point=None, grade=None,
-                   request=None, **kwargs):
+def render_template(trigger, ctx_objects):
+    """
+    Renders the templated text in ``trigger`` using variables in ``ctx_objects``
+
+    """
+    ctx_objects['self'] = trigger
+    return Template(trigger.template).render(Context(ctx_objects))
+
+
+def has(learner, achievement):
+    """
+    See's if a user has completed a certain achievement.
+    """
+    possible = Achievement.objects.filter(learner=learner,
+                                          achieved__name=achievement)
+    if possible.count() == 0:
+        return False
+    else:
+        return possible[0].done
+
+
+def completed(learner, achievement):
+    """
+    Complete this item for the learner's achievement
+    """
+    possible = Achievement.objects.filter(learner=learner,
+                                          achieved__name=achievement)
+    if possible.count() == 0:
+        completed = Achievement(learner=learner,
+                        achieved=AchieveConfig.objects.get(name=achievement))
+    else:
+        completed = possible[0]
+
+    completed.done = True
+    completed.save()
+
+
+def kick_off_email(trigger, learner, entry_point=None, **kwargs):
     """
     Initiates the kick-off email to the student, to encourage an upload.
     """
+
+    if has(learner, 'kick_off_email'):
+        return None
+
     subject = 'Upload document for: {}'.format(entry_point.LTI_title)
     template = """Please upload a PDF with N words. Tkank you."""
     template += '<br>kick_off_email'
     send_email(learner.email, subject, messages=template, delay_secs=0)
 
-    # Assume the email is successfully sent. Adjust the ``grade``:
-    grade.value = 1.0
-    grade.save(push=True)
-
-    return ('', '')
+    completed(learner, 'kick_off_email')
 
 
 def submitted_doc(trigger, learner, ctx_objects=None, entry_point=None,
-                  grade=None, **kwargs):
+                  request=None, **kwargs):
     """
     The user has submitted their document:
     * send email to thank them
@@ -213,17 +232,15 @@ def submitted_doc(trigger, learner, ctx_objects=None, entry_point=None,
         entry_point.LTI_title)
     template = """Thank you for your upload. Please wait for N submissions."""
     template += '<br>submitted_doc'
-    #send_email(learner.email, subject, messages=template, delay_secs=0)
+    send_email(learner.email, subject, messages=template, delay_secs=0)
 
     # Email is successfully sent. Adjust the ``grade`` to avoid spamming.
     #grade.value +1.0
     #grade.save(push=True)
 
 
-
-
-def submission_form(trigger, learner, entry_point=None, grade=None,
-                   request=None, ctx_objects=dict(), **kwargs):
+def submission_form(trigger, learner, entry_point=None, summaries=list(),
+                   ctx_objects=dict(), **kwargs):
     """
     Displays the submission form, and handles the upload of it.
 
@@ -242,38 +259,19 @@ def submission_form(trigger, learner, entry_point=None, grade=None,
 
     """
     html_text = ''
-    summary_line = Summary(action='FIX THIS', link='FIX THIS')
 
     # Remove the prior submission from the dict, so that PRs that use
     # multiple submission steps get the correct phase's submission
     #ctx_objects.pop('submission', None)
 
     # Get the (prior) submission
-    submission = prior_submission = get_submission(learner, entry_point)
+    submission = prior_submission = get_submission(learner, trigger)
 
     # What the admin's see
     if learner.role != 'Learn':
         ctx_objects['self'].admin_overview = 'ADMIN TEXT GOES HERE STILL.'
 
-        #no_submit = dict()
-        #all_groups = dict()
-        #all_subs = Submission.objects.filter(pr_process=self.pr,
-                                             #phase=self, is_valid=True).\
-            #order_by('datetime_submitted')
-        #if self.pr.uses_groups:
-            #all_groups = self.pr.gf_process.group_set.filter()
-            #no_submit = all_groups
-            #for item in all_subs:
-                #no_submit = no_submit.exclude(id=item.group_submitted_id)
 
-        #ctx_objects['no_submit'] = no_submit
-        #ctx_objects['all_groups'] = all_groups
-        #ctx_objects['all_subs'] = all_subs
-        #content = loader.render_to_string('review/admin-submissions.html',
-                                          #context=ctx_objects,
-                                          #request=request,
-                                          #using=None)
-        #ctx_objects['self'].admin_overview = content
     if not(getattr(trigger, 'accepted_file_types_comma_separated', False)):
         trigger.accepted_file_types_comma_separated = 'PDF'
 
@@ -289,8 +287,11 @@ def submission_form(trigger, learner, entry_point=None, grade=None,
         file_upload_form = UploadFileForm_one_file()
 
     submission_error_message = ''
-    if request.FILES:
-        submit_inst = upload_submission(request, learner, entry_point, trigger)
+    if kwargs['request'].FILES:
+        submit_inst = upload_submission(kwargs['request'],
+                                        learner,
+                                        entry_point,
+                                        trigger)
 
         # One final check: has a reviewer been allocated to this review yet?
         sub = Membership.objects.filter(role='Submit', learner=learner)
@@ -309,8 +310,8 @@ def submission_form(trigger, learner, entry_point=None, grade=None,
                 prior_submission.is_valid = True
                 prior_submission.save()
 
-                grade.value = 10.0
-                grade.save(push=True)
+                #grade.value = 10.0
+                #grade.save(push=True)
                 submit_inst = (submit_inst, ('Your submission has been refused;'
                                ' a peer has just started reviewing your work.'))
 
@@ -323,9 +324,11 @@ def submission_form(trigger, learner, entry_point=None, grade=None,
             # Successfully uploaded a document
             submission_error_message = ''
             submission = submit_inst
-            grade.value += 1
-            grade.value = min(max(grade.value, 3.0), 9.0)
-            grade.save(push=True)
+
+            completed(learner, achievement='submitted')
+            #grade.value += 1
+            #grade.value = min(max(grade.value, 3.0), 9.0)
+            #grade.save(push=True)
 
             # Create a group with this learner as the submitter
             already_exists = Membership.objects.filter(learner=learner,
@@ -357,44 +360,53 @@ def submission_form(trigger, learner, entry_point=None, grade=None,
     trigger.file_upload_form = ctx_objects['file_upload_form'] = \
         file_upload_form
 
-    html_text = trigger.template
 
-    if grade.value  < GLOBAL.SUBMISSION_FIXED:
-        trigger.allow_submit = True  # False, if no more submissions allowed
+    if has(learner, 'work_has_started_to_be_reviewed'):
+        trigger.allow_submit = False  # False, if no more submissions allowed
     else:
-        trigger.allow_submit = False
+        trigger.allow_submit = True
 
-    return html_text, [summary_line,]
+    ctx_objects['submission'] = trigger.template
+
+    if trigger.submission:
+        summary = Summary(date=trigger.submission.datetime_submitted,
+                          action='You successfully submitted your document',
+                          link='<a href="{0}" target="_blank">{1}</a>'.format(\
+                              trigger.submission.file_upload.url, "View"),
+                          catg='sub')
+        summaries.append(summary)
+
+    ctx_objects['submission'] = render_template(trigger, ctx_objects)
 
 
-def submitted_already(trigger, learner, entry_point=None, grade=None,
-                    request=None, ctx_objects=dict(), **kwargs):
 
-    """
-    Simply displays the prior submission, if any.
 
-    Fields that can be used in the template:
-        ??{{submission}}                The ``Submission`` model instance
-        ??{{submission_error_message}}  Any error message
 
-    Settings possible in the kwargs, with the defaults are shown.
-        None
-
-    """
     # Get the (prior) submission
-    trigger.submission = get_submission(learner, entry_point)
+    #trigger.submission = get_submission(learner, trigger)
 
-    summary = Summary(date=trigger.submission.datetime_submitted,
-                      action='You successfully submitted your document',
-                      link='<a href="{0}" target="_blank">{1}</a>'.format(\
-                                    trigger.submission.file_upload.url, "View"),
-                      catg='sub')
+    # If we didn't get a submission, search in the prior trigger
+    #if not(trigger.submission) and has(learner, 'submitted'):
+    #    prior_triggers = Trigger.objects.filter(entry_point=entry_point,
+    #                                            order__lte=trigger.order,
+    #                                        is_active=True).order_by('-order')
+    #    if prior_triggers.count() >= 2:
+    #        # The first trigger will be our current trigger, so take [1]
+    #        prior_trigger = prior_triggers[1]
+    #    trigger.submission = get_submission(learner, prior_trigger)#
 
-    return (trigger.template, [summary, ])
+
+
+    #ctx_objects['submission'] = trigger.template
+
+
+    #return (trigger.template, [summary, ])
 
 
 
-def get_learners_reviews(learner, grade, trigger, summaries):
+def get_learners_reviews(trigger, learner, ctx_objects, entry_point,
+                         summaries, **kwargs):
+
     """
     Returns a list. Each item contains a tuple. The first entry is the CSS
     class, for formatting. The second entry is the actual text, link, HTML, etc.
@@ -500,7 +512,7 @@ def get_assess_rebuttal(learner, grade, trigger, summaries):
 def get_read_evaluate_feedback(learner, grade, trigger, my_submission,
                                summaries):
     """
-    Allow the submitter (learner) to read the combined reviews.
+    Allow the submitter (learner) to read the reviews.
     """
     rubrics = RubricActual.objects.filter(submission=my_submission)
 
@@ -514,21 +526,37 @@ def get_read_evaluate_feedback(learner, grade, trigger, my_submission,
             summaries.append(summary)
 
 
-    if rubrics.filter(status='C').count() < GLOBAL.num_peers:
+    if (rubrics.filter(status='C').count() + rubrics.filter(status='L').count())\
+                                                          < GLOBAL.num_peers:
         return ('future-text', 'Read and evaluate their feedback')
 
     # If we have reached this point it is because the submitter can now
-    # view their feedback.
+    # view their feedback. Therefore we only iterate over the COMPLETED rubrics.
 
-    # 1/ Pick one of the reviews, and use that R_actual (even though the
-    #    r_actual is from the original reviewer).
     # 2/ Set the r_actual review to be locked (read-only)
-    # 3/ Assign a submitter code (``submitted)
+    # 3/ NOT: Assign a submitter code (``submitted)
     # 4/ Indicate the submitter has read the reviews: so the reviewers see that
     # 5/ Create a rubric for evaluation of the review (submitter prompted to fill)
 
 
-    return ('', 'Read and evaluate their feedback: LINK start the evaluation')
+
+    #rubrics = rubrics.filter(status='C')
+
+    #text = 'Read and evaluate their feedback: '
+    #for idx, ractual in enumerate(rubrics):
+        #ractual.status = 'L'
+        #ractual.save()
+
+
+        #sub_eval = ReviewReport.objects.get(submitter_code=ractual.rubric_code)
+
+        #text += 'evaluate <a href="/evaluate/{0}/">peer {1}</a>'.format(sub_eval.unique_code,
+                                                                       #idx+1)
+
+
+
+
+    return ('',  '')
 
 
 def get_provide_rebuttal(learner, grade, trigger, summaries):
@@ -750,6 +778,8 @@ def invite_reviewers(learner, trigger):
             allocated = ReviewReport.objects.filter(trigger=trigger,
                                                     reviewer=learner,
                                                     have_emailed=True)
+
+            completed(learner, achievement='email_to_start_reviewing')
 
 
 # Functions related to the graph and grouping
@@ -1014,3 +1044,9 @@ def review(request, unique_code=None):
 
 
 
+def reviews_to_submitter(trigger, learner, entry_point=None, grade=None,
+                         request=None, ctx_objects=dict(), **kwargs):
+    """
+    """
+    a = 'asd'
+    return ('', '')

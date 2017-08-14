@@ -115,105 +115,34 @@
         <div class="col2">
             <!-- Column 2 start -->
 
-        {% spaceless %}
-        {% if not show_feedback %}
-            {{rubric.general_instructions|safe}}
-            <br>
+            {% spaceless %}
+            {% if not show_feedback %}
+                {{rubric.general_instructions|safe}}
+                <br>
 
-            <form action="{% url 'submit_peer_review_feedback' ractual_code=ractual_code %}"
-                  method="POST" enctype="multipart/form-data">{% csrf_token %}
-            {% if rubric.submit_button_also_shown_on_top %}
-                <div class="submit_button" ><input  type="submit" name="{{ractual_code}}" value="Submit your review"></div>
+                <form action="{% url 'submit_peer_review_feedback' ractual_code=ractual_code %}"
+                      method="POST" enctype="multipart/form-data">{% csrf_token %}
+                {% if rubric.submit_button_also_shown_on_top %}
+                    <div class="submit_button" ><input  type="submit" name="{{ractual_code}}" value="Submit your review"></div>
+                {% endif %}
+                <hr>
             {% endif %}
-            <hr>
-        {% endif %}
-        <div class="clear"></div>
+            <div class="clear"></div>
 
             {% for item in r_item_actuals %} {# This alternates the major ITEMS in the rubric #}
                 <fieldset id="fieldset-item-{{item.ritem_template.order}}" class="{% cycle 'odd' 'even' %}">
-                {# Criterion is given here #}
-                {% if rubric.show_order %}{{item.ritem_template.order}}. {% endif %}
-                {{item.ritem_template.criterion|safe}}
-                {% if rubric.show_maximum_score_per_item %}
-                    <span style="float:right; margin-bottom:10px">(maximum score: <b>{{item.ritem_template.max_score|floatformat}} point{{item.ritem_template.max_score|pluralize}}</b>)</span>
-                {% endif %}
-                <hr>
-
-                {% for option in item.options %}
-                    {% if item.ritem_template.option_type == 'Radio' %}
-                    <div class="radio">
-                        <label><span class="radio_button peeroption"><input type="radio" name="item-{{item.ritem_template.order}}" id="item-{{item.ritem_template.order}}" value="option-{{option.order}}"
-                        {%if option.selected and not show_feedback %}checked="checked"{% endif %} {%if show_feedback%}disabled="disabled" {% endif %}></span><span class="radio_text"><b>{{option.score|floatformat}} point{{option.score|pluralize}}</b>: {{option.criterion|safe}} </span></label>
-                    </div>
-                    {% endif %}
-                    {% if item.ritem_template.option_type == 'Chcks' %}
-                        <div class="checkbox">
-                            <label><span class="checkbox peeroption"><input type="checkbox" name="item-{{item.ritem_template.order}}" value="option-{{option.order}}"
-                            {%if option.selected%}checked="checked"{% endif %}></span><span class="checkbox_text">{{option.criterion|safe}}</span></label>
-                        </div>
-                    {% endif %}
-                    {% if item.ritem_template.option_type == 'DropD' %}
-                       {% if option.criterion %}
-                           <ul><b>{{option.score|floatformat}} point{{option.score|pluralize}}</b>: {{option.criterion|safe}}</ul>
-                       {% endif %}
-                    {% endif %}
-
-                    {% if item.ritem_template.option_type == 'LText' %}
-                        <div  class="LText" style="display: block;" id="item-{{item.ritem_template.order}}">
-                            <label for="item-{{item.ritem_template.order}}" id="item-{{item.ritem_template.order}}"></label>
-                            {% if show_feedback %}
-                                {% if item.results.0 %}
-                                    The feedback you received from your peers was:
-                                    <div class="textwrapper">
-                                        <textarea cols="2" rows="10" name="item-{{item.ritem_template.order}}" readonly>{{item.results.0}}</textarea>
-                                    </div>
-                                {% endif %}
-                                {% if item.results.4%}
-                                The feedback you received from your instructor/TA/expert was:
-                                <div class="textwrapper">
-                                    <textarea cols="2" rows="10" name="item-{{item.ritem_template.order}}" readonly>{{item.results.4}}</textarea>
-                                </div>
-                                {% endif %}
-                            {% else %}
-                                <div class="textwrapper">
-                                    <textarea class="pr-textarea" cols="2" rows="10" name="item-{{item.ritem_template.order}}" placeholder="{{option.criterion}}">{{option.prior_text}}</textarea>
-                                </div>
-                            {% endif %}
-
-                        </div>
-                    {% endif %}
-                {% endfor %} {#for: option in item.options #}
-                {% if show_feedback %} {# show peer/self feedback #}
-                    {% if item.ritem_template.option_type == 'LText' %}{% endif%}
-                    {% if item.ritem_template.option_type == 'DropD' or item.ritem_template.option_type == 'Radio' %}
-                        <em>Score received</em>:
-                        {{item.results.0}}; average value = {{item.results.2|floatformat}}
-                    {% endif %}
-                {% else %}
-                    {%if item.ritem_template.option_type == 'DropD'%}
-                    <div class="dropdown-score" style="padding:	10px">
-                    Your evaluation:
-                    <select id="item-{{item.ritem_template.order}}" name="item-{{item.ritem_template.order}}" required>
-                    <option value="option-NA" selected disabled>Based on the above descriptions, please give a score ...</option>
-                        {% for option in item.options %}
-                            <option class="peeroption" value="option-{{option.order}}"{%if option.selected%} selected="selected"{% endif %}>{{option.score|floatformat}} point{{option.score|pluralize}}</option>
-                        {% endfor %}
-                    </select>
-                    </div>
-                    {% endif %} {#item.ritem_template.option_type#}
-                {% endif %} {# ``show_feedback``: show peer/self feedback #}
-
-
+                    {% include "rubric/render_one_item.html" with show_feedback=show_special%}
                 </fieldset>
             <hr>
-            {% endfor %}
-        {% if not show_feedback %}
-            <span class="submit_button" >
-            <input type="submit" name="below-{{ractual_code}}" value="Submit your review"></span>
-            </form>
-            Don't forget to submit your review when complete.
-        {% endif %}
-        {% endspaceless %}
+            {% endfor %} {# for item in r_item_actuals #}
+
+            {% if not show_feedback %}
+                <span class="submit_button" >
+                <input type="submit" name="below-{{ractual_code}}" value="Submit your review"></span>
+                </form>
+                Don't forget to submit your review when complete.
+            {% endif %}
+            {% endspaceless %}
             <!-- Column 2 end -->
         </div>
     </div>

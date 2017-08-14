@@ -16,7 +16,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_submission(learner, entry_point):
+def get_submission(learner, trigger, entry_point=None):
 
     """
     Gets the ``submission`` instance at the particular ``trigger`` in the
@@ -32,12 +32,12 @@ def get_submission(learner, entry_point):
 
 
     submission = None
-    subs = Submission.objects.filter(is_valid=True, entry_point=entry_point)
-    if entry_point.uses_groups:
+    subs = Submission.objects.filter(is_valid=True, trigger=trigger)
+    #if entry_point.uses_groups:
         # NOTE: an error condition can develop if a learner isn't
         #       allocated into a group, and you are using group submissions.
 
-        pass
+    #    pass
         # TODO
         #if search_earlier:
 
@@ -52,9 +52,14 @@ def get_submission(learner, entry_point):
             #subs = subs.filter(phase__order=phase.order,
                                #group_submitted=grp_info['group_instance'])\
                                                             #.order_by('-datetime_submitted')
-    else:
+    #else:
         # Individual submission
-        subs = subs.filter(submitted_by=learner).order_by('-datetime_submitted')
+    #    subs = subs.filter(submitted_by=learner).order_by('-datetime_submitted')
+
+
+    # Just use this for now.
+    subs = subs.filter(submitted_by=learner).order_by('-datetime_submitted')
+
 
     if subs:
         return subs[0]

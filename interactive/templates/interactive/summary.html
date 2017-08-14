@@ -1,3 +1,5 @@
+{% if summary_list %}
+
 <h2 style="display:inline; clear:none;">Summaries</h2>
 <script>
 $(document).ready( function () {
@@ -44,3 +46,5 @@ $(document).ready( function () {
 {% endfor %}
 </tbody></table>
 <hr>
+
+{% endif %} {# if summary_list #}

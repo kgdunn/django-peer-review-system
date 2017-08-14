@@ -98,6 +98,38 @@ SUBMISSION_FIXED = 10
 100 Process completed
 """
 
+
+class AchieveConfig(models.Model):
+    """
+    The achievements of a person expected
+    """
+    name = models.CharField(max_length=100, help_text='Display name')
+    description = models.TextField(blank=True, null=True,
+                                   help_text='Detailed description')
+    order = models.PositiveSmallIntegerField(default=0)
+    entry_point = models.ForeignKey('basic.EntryPoint', null=True, blank=True)
+    achievements = models.ManyToManyField('basic.Person',
+                                     through='Achievement',
+                                     )
+
+    def __str__(self):
+        return '[{0}] {1}'.format(self.order, self.name)
+
+
+class Achievement(models.Model):
+    """
+    """
+    learner = models.ForeignKey('basic.Person', on_delete=models.CASCADE)
+    achieved = models.ForeignKey(AchieveConfig, on_delete=models.CASCADE)
+    when = models.DateTimeField(auto_now_add=True)
+    last = models.DateTimeField(auto_now=True)
+    done = models.BooleanField(default=False)
+
+    def __str__(self):
+        return '[{0}] achieved {1}'.format(self.learner,
+                                           self.achieved)
+
+
 class Trigger(models.Model):
     """
     Triggers are initiated when the learner gets to a certain score.
@@ -149,9 +181,6 @@ class GroupConfig(models.Model):
     """
     class Meta:
         unique_together = (('group_name', 'entry_point'), )
-    class Lock:
-        locked = False
-
 
     group_name = models.CharField(max_length=100,
                                   help_text='If empty, will be auto-generated',
@@ -274,3 +303,45 @@ class ReviewReport(models.Model):
         return u'Report for: {0}; Sub: {1} [{2}]'.format(self.reviewer,
                                                          self.submission,
                                                          self.unique_code)
+
+
+class EvaluationReport(models.Model):
+    """
+    Used for coordinating the evaluation of the reviewer's review, by
+    the original submitter.
+    """
+    peer_reviewer = models.ForeignKey('basic.Person',
+                                      related_name='peer_reviewer')
+
+    # The original submitter
+    evaluator = models.ForeignKey('basic.Person', related_name='evaluator')
+    r_actual = models.ForeignKey('rubric.RubricActual')
+
+    trigger = models.ForeignKey(Trigger, blank=True, null=True,
+            help_text='Which trigger is this associated with?')
+
+    submission = models.ForeignKey('submissions.Submission',
+                                   null=True, blank=True,
+            help_text='Not known, until the reviewer visits the page')
+
+    order = models.PositiveSmallIntegerField(help_text='Used to order reviews',
+                                             default=0, editable=False)
+
+
+    # This field is the linking key between ``EvaluationReport`` and
+    # ``RubricActual``
+    # We could have merged both models, but they do belong logically separate.
+    unique_code = models.CharField(max_length=16, editable=False, blank=True)
+
+    created = models.DateTimeField(auto_now_add=True)
+    last_viewed = models.DateTimeField(auto_now=True)
+
+    # This is used to access the report in an external tab
+    def save(self, *args, **kwargs):
+        if not(self.unique_code):
+            self.unique_code = generate_random_token(token_length=16)
+        super(EvaluationReport, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return u'[{0}]: Evaluation by submitter [{0}] of review by [{1}]'.format(\
+            self.unique_code, self.evaluator, self.peer_reviewer)
