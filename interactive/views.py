@@ -18,6 +18,7 @@ import networkx as nx
 # This app
 from .models import Trigger, GroupConfig, Membership, ReviewReport
 from .models import AchieveConfig, Achievement
+from .models import EvaluationReport
 
 
 # Our other apps
@@ -220,11 +221,15 @@ def kick_off_email(trigger, learner, entry_point=None, **kwargs):
     if has(learner, 'kick_off_email'):
         return None
 
-    subject = 'Upload document for: {}'.format(entry_point.LTI_title)
-    template = """Please upload a PDF with N words. Tkank you."""
-    template += '<br>kick_off_email'
-    send_email(learner.email, subject, messages=template, delay_secs=0)
+    """
+    The user is visiting the page for the first time.
+    * send email to tell them about the process.
+    """
+    ctx = {'LTI_title': entry_point.LTI_title}
 
+    subject = insert_evaluate_variables(trigger.subject, ctx)
+    message = insert_evaluate_variables(trigger.message, ctx)
+    send_email(learner.email, subject, messages=message, delay_secs=10)
     completed(learner, 'kick_off_email')
 
 
@@ -328,9 +333,7 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
 
             subject = insert_evaluate_variables(trigger.subject, ctx)
             message = insert_evaluate_variables(trigger.message, ctx)
-
-
-            send_email(learner.email, subject, messages=message, delay_secs=0)
+            send_email(learner.email, subject, messages=message, delay_secs=5)
 
 
             # Create a group with this learner as the submitter
@@ -499,7 +502,7 @@ def get_line1(learner, trigger, summaries):
                 summary = Summary(date=prior[0].completed,
                    action='Review number {0} completed; thank you!'\
                               .format(review.order, GLOBAL.num_peers),
-                   link='<a href="/interactive/{0}">View</a>'.format(\
+                   link='<a href="/interactive/review/{0}">View</a>'.format(\
                                                        review.unique_code),
                    catg='rev')
                 summaries.append(summary)
@@ -508,7 +511,7 @@ def get_line1(learner, trigger, summaries):
                 status = 'Continue your review'
 
         out.append(('',
-                '<a href="/interactive/{1}">{0}</a>'.format(status,
+                '<a href="/interactive/review/{1}">{0}</a>'.format(status,
                                                        review.unique_code)))
 
     return out
@@ -547,6 +550,8 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
         <li class="peers_to_you {4}" type="a">(c) {5}</li>
     </ul>
     """
+    ctx_objects['peers_to_submitter_header'] = ('First submit some work for '
+                                                'peers to review')
     ctx_objects['lineA'] = ('future-text',
                             "Read and evaluate reviewers' feedback")
     if not(has(learner, 'submitted')):
@@ -592,10 +597,7 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
         header = "All peers have reviewed your work."
 
     ctx_objects['peers_to_submitter_header'] = header
-    if sum(reviews) == 0:
-        return
 
-    test = reportcard(learner, entry_point)
 
     rubrics = RubricActual.objects.filter(submission=my_submission)
     for idx, ractual in enumerate(rubrics):
@@ -608,6 +610,10 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
                  action='Peer {} completed a review of your work'.format(idx+1))
             summaries.append(summary)
 
+    if sum(reviews) == 0:
+        # There is no point to go further if there are no reviews completed
+        # of the learner's work.
+        return
 
 
     # We cannot go further, unless all the reviews by the learner's peers are
@@ -616,53 +622,99 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
         return
 
 
+    # If we have reached this point it is because the submitter can now
+    # view their feedback. Therefore we only iterate over the COMPLETED rubrics.
+    #
+    # 1/ Set the r_actual review to be locked (read-only)
+    # 2/ Create a rubric for evaluation of the review
 
-    if has(learner, 'read_and_evaluated_all_reviews'):
-        pass
+    text = 'Read and evaluate their feedback: '
+    for idx, ractual in enumerate(rubrics):
+        ractual.status = 'L'
+        ractual.save()
+        try:
+            report = EvaluationReport.objects.get(unique_code=ractual.eval_code)
+        except EvaluationReport.DoesNotExist:
+            logger.error('EvaluationReport not found. Please correct.')
+            ctx_objects['lineA'] = ('',
+                                    ("The links to read and evaluate reviewers'"
+                                     " feedback are still being generated. "
+                                     "Please wait."))
+
+        # We have a report to be evaluated, now generate the links.
+        if report.r_actual is None:
+            # Generate the actual rubric here for it.
+            eval_actual = get_create_actual_rubric(learner=learner,
+                                                trigger=trigger,
+                                                submission=report.submission,
+                                                rubric_code=ractual.eval_code)
+            report.r_actual = eval_actual
+            report.save()
+
+#def (learner, trigger, submission, rubric_code=None):
+    #"""
+    #Creates a new actual rubric for a given ``learner`` (the person doing the)
+    #evaluation. It will be based on the parent template defined in ``template``,
+    #and for the given ``submission`` (either their own submission if it is a
+    #self-review, or another person's submission for peer-review).
+
+    #If the rubric already exists it returns it.
+    #"""
+    ## Get the ``RubricTemplate`` instance via the trigger.
+    #template = RubricTemplate.objects.get(trigger=trigger)
+
+    ## Create an ``rubric_actual`` instance:
+    #r_actual, new_rubric = RubricActual.objects.get_or_create(\
+                        #graded_by=learner,
+                        #rubric_template=template,
+                        #submission=submission,
+                        #rubric_code=rubric_code,
+                        #defaults={'started': timezone.now(),
+                                  #'completed': timezone.now(),
+                                  #'status': 'A',         # To be explicit
+                                  #'submitted': False,
+                                  #'score': 0.0,
+                                  #'word_count': 0})
+
+
+    #if new_rubric:
+
+        ## Creates the items (rows) associated with an actual rubric
+        #for r_item in RItemTemplate.objects.filter(r_template=template)\
+                                                           #.order_by('order'):
+            #r_item_actual = RItemActual(ritem_template = r_item,
+                                        #r_actual = r_actual,
+                                        #comment = '',
+                                        #submitted = False)
+            #r_item_actual.save()
+
+    #return r_actual, new_rubric
+
+
+
+        if (idx > 0) and (idx < GLOBAL.num_peers):
+            text += ';&nbsp;'
+
+        text += 'evaluate <a href="/interactive/evaluate/{0}/">peer {1}</a>'.\
+                                    format(report.unique_code, idx+1)
+
+    text += '.'
+    ctx_objects['lineA'] = ('', text)
+
 
     if has(learner, 'read_all_evaluations'):
+        # where the learner sees back the evaluation (by submitter) of
+        # their review . Maybe this needs to go elsewhere.
+        pass
+
+    if has(learner, 'read_and_evaluated_all_reviews'):
+        # Therefore now ready to start the rebuttal process
         pass
 
     if has(learner, 'completed_rebuttal'):
         pass
 
 
-
-
-
-
-        ## If we have reached this point it is because the submitter can now
-        ## view their feedback. Therefore we only iterate over the COMPLETED rubrics.
-
-        ## 2/ Set the r_actual review to be locked (read-only)
-        ## 3/ NOT: Assign a submitter code (``submitted)
-        ## 4/ Indicate the submitter has read the reviews: so the reviewers see that
-        ## 5/ Create a rubric for evaluation of the review (submitter prompted to fill)
-
-
-
-        ##rubrics = rubrics.filter(status='C')
-
-        ##text = 'Read and evaluate their feedback: '
-        ##for idx, ractual in enumerate(rubrics):
-        ##ractual.status = 'L'
-        ##ractual.save()
-
-
-        ##sub_eval = ReviewReport.objects.get(submitter_code=ractual.rubric_code)
-
-        ##text += 'evaluate <a href="/evaluate/{0}/">peer {1}</a>'.format(sub_eval.unique_code,
-        ##idx+1)
-
-
-
-
-        #return ('',  '')
-
-
-
-
-    #ctx_objects['lineA'] = ('', 'read and evaluate their feedback:')
 
 
 def peers_provide_rebuttal(trigger, learner, entry_point=None,
@@ -777,7 +829,7 @@ def invite_reviewers(learner, trigger):
             """.format(GLOBAL.num_peers,
                        trigger.entry_point.course,
                        trigger.entry_point.LTI_title,
-                       settings.BASE_URL + '/interactive/' + review.unique_code)
+                       settings.BASE_URL + '/interactive/review/' + review.unique_code)
             subject = '[{0}]: start your peer review'.format(\
                                                 trigger.entry_point.course)
 
@@ -925,6 +977,7 @@ class group_graph(object):
         return potential[next_one[2]]
 
 
+
 def review(request, unique_code=None):
     """
     A review link (with ``unique_code``) is created the moment we have enough
@@ -980,8 +1033,8 @@ def review(request, unique_code=None):
 
 
     # 3. Prevent the learner also from resubmitting
-    completed(learner, 'started_a_review')
-    completed(learner, 'work_has_started_to_be_reviewed')
+    completed(report.reviewer, 'started_a_review')
+    completed(report.reviewer, 'work_has_started_to_be_reviewed')
 
 
     if report.grpconf is None: # which it also should be ...
@@ -1016,3 +1069,11 @@ def review(request, unique_code=None):
 
     # 5/ Finally, return to the same point as if we were at the top of this func
     return handle_review(request, unique_code)
+
+
+def evaluate(request, unique_code=None):
+    """
+    """
+    # 4/ Indicate  submitter has read the reviews: so the reviewers see that
+
+    return HttpResponse('evaluate here')

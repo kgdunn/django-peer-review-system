@@ -45,7 +45,9 @@ def handle_review(request, ractual_code):
     r_actual, reviewer = get_learner_details(ractual_code)
 
     # The submitter is coming to read the review.
-    #submitter_read
+    if r_actual.status == 'L':
+        show_feedback = True
+
 
 
     logger.debug('Getting review for {0}:'.format(reviewer))
@@ -116,7 +118,7 @@ def handle_review(request, ractual_code):
            'r_item_actuals' : r_item_actuals,
            'rubric' : r_actual.rubric_template,
            'report': report,
-           'show_feedback': False,
+           'show_feedback': show_feedback,
            'show_special': False,
            }
     return render(request, 'rubric/review_peer.html', ctx)
@@ -544,19 +546,23 @@ def create_review_report_PDF(r_actual):
     that contains the review (``r_actual``).
     """
     from reportlab.pdfgen import canvas
+    from reportlab.lib.enums import TA_JUSTIFY
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import cm
+
+    from PyPDF2 import PdfFileWriter,PdfFileReader
+
     from django.core.files import File
     from submissions.models import Submission
     from interactive.models import EvaluationReport
 
-
+    from shutil import copyfile
 
     base_dir_for_file_uploads = settings.MEDIA_ROOT
     token = generate_random_token(token_length=16)
 
-
-    from shutil import copyfile
     src = r_actual.submission.file_upload.file.name
     filename = 'uploads/{0}/{1}'.format(
                             r_actual.rubric_template.entry_point.id,
@@ -564,22 +570,65 @@ def create_review_report_PDF(r_actual):
     dst = base_dir_for_file_uploads + filename
     copyfile(src, dst)
 
+    # Format the review
+    try:
+        c = canvas.Canvas(full_path, pagesize=A4 )
+        c.setPageSize(A4)
+        Story=[]
+        styles=getSampleStyleSheet()
+        styles.add(ParagraphStyle(name='Justify', alignment=TA_JUSTIFY))
+        ptext = '<font size=12>Some text here</font>'
 
-    #try:
-        #c = canvas.Canvas(full_path, pagesize=A4 )
-        #c.setPageSize(A4)
+        Story.append(Paragraph(ptext, styles["Normal"]))
+        Story.append(Spacer(1, 12))
+        # Create return address
+        ptext = '<font size=12>More text</font>'
+        Story.append(Paragraph(ptext, styles["Normal"]))
+
+        Story.append(Spacer(1, 12))
+        ptext = '<font size=12>Dear ABC:</font>'
+        Story.append(Paragraph(ptext, styles["Normal"]))
+        Story.append(Spacer(1, 12))
+
+        ptext = '<font size=12>We would like to welcome you to our </font>'
+        Story.append(Paragraph(ptext, styles["Justify"]))
+        Story.append(Spacer(1, 12))
+        Story.append(Paragraph(ptext, styles["Normal"]))
+        Story.append(Spacer(1, 12))
+        doc = SimpleDocTemplate("use_random_token_in_temp.pdf", pagesize=A4,)
+        doc.build(Story)
+
         #for f_to_process in files:
-            #c.setFont("Helvetica", 14)
-            #c.drawString(10, 10, "REVIEW STILL TO COME HERE")
-            #c.showPage()
-        #c.save()
-    #except IOError as exp:
-        #logger.error('Exception: ' + str(exp))
-        ## TODO: raise error message
+        #    c.setFont("Helvetica", 14)
+        #    c.drawString(10, 10, "REVIEW STILL TO COME HERE")
+        #    c.showPage()
+        c.save()
+    except IOError as exp:
+        logger.error('Exception: ' + str(exp))
+        # TODO: raise error message
 
-    #with open(dst, 'r') as dst_file:
 
-        #submission_with_review = File(dst_file)
+
+    ## Append the extra PDF page:
+
+    #pdf1=PdfFileReader(open("C:/Users/andy/Documents/temp.pdf"))
+    #pdf2=PdfFileReader(open("C:/Users/andy/Documents/temp.pdf"))
+    #writer = PdfFileWriter()
+
+    ## add the page to itself
+    #for i in range(0,pdf1.getNumPages()):
+        #writer.addPage(pdf1.getPage(i))
+
+    #for i in range(0,pdf2.getNumPages()):
+        #writer.addPage(pdf2.getPage(i))
+
+    ## write to file
+    #with file("destination.pdf", "wb") as outfp:
+        #writer.write(outfp)
+
+    with open(dst, 'r') as dst_file:
+
+        submission_with_review = File(dst_file)
 
 
 
@@ -595,26 +644,35 @@ def create_review_report_PDF(r_actual):
         assert(False)
 
     new_sub = Submission(submitted_by=r_actual.graded_by,
-                            status='A',
-                            entry_point=r_actual.rubric_template.entry_point,
-                            trigger=next_trigger,
-                            is_valid=True,
-                            file_upload = filename,
-                            submitted_file_name = token + '.pdf',
+                         status='A',
+                         entry_point=r_actual.rubric_template.entry_point,
+                         trigger=next_trigger,
+                         is_valid=True,
+                         file_upload = filename,
+                         submitted_file_name = token + '.pdf',
                         )
     new_sub.save()
 
     # DELETE ANY PRIOR ATTEMPTS FOR THIS trigger/submitted_by combination.
+    prior_evals = EvaluationReport.objects.filter(trigger=next_trigger,
+                                    peer_reviewer=r_actual.graded_by,
+                                    evaluator=r_actual.submission.submitted_by
+                                    )
+    prior_evals.delete()
 
+    # Now we create here the link between the EvaluationReport
+    # and the original submission's review (r_actual.eval_code).
+    # They both use the same token.
+    # Note: the token is only seen by the submitter (the person whose work
+    #       was reviewed.)
+    r_actual.eval_code = token
+    r_actual.save()
 
-
-    review_back_to_submitter = EvaluationReport(\
-                            peer_reviewer=r_actual.graded_by,
-                            evaluator=r_actual.submission.submitted_by,
-                            r_actual=r_actual,
-                            trigger=next_trigger,
-                            submission=new_sub,
-                            unique_code=token,
-                        )
+    review_back_to_submitter = EvaluationReport(trigger=next_trigger,
+                                                submission=new_sub,
+                                                unique_code=token,
+                                    peer_reviewer=r_actual.graded_by,
+                                    evaluator=r_actual.submission.submitted_by,
+                                )
     review_back_to_submitter.save()
 

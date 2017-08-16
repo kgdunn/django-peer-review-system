@@ -310,15 +310,19 @@ class ReviewReport(models.Model):
 
 class EvaluationReport(models.Model):
     """
-    Used for coordinating the evaluation of the reviewer's review, by
+    Used for coordinating the evaluation of the reviewer's review, with
     the original submitter.
     """
+    # The person who 'created' the review (ie the original submission plus the
+    # appended review).
     peer_reviewer = models.ForeignKey('basic.Person',
                                       related_name='peer_reviewer')
 
-    # The original submitter
+    # The original submitter is the evaluator (they will evalute the review)
     evaluator = models.ForeignKey('basic.Person', related_name='evaluator')
-    r_actual = models.ForeignKey('rubric.RubricActual')
+
+    # The r_actual that the submitter will fill in
+    r_actual = models.ForeignKey('rubric.RubricActual', blank=True, null=True)
 
     trigger = models.ForeignKey(Trigger, blank=True, null=True,
             help_text='Which trigger is this associated with?')
@@ -326,10 +330,6 @@ class EvaluationReport(models.Model):
     submission = models.ForeignKey('submissions.Submission',
                                    null=True, blank=True,
             help_text='Not known, until the reviewer visits the page')
-
-    order = models.PositiveSmallIntegerField(help_text='Used to order reviews',
-                                             default=0, editable=False)
-
 
     # This field is the linking key between ``EvaluationReport`` and
     # ``RubricActual``

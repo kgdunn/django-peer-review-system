@@ -32,6 +32,8 @@ urlpatterns = [
     # The review/rubric filling part, (re)submitting, XHR events
     url(r'review/', include('rubric.urls')),
 
+
+
 ]
 
 if settings.DEBUG:

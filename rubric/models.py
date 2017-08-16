@@ -80,6 +80,8 @@ class RubricActual(models.Model):
     # This is used to access the rubric, when graded in an external tab
     rubric_code = models.CharField(max_length=16, editable=False, blank=True)
 
+    eval_code = models.CharField(max_length=16, editable=False, blank=True)
+
     # These are only valid once ``self.submitted=True``
     score = models.FloatField(default=0.0)
     word_count = models.PositiveIntegerField(default=0)
