@@ -14,9 +14,8 @@ import numpy as np
 
 # 3rd party models
 from stats.views import create_hit
-from grades.models import GradeItem, LearnerGrade
 from utils import generate_random_token
-
+from interactive.models import Trigger
 
 # Our imports
 from .models import RubricTemplate, RubricActual
@@ -110,13 +109,6 @@ def handle_review(request, ractual_code):
         create_hit(request, item=r_actual, event='start-a-review-session',
                    user=reviewer, other_info='Fresh start')
 
-        gitem = GradeItem.objects.get(entry=r_actual.rubric_template.entry_point)
-        grade = LearnerGrade.objects.get(gitem=gitem, learner=reviewer)
-        THRESHOLD_REVIEW_STARTING = 20.0
-        THRESHOLD_REVIEW_ENDING = 24.0
-        grade.value = min(THRESHOLD_REVIEW_ENDING,
-                          max(THRESHOLD_REVIEW_STARTING, grade.value+1))
-        grade.save()
 
     ctx = {'ractual_code': ractual_code,
            'submission': r_actual.submission,
@@ -209,25 +201,8 @@ def submit_peer_review_feedback(request, ractual_code):
         r_actual.score = total_score
         r_actual.save()
 
-        # Also mark the Submission as having one extra completed review:
-        #r_actual.submission.number_reviews_completed += 1
-        #r_actual.submission.save()
-
-        # Set the student's grade
-        gitem = GradeItem.objects.get(entry=r_actual.rubric_template.entry_point)
-        grade = LearnerGrade.objects.get(gitem=gitem, learner=reviewer)
-        THRESHOLD_REVIEW_COMPLETED_START = 25.0
-        THRESHOLD_REVIEW_COMPLETED_END = 29.0
-        grade.value = min(THRESHOLD_REVIEW_COMPLETED_END,
-                          max(THRESHOLD_REVIEW_COMPLETED_START,
-                                  grade.value+1))
-        grade.save()
-
-
         # Send here an async request to generate the PDF of the review.
         create_review_report_PDF(r_actual=r_actual)
-
-
 
         logger.debug('ALL-DONE: {0}. Median={1} vs Actual={2}; Score={3}'\
                      .format(reviewer, median_words, word_count, total_score))
@@ -518,62 +493,6 @@ def get_learner_details(ractual_code):
     return r_actual, learner
 
 
-def get_peer_grading_data(learner, phase, role_filter=''):
-    """
-    Gets the grading data and associated feedback for this ``learner`` for the
-    given ``phase`` in the peer review.
-
-    Filters for the role of the grader, can also be provided.
-    """
-    submission = get_submission(learner, phase, search_earlier=True)
-    peer_data = dict()
-    peer_data['n_reviews'] = 0
-    peer_data['overall_max_score'] = 0.0
-    peer_data['learner_total'] = 0.0
-    peer_data['did_submit'] = False
-
-    if submission is None:
-        return peer_data
-
-    # and only completed reviews
-    if role_filter:
-        reviews = RubricActual.objects.filter(submission=submission,
-                                              status='C',
-                                              graded_by__role=role_filter)
-    else:
-        reviews = RubricActual.objects.filter(submission=submission, status='C')
-
-    if reviews.count() == 0:
-        # You must return here if there are no reviews. The rest of the
-        # code is not otherwise valid.
-        peer_data['did_submit'] = True
-        return peer_data
-
-
-
-
-def get_submission(learner, pr_process=None):
-    """
-    Gets the ``submission`` instance at the particular ``phase`` in the PR
-    process.
-
-    Allow some flexibility in the function signature here, to allow retrieval
-    via the ``pr_process`` in the future.
-    """
-    # Whether or not we are submitting, we might have a prior submission
-    # to display
-    grp_info = {}
-    if phase:
-        grp_info = get_group_information(learner, phase.pr.gf_process)
-
-
-    submission = None
-    subs = Submission.objects.filter(is_valid=True, pr_process=phase.pr)
-    subs = subs.filter(submitted_by=learner).order_by('-datetime_submitted')
-
-
-
-
 def get_create_actual_rubric(learner, trigger, submission, rubric_code=None):
     """
     Creates a new actual rubric for a given ``learner`` (the person doing the)
@@ -613,6 +532,11 @@ def get_create_actual_rubric(learner, trigger, submission, rubric_code=None):
 
     return r_actual, new_rubric
 
+
+
+# Utility function: to handle the generation of a ``Submission`` for a
+# report evaluation.
+# -------------------------------------------
 
 def create_review_report_PDF(r_actual):
     """
@@ -656,10 +580,24 @@ def create_review_report_PDF(r_actual):
     #with open(dst, 'r') as dst_file:
 
         #submission_with_review = File(dst_file)
+
+
+
+    triggers = Trigger.objects.filter(entry_point=\
+                            r_actual.rubric_template.entry_point,
+                            order__gte=r_actual.rubric_template.trigger.order).\
+        order_by('order')
+
+    if triggers.count()>1:
+        next_trigger = triggers[1]
+    else:
+        logger.error('CRITICAL: could not find the next trigger.')
+        assert(False)
+
     new_sub = Submission(submitted_by=r_actual.graded_by,
                             status='A',
                             entry_point=r_actual.rubric_template.entry_point,
-                            trigger=r_actual.rubric_template.trigger,
+                            trigger=next_trigger,
                             is_valid=True,
                             file_upload = filename,
                             submitted_file_name = token + '.pdf',
@@ -673,8 +611,8 @@ def create_review_report_PDF(r_actual):
     review_back_to_submitter = EvaluationReport(\
                             peer_reviewer=r_actual.graded_by,
                             evaluator=r_actual.submission.submitted_by,
-                            r_actual= r_actual,
-                            trigger=r_actual.rubric_template.trigger,
+                            r_actual=r_actual,
+                            trigger=next_trigger,
                             submission=new_sub,
                             unique_code=token,
                         )

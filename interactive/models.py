@@ -32,9 +32,11 @@ Key assumptions:
                                                 submitted (again)
 10  Document is submitted and set; no more updates are possible
 
-SUBMISSION_FIXED = 10
+
 
 ---- Evaluation (by the student of their peer)
+
+10 Evaluation submissions
 
 # Cannot be tracked with grades
 #11 Has read received review from peer 1  -> web update only (both sides)

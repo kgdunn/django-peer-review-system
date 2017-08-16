@@ -209,33 +209,36 @@ def create_thumbnail():
     sub.save()
 
 
-    if group_members['group_name']:
-        address = group_members['member_email_list']
-        first_line = 'You, or someone in your group,'
-        extra_line = ('That is why all members in your group will receive '
-                      'this message.')
-    else:
-        address = [learner.email, ]
-        first_line = 'You'
-        extra_line = ''
+    # Sending email for submissions has now been moved to the calling
+    # ``Trigger`` instance.
 
-    message = ('{0} have successfully submitted a document for: {1}.\n'
-               'This is for the course: {2}.\n'
-               '\n'
-               'You may submit multiple times, up to the deadline. Only the '
-               'most recent submission is kept. {3}\n'
-               '\n--\n'
-               'This is an automated message. Please do not reply to this '
-               'email address.\n')
-    message = message.format(first_line, entry_point.LTI_title,
-                             entry_point.course.name,
-                             extra_line)
+    #if group_members['group_name']:
+        #address = group_members['member_email_list']
+        #first_line = 'You, or someone in your group,'
+        #extra_line = ('That is why all members in your group will receive '
+                      #'this message.')
+    #else:
+        #address = [learner.email, ]
+        #first_line = 'You'
+        #extra_line = ''
 
-    if trigger.send_email_on_success:
-        logger.debug('Sending email: {0}'.format(address))
-        subject = trigger.name + ' for peer review: successfully submitted'
-        out = send_email(address, subject, message)
-        logger.debug('Number of emails sent (should be 1): {0}'.format(out[0]))
+    #message = ('{0} have successfully submitted a document for: {1}.\n'
+               #'This is for the course: {2}.\n'
+               #'\n'
+               #'You may submit multiple times, up to the deadline. Only the '
+               #'most recent submission is kept. {3}\n'
+               #'\n--\n'
+               #'This is an automated message. Please do not reply to this '
+               #'email address.\n')
+    #message = message.format(first_line, entry_point.LTI_title,
+                             #entry_point.course.name,
+                             #extra_line)
+
+    #if trigger.send_email_on_success:
+        #logger.debug('Sending email: {0}'.format(address))
+        #subject = trigger.name + ' for peer review: successfully submitted'
+        #out = send_email(address, subject, message)
+        #logger.debug('Number of emails sent (should be 1): {0}'.format(out[0]))
 
 
 
