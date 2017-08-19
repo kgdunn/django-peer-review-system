@@ -3,23 +3,33 @@
 from django.http import HttpResponse
 from django.template.context_processors import csrf
 from django.template import Context, Template, loader
+from django.core.files import File
 from django.conf import settings
 
 # Python and 3rd party imports
+import os
 import sys
 import json
 import time
 import datetime
+import tempfile
 from random import shuffle
 from collections import namedtuple, OrderedDict
 
 import networkx as nx
+from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.enums import TA_LEFT, TA_CENTER
+from reportlab.lib.colors import black
+from reportlab.platypus import Paragraph, Spacer, ListFlowable, ListItem
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import cm
+from PyPDF2 import PdfFileWriter, PdfFileReader
 
 # This app
 from .models import Trigger, GroupConfig, Membership, ReviewReport
 from .models import AchieveConfig, Achievement
 from .models import EvaluationReport
-
 
 # Our other apps
 from rubric.views import (handle_review, get_create_actual_rubric,
@@ -31,7 +41,7 @@ from submissions.models import Submission
 from submissions.forms import (UploadFileForm_one_file,
                                UploadFileForm_multiple_file)
 
-from utils import send_email, insert_evaluate_variables
+from utils import send_email, insert_evaluate_variables, generate_random_token
 
 # Logging
 import logging
@@ -602,10 +612,10 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
     rubrics = RubricActual.objects.filter(submission=my_submission)
     for idx, ractual in enumerate(rubrics):
         summary = Summary(date=ractual.created, link='', catg='sub',
-                          action='Peer {} opened your review'.format(idx+1))
+          action='Peer {} opened your review (not completed yet)'.format(idx+1))
         summaries.append(summary)
 
-        if ractual.status == 'C' and ractual.submitted:
+        if ractual.status in ('C', 'L') and ractual.submitted:
             summary = Summary(date=ractual.completed, link='', catg='sub',
                  action='Peer {} completed a review of your work'.format(idx+1))
             summaries.append(summary)
@@ -633,62 +643,14 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
         ractual.status = 'L'
         ractual.save()
         try:
-            report = EvaluationReport.objects.get(unique_code=ractual.eval_code)
+            report = EvaluationReport.objects.get(unique_code=ractual.next_code)
         except EvaluationReport.DoesNotExist:
             logger.error('EvaluationReport not found. Please correct.')
             ctx_objects['lineA'] = ('',
                                     ("The links to read and evaluate reviewers'"
                                      " feedback are still being generated. "
                                      "Please wait."))
-
-        # We have a report to be evaluated, now generate the links.
-        if report.r_actual is None:
-            # Generate the actual rubric here for it.
-            eval_actual = get_create_actual_rubric(learner=learner,
-                                                trigger=trigger,
-                                                submission=report.submission,
-                                                rubric_code=ractual.eval_code)
-            report.r_actual = eval_actual
-            report.save()
-
-#def (learner, trigger, submission, rubric_code=None):
-    #"""
-    #Creates a new actual rubric for a given ``learner`` (the person doing the)
-    #evaluation. It will be based on the parent template defined in ``template``,
-    #and for the given ``submission`` (either their own submission if it is a
-    #self-review, or another person's submission for peer-review).
-
-    #If the rubric already exists it returns it.
-    #"""
-    ## Get the ``RubricTemplate`` instance via the trigger.
-    #template = RubricTemplate.objects.get(trigger=trigger)
-
-    ## Create an ``rubric_actual`` instance:
-    #r_actual, new_rubric = RubricActual.objects.get_or_create(\
-                        #graded_by=learner,
-                        #rubric_template=template,
-                        #submission=submission,
-                        #rubric_code=rubric_code,
-                        #defaults={'started': timezone.now(),
-                                  #'completed': timezone.now(),
-                                  #'status': 'A',         # To be explicit
-                                  #'submitted': False,
-                                  #'score': 0.0,
-                                  #'word_count': 0})
-
-
-    #if new_rubric:
-
-        ## Creates the items (rows) associated with an actual rubric
-        #for r_item in RItemTemplate.objects.filter(r_template=template)\
-                                                           #.order_by('order'):
-            #r_item_actual = RItemActual(ritem_template = r_item,
-                                        #r_actual = r_actual,
-                                        #comment = '',
-                                        #submitted = False)
-            #r_item_actual.save()
-
-    #return r_actual, new_rubric
+            return
 
 
 
@@ -701,11 +663,6 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
     text += '.'
     ctx_objects['lineA'] = ('', text)
 
-
-    if has(learner, 'read_all_evaluations'):
-        # where the learner sees back the evaluation (by submitter) of
-        # their review . Maybe this needs to go elsewhere.
-        pass
 
     if has(learner, 'read_and_evaluated_all_reviews'):
         # Therefore now ready to start the rebuttal process
@@ -729,6 +686,12 @@ def peers_provide_rebuttal(trigger, learner, entry_point=None,
         <li class="peers_to_you {4}" type="a">(c) {5}</li>
     </ul>
     """
+
+
+
+        # 4/ Indicate  submitter has read the reviews: so the reviewers see that
+    #    pass
+
     ctx_objects['lineB'] = ('future-text',
                             'Provide a rebuttal back to peers')
 
@@ -1006,9 +969,7 @@ def review(request, unique_code=None):
         # as well check that the user's rubric etc is correctly created.
         r_actual, reviewer = get_learner_details(report.unique_code)
         if reviewer is None:
-            # This branch only happens with error conditions. Maybe the
-            # RubricActual has been deleted from the DB manually, etc.
-            pass
+            return r_actual
         else:
             return handle_review(request, unique_code)
 
@@ -1061,7 +1022,7 @@ def review(request, unique_code=None):
     # their own submission if it is a self-review, or another person's
     # submission for peer-review).
 
-    get_create_actual_rubric(learner=report.reviewer,
+    get_create_actual_rubric(graded_by=report.reviewer,
                              trigger=report.trigger,
                              submission=submission,
                              rubric_code=unique_code)
@@ -1073,7 +1034,209 @@ def review(request, unique_code=None):
 
 def evaluate(request, unique_code=None):
     """
-    """
-    # 4/ Indicate  submitter has read the reviews: so the reviewers see that
+    Generate the RubricActual from the template.
 
-    return HttpResponse('evaluate here')
+    """
+    reports = EvaluationReport.objects.filter(unique_code=unique_code)
+    if reports.count() != 1:
+        logger.error('Incorrect Evaluation requested: {}'.format(unique_code))
+        return HttpResponse(("You've used an incorrect link. Please check the "
+                             'web address to ensure there was not a typing '
+                             'error.<p>No evaluation found with that link.'))
+
+    report = reports[0]
+
+
+    # We have a report to be evaluated, now generate the links.
+    if report.r_actual is None:
+        # Generate the actual rubric here for it.
+        eval_actual = get_create_actual_rubric(graded_by=report.evaluator,
+                                               trigger=report.trigger,
+                                               submission=report.submission,
+                                               rubric_code=report.unique_code)
+        report.r_actual = eval_actual[0]
+        report.save()
+
+    return handle_review(request, unique_code)
+
+
+# Utility function: to handle the generation of a ``Submission`` for a
+# report evaluation.
+# -------------------------------------------
+
+def create_evaluation_PDF(r_actual):
+    """
+    Take an original submission (PDF), and combines an extra page or two,
+    that contains the review (``r_actual``).
+    """
+
+    def formatted_options(options):
+        out = []
+        for idx, option in enumerate(options):
+
+            if option.rubric_item.option_type in ('DropD', 'Chcks', 'Radio'):
+                if hasattr(option, 'selected'):
+                    out.append(Paragraph(('<strong>{0}</strong>'
+                            '').format(option.criterion),  deflt))
+                else:
+                    out.append(Paragraph('<font color="lightgrey">{0}</font>'.\
+                                              format(option.criterion), deflt))
+            elif option.rubric_item.option_type == 'LText':
+                out.append(Paragraph(option.prior_text,  deflt))
+
+        return out
+
+
+    report = ReviewReport.objects.get(unique_code=r_actual.rubric_code)
+    peer_number = report.order
+    base_dir_for_file_uploads = settings.MEDIA_ROOT
+    token = generate_random_token(token_length=16)
+    src = r_actual.submission.file_upload.file.name
+    filename = 'uploads/{0}/{1}'.format(
+                            r_actual.rubric_template.entry_point.id,
+                            token + '.pdf')
+    dst = base_dir_for_file_uploads + filename
+
+
+    # Format the review
+    styles= {
+        'default': ParagraphStyle('default',
+            fontName='Helvetica',
+            fontSize=9,
+            leading=12,
+            leftIndent=0,
+            rightIndent=0,
+            firstLineIndent=0,
+            alignment=TA_LEFT,
+            spaceBefore=0,
+            spaceAfter=0,
+            bulletFontName='Arial',
+            bulletFontSize=10,
+            bulletIndent=0,
+            textColor= black,
+            backColor=None,
+            wordWrap=None,
+            borderWidth= 0,
+            borderPadding= 0,
+            borderColor= None,
+            borderRadius= None,
+            allowWidows= 1,
+            allowOrphans= 0,
+            textTransform=None,  # 'uppercase' | 'lowercase' | None
+            endDots=None,
+            splitLongWords=1,
+        )
+    }
+    styles['title'] = ParagraphStyle('title',
+        parent=styles['default'],
+        fontName='Helvetica-Bold',
+        fontSize=18,
+        leading=42,
+        alignment=TA_CENTER,
+        textColor=black,
+    )
+    styles['header'] = ParagraphStyle('header',
+        parent=styles['default'],
+        fontName='Helvetica-Bold',
+        fontSize=14,
+        leading=24,
+        alignment=TA_LEFT,
+        textColor=black,
+    )
+    deflt = styles['default']
+    review_items, _ = r_actual.report()
+
+    flowables = []
+    flowables.append(Paragraph("Review from peer number {}".format(peer_number),
+                  styles['title']))
+    flowables.append(Spacer(1, 12))
+    flowables.append(Paragraph(("The option in bold represents the one selected"
+                                " by your reviewer."), deflt))
+    flowables.append(Spacer(1, 12))
+
+    for item in review_items:
+
+        flowables.append(Paragraph(item.ritem_template.criterion,
+                                   styles['header']))
+        flowables.append(Spacer(1, 6))
+
+
+        flowables.append(ListFlowable(formatted_options(item.options),
+                                      bulletType='bullet',
+                                      bulletFontSize=8,
+                                      bulletOffsetY=0,
+                                      start='circle'))
+        flowables.append(Spacer(1, 12))
+
+
+    fd, temp_file = tempfile.mkstemp(suffix='.pdf')
+    doc = BaseDocTemplate(temp_file)
+    doc.addPageTemplates(
+        [   PageTemplate(
+                frames=[
+                    Frame(doc.leftMargin, doc.bottomMargin, doc.width,
+                          doc.height,id=None),]
+            ),
+        ]
+    )
+    doc.build(flowables)
+    os.close(fd)
+
+
+    # Append the extra PDF page:
+    pdf1 = PdfFileReader(src)
+    pdf2 = PdfFileReader(temp_file)
+    writer = PdfFileWriter()
+
+    # Add the extra page:
+    for page in range(0, pdf1.getNumPages()):
+        writer.addPage(pdf1.getPage(page))
+
+    for page in range(0, pdf2.getNumPages()):
+        writer.addPage(pdf2.getPage(page))
+
+    # Cleaning up ``pdf2``
+    os.remove(temp_file)
+
+    # Write out the merged document to ``dst``
+    with open(dst, "wb") as out_file:
+        writer.write(out_file)
+
+    with open(dst, "rb") as out_file:
+        django_file = File(out_file)
+
+        new_sub, was_new = Submission.objects.get_or_create(status='A',
+                            entry_point=r_actual.rubric_template.entry_point,
+                            trigger=r_actual.rubric_template.next_trigger,
+                            is_valid=True,
+                            submitted_by=r_actual.graded_by,
+                        )
+
+        new_sub.file_upload = django_file
+        new_sub.submitted_file_name = token + '.pdf'
+        new_sub.save()
+
+    # DELETE ANY PRIOR ATTEMPTS FOR THIS trigger/submitted_by combination.
+    prior_evals = EvaluationReport.objects.filter(
+                            trigger=r_actual.rubric_template.next_trigger,
+                            peer_reviewer=r_actual.graded_by,
+                            evaluator=r_actual.submission.submitted_by
+                        )
+    prior_evals.delete()
+
+    # Now we create here the link between the EvaluationReport
+    # and the original submission's review (r_actual.next_code).
+    # They both use the same token.
+    # Note: the token is only seen by the submitter (the person whose work
+    #       was reviewed.)
+    r_actual.next_code = token
+    r_actual.save()
+
+    review_back_to_submitter = EvaluationReport(submission=new_sub,
+                                trigger=r_actual.rubric_template.next_trigger,
+                                unique_code=token,
+                                peer_reviewer=r_actual.graded_by,
+                                evaluator=r_actual.submission.submitted_by,
+                            )
+    review_back_to_submitter.save()
+

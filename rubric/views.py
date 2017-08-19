@@ -9,12 +9,13 @@ from django.conf import settings
 
 # Python and 3rd party imports
 import re
+import sys
 import datetime
 import numpy as np
 
 # 3rd party models
 from stats.views import create_hit
-from utils import generate_random_token
+from utils import generate_random_token, insert_evaluate_variables
 from interactive.models import Trigger
 
 # Our imports
@@ -183,7 +184,8 @@ def submit_peer_review_feedback(request, ractual_code):
 
     # All done with storing the results. Did the user fill everything in?
 
-    words = [r.word_count for r in RubricActual.objects.filter(status='C')]
+    words = [r.word_count for r in RubricActual.objects.filter(status='C',
+                                    rubric_template=r_actual.rubric_template)]
     words = np.array(words)
     median_words = np.median(words[words!=0])
     if np.isnan(median_words):
@@ -203,8 +205,14 @@ def submit_peer_review_feedback(request, ractual_code):
         r_actual.score = total_score
         r_actual.save()
 
-        # Send here an async request to generate the PDF of the review.
-        create_review_report_PDF(r_actual=r_actual)
+        # Call the hook function here, asynchronously, to hand-off any
+        # functionality that is needed for next steps, eg. PDF creation, etc.
+
+        func = getattr(sys.modules['interactive.views'],
+                       r_actual.rubric_template.hook_function)
+        if func:
+            func(r_actual=r_actual)
+
 
         logger.debug('ALL-DONE: {0}. Median={1} vs Actual={2}; Score={3}'\
                      .format(reviewer, median_words, word_count, total_score))
@@ -227,6 +235,7 @@ def submit_peer_review_feedback(request, ractual_code):
         percentage = total_score/r_actual.rubric_template.maximum_score*100
     except ZeroDivisionError:
         percentage = 0.0
+
     ctx = {'n_missing': len(items),
            'r_actual': r_actual,
            'median_words': median_words,
@@ -235,6 +244,9 @@ def submit_peer_review_feedback(request, ractual_code):
            'total_score': total_score,
            'percentage': percentage
            }
+    ctx['thankyou'] = insert_evaluate_variables(\
+                                r_actual.rubric_template.thankyou_template,
+                                ctx)
     return render(request, 'rubric/thankyou_problems.html', ctx)
 
 
@@ -366,7 +378,8 @@ def xhr_store(request, ractual_code):
        (item_template.option_type == 'DropD'):
         selected = int(option.split('option-')[1])
 
-        # in "selected-1": the '-1' part is critical
+        # In "selected-1": the '-1' part is critical. Please ensure the
+        # order in the R_option_templates start numbering from 1 onwards.
         try:
             r_opt_template = r_options[selected-1]
         except (IndexError, AssertionError):
@@ -495,12 +508,13 @@ def get_learner_details(ractual_code):
     return r_actual, learner
 
 
-def get_create_actual_rubric(learner, trigger, submission, rubric_code=None):
+def get_create_actual_rubric(graded_by, trigger, submission, rubric_code=None):
     """
-    Creates a new actual rubric for a given ``learner`` (the person doing the)
-    evaluation. It will be based on the parent template defined in ``template``,
-    and for the given ``submission`` (either their own submission if it is a
-    self-review, or another person's submission for peer-review).
+    Creates a new actual rubric for a given learner (the person doing the )
+    evaluation = ``graded_by``). It will be based on the parent template
+    defined in ``template``, and for the given ``submission``
+    (either their own submission if it is a self-review, or another person's
+    submission for peer-review).
 
     If the rubric already exists it returns it.
     """
@@ -509,7 +523,7 @@ def get_create_actual_rubric(learner, trigger, submission, rubric_code=None):
 
     # Create an ``rubric_actual`` instance:
     r_actual, new_rubric = RubricActual.objects.get_or_create(\
-                        graded_by=learner,
+                        graded_by=graded_by,
                         rubric_template=template,
                         submission=submission,
                         rubric_code=rubric_code,
@@ -535,144 +549,4 @@ def get_create_actual_rubric(learner, trigger, submission, rubric_code=None):
     return r_actual, new_rubric
 
 
-
-# Utility function: to handle the generation of a ``Submission`` for a
-# report evaluation.
-# -------------------------------------------
-
-def create_review_report_PDF(r_actual):
-    """
-    Take an original submission (PDF), and combines an extra page or two,
-    that contains the review (``r_actual``).
-    """
-    from reportlab.pdfgen import canvas
-    from reportlab.lib.enums import TA_JUSTIFY
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.units import cm
-
-    from PyPDF2 import PdfFileWriter,PdfFileReader
-
-    from django.core.files import File
-    from submissions.models import Submission
-    from interactive.models import EvaluationReport
-
-    from shutil import copyfile
-
-    base_dir_for_file_uploads = settings.MEDIA_ROOT
-    token = generate_random_token(token_length=16)
-
-    src = r_actual.submission.file_upload.file.name
-    filename = 'uploads/{0}/{1}'.format(
-                            r_actual.rubric_template.entry_point.id,
-                            token + '.pdf')
-    dst = base_dir_for_file_uploads + filename
-    copyfile(src, dst)
-
-    # Format the review
-    try:
-        c = canvas.Canvas(full_path, pagesize=A4 )
-        c.setPageSize(A4)
-        Story=[]
-        styles=getSampleStyleSheet()
-        styles.add(ParagraphStyle(name='Justify', alignment=TA_JUSTIFY))
-        ptext = '<font size=12>Some text here</font>'
-
-        Story.append(Paragraph(ptext, styles["Normal"]))
-        Story.append(Spacer(1, 12))
-        # Create return address
-        ptext = '<font size=12>More text</font>'
-        Story.append(Paragraph(ptext, styles["Normal"]))
-
-        Story.append(Spacer(1, 12))
-        ptext = '<font size=12>Dear ABC:</font>'
-        Story.append(Paragraph(ptext, styles["Normal"]))
-        Story.append(Spacer(1, 12))
-
-        ptext = '<font size=12>We would like to welcome you to our </font>'
-        Story.append(Paragraph(ptext, styles["Justify"]))
-        Story.append(Spacer(1, 12))
-        Story.append(Paragraph(ptext, styles["Normal"]))
-        Story.append(Spacer(1, 12))
-        doc = SimpleDocTemplate("use_random_token_in_temp.pdf", pagesize=A4,)
-        doc.build(Story)
-
-        #for f_to_process in files:
-        #    c.setFont("Helvetica", 14)
-        #    c.drawString(10, 10, "REVIEW STILL TO COME HERE")
-        #    c.showPage()
-        c.save()
-    except IOError as exp:
-        logger.error('Exception: ' + str(exp))
-        # TODO: raise error message
-
-
-
-    ## Append the extra PDF page:
-
-    #pdf1=PdfFileReader(open("C:/Users/andy/Documents/temp.pdf"))
-    #pdf2=PdfFileReader(open("C:/Users/andy/Documents/temp.pdf"))
-    #writer = PdfFileWriter()
-
-    ## add the page to itself
-    #for i in range(0,pdf1.getNumPages()):
-        #writer.addPage(pdf1.getPage(i))
-
-    #for i in range(0,pdf2.getNumPages()):
-        #writer.addPage(pdf2.getPage(i))
-
-    ## write to file
-    #with file("destination.pdf", "wb") as outfp:
-        #writer.write(outfp)
-
-    with open(dst, 'r') as dst_file:
-
-        submission_with_review = File(dst_file)
-
-
-
-    triggers = Trigger.objects.filter(entry_point=\
-                            r_actual.rubric_template.entry_point,
-                            order__gte=r_actual.rubric_template.trigger.order).\
-        order_by('order')
-
-    if triggers.count()>1:
-        next_trigger = triggers[1]
-    else:
-        logger.error('CRITICAL: could not find the next trigger.')
-        assert(False)
-
-    new_sub = Submission(submitted_by=r_actual.graded_by,
-                         status='A',
-                         entry_point=r_actual.rubric_template.entry_point,
-                         trigger=next_trigger,
-                         is_valid=True,
-                         file_upload = filename,
-                         submitted_file_name = token + '.pdf',
-                        )
-    new_sub.save()
-
-    # DELETE ANY PRIOR ATTEMPTS FOR THIS trigger/submitted_by combination.
-    prior_evals = EvaluationReport.objects.filter(trigger=next_trigger,
-                                    peer_reviewer=r_actual.graded_by,
-                                    evaluator=r_actual.submission.submitted_by
-                                    )
-    prior_evals.delete()
-
-    # Now we create here the link between the EvaluationReport
-    # and the original submission's review (r_actual.eval_code).
-    # They both use the same token.
-    # Note: the token is only seen by the submitter (the person whose work
-    #       was reviewed.)
-    r_actual.eval_code = token
-    r_actual.save()
-
-    review_back_to_submitter = EvaluationReport(trigger=next_trigger,
-                                                submission=new_sub,
-                                                unique_code=token,
-                                    peer_reviewer=r_actual.graded_by,
-                                    evaluator=r_actual.submission.submitted_by,
-                                )
-    review_back_to_submitter.save()
 

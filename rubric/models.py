@@ -25,7 +25,14 @@ class RubricTemplate(models.Model):
 
     # Was ``phase``
     trigger = models.ForeignKey('interactive.Trigger', default=None,
-                              null=True, blank=True)
+                              null=True, blank=True,
+                              related_name='triggers')
+
+    next_trigger = models.ForeignKey('interactive.Trigger',
+        default=None, null=True, blank=True,
+        help_text='What, if any, is the next trigger associated with this?',
+        related_name='next_triggers',
+        )
 
     general_instructions = models.TextField(default='')
 
@@ -39,6 +46,22 @@ class RubricTemplate(models.Model):
 
     show_maximum_score_per_item = models.BooleanField(default=True,
             help_text='Can be over-ridden on a per-item basis also.')
+
+    show_median_words_with_complaint = models.BooleanField(default=True,
+            help_text='Shows the word count and complains if below median.')
+
+    thankyou_template = models.TextField(default='Thank-you ...',
+        help_text=('The following replacements are available: {{r_actual}}, '
+                   '{{n_missing}} (number of missing items); '
+                   '{{word_count}}, {{median_words}} of all reviews '
+                   '{{person}} (who just did the review) '
+                   '{{total_score}} and {{percentage}}.'), )
+
+    hook_function = models.CharField(max_length=100,
+            help_text=('Hook that is called (with r_actual as only input)'
+                       'when the review is completed. Called with async() '
+                       'so it is OK if it is overhead intensive. Hook func '
+                       'must exist in the "interactive" views.py application.'))
 
     def __str__(self):
         return u'%s' % self.title
@@ -80,7 +103,8 @@ class RubricActual(models.Model):
     # This is used to access the rubric, when graded in an external tab
     rubric_code = models.CharField(max_length=16, editable=False, blank=True)
 
-    eval_code = models.CharField(max_length=16, editable=False, blank=True)
+    # This rubric might be linked to a next rubric that follows on.
+    next_code = models.CharField(max_length=16, editable=False, blank=True)
 
     # These are only valid once ``self.submitted=True``
     score = models.FloatField(default=0.0)
@@ -93,6 +117,59 @@ class RubricActual(models.Model):
 
     def __str__(self):
         return u'Peer: {0}; Sub: {1}'.format(self.graded_by, self.submission)
+
+
+    def report(self):
+        """
+            #report = get_peer_grading_data(reviewer, feedback_phase)
+
+        """
+
+        # Intentionally put the order_by here, to ensure that any errors in the
+        # next part of the code (zip-ordering) are highlighted
+        r_item_actuals = self.ritemactual_set.all().order_by('-modified')
+
+        # Ensure the ``r_item_actuals`` are in the right order. These 3 lines
+        # sort the ``r_item_actuals`` by using the ``order`` field on the
+        # associated ``ritem_template`` instance.
+        # I noticed that in some peer reviews the order was e.g. [4, 1, 3, 2]
+        r_item_template_order = (i.ritem_template.order for i in r_item_actuals)
+        zipped = list(zip(r_item_actuals, r_item_template_order))
+        r_item_actuals, _ = list(zip(*(sorted(zipped, key=lambda x: x[1]))))
+
+
+        has_prior_answers = False
+        for item in r_item_actuals:
+            item_template = item.ritem_template
+
+            item.options = ROptionTemplate.objects.filter(\
+                                     rubric_item=item_template).order_by('order')
+
+            for option in item.options:
+                prior_answer = ROptionActual.objects.filter(roption_template=option,
+                                                            ritem_actual=item,
+                                                            submitted=True)
+                if prior_answer.count():
+                    has_prior_answers = True
+                    if item_template.option_type in ('DropD', 'Chcks', 'Radio'):
+                        option.selected = True
+                    elif item_template.option_type == 'LText':
+                        option.prior_text = prior_answer[0].comment
+
+
+
+
+            # Store the peer- or self-review results in the item; to use in the
+            # template to display the feedback.
+            #item.results = report.get(item_template, [[], None, None, None, []])
+
+            # Randomize the comments and numerical scores before returning.
+            #shuffle(item.results[0])
+            #if item_template.option_type == 'LText':
+            #    item.results[0] = '\n----------------------\n'.join(item.results[0])
+            #    item.results[4] = '\n'.join(item.results[4])
+
+        return r_item_actuals, has_prior_answers
 
 
 class RItemTemplate(models.Model):
@@ -154,7 +231,7 @@ class ROptionTemplate(models.Model):
     score = models.FloatField(help_text='Usually: 1, 2, 3, 4, etc points')
     criterion = models.TextField(help_text='A prompt/criterion to the peers',
                                  blank=True)
-    order = models.IntegerField()
+    order = models.IntegerField(help_text='Start from 1 and work upwards.')
     # NOTE: the ``order`` is ignored for type ``LText``, as there will/should
     #       only be 1 of those per Item.
 
@@ -162,6 +239,7 @@ class ROptionTemplate(models.Model):
     def save(self, *args, **kwargs):
         """ Override the model's saving function to do some checks """
         self.score = float(self.score)
+        assert(self.order > 0)
         assert(self.score <= self.rubric_item.max_score)
         super(ROptionTemplate, self).save(*args, **kwargs)
 

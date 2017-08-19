@@ -4,6 +4,7 @@ from django.conf import settings
 # Python and 3rd party tool imports
 import os
 import magic
+from PyPDF2 import PdfFileReader
 
 # Import from our other apps
 from utils import get_IP_address, generate_random_token, send_email
@@ -313,6 +314,11 @@ def upload_submission(request, learner, entry_point, trigger, no_thumbnail=True)
             logger.debug('Invalid PDF upload: {0} [{1}]'.format(mime,
                                                             full_path))
             return None, 'Invalid file upload. Uploaded file must be a PDF.'
+
+        doc = PdfFileReader(full_path)
+        if doc.isEncrypted:
+            logger.debug('Encrypted PDF upload: {0}'.format(full_path))
+            return None, 'An encrypted PDF cannot be uploaded. Try again.'
 
     strike2 = False
     if extension.lower() not in \

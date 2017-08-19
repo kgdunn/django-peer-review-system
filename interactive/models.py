@@ -135,10 +135,9 @@ class Achievement(models.Model):
 
 class Trigger(models.Model):
     """
-    Triggers are initiated when the learner gets to a certain score.
-
-    Starting score = 0.0: trigger can be initiated. If task completed, then the
-                          next trigger can be initiated.
+    Triggers are cycled through to build up the rubric. They are linked with
+    Achievements. By testing if certain achievements are met, the
+    triggers may be more and more complex in what they cover.
 
     Types of triggers are to:
         * send emails,
@@ -313,23 +312,27 @@ class EvaluationReport(models.Model):
     Used for coordinating the evaluation of the reviewer's review, with
     the original submitter.
     """
-    # The person who 'created' the review (ie the original submission plus the
-    # appended review).
+    # The person who 'created' this review (ie it is the original submission
+    # plus the appended review). The reviewer whose review is appended here
+    # is the ``peer_reviewer``.
     peer_reviewer = models.ForeignKey('basic.Person',
-                                      related_name='peer_reviewer')
+                                      related_name='peer_reviewer',
+                        help_text='The reviewer whose review is appended here')
 
     # The original submitter is the evaluator (they will evalute the review)
-    evaluator = models.ForeignKey('basic.Person', related_name='evaluator')
+    evaluator = models.ForeignKey('basic.Person', related_name='evaluator',
+                        help_text='The original submitter is the evaluator')
 
     # The r_actual that the submitter will fill in
-    r_actual = models.ForeignKey('rubric.RubricActual', blank=True, null=True)
+    r_actual = models.ForeignKey('rubric.RubricActual', blank=True, null=True,
+                        help_text='Might be created just in time')
 
     trigger = models.ForeignKey(Trigger, blank=True, null=True,
             help_text='Which trigger is this associated with?')
 
     submission = models.ForeignKey('submissions.Submission',
                                    null=True, blank=True,
-            help_text='Not known, until the reviewer visits the page')
+            help_text='Might not known, until the reviewer visits the page')
 
     # This field is the linking key between ``EvaluationReport`` and
     # ``RubricActual``
@@ -346,5 +349,7 @@ class EvaluationReport(models.Model):
         super(EvaluationReport, self).save(*args, **kwargs)
 
     def __str__(self):
-        return u'[{0}]: Evaluation by submitter [{0}] of review by [{1}]'.format(\
-            self.unique_code, self.evaluator, self.peer_reviewer)
+        return ('[{0}]: Evaluation by submitter [{1}] of review that was '
+                'completed by [{2}]').format(self.unique_code,
+                                              self.evaluator,
+                                              self.peer_reviewer)
