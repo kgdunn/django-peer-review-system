@@ -318,7 +318,8 @@ def upload_submission(request, learner, entry_point, trigger, no_thumbnail=True)
         doc = PdfFileReader(full_path)
         if doc.isEncrypted:
             logger.debug('Encrypted PDF upload: {0}'.format(full_path))
-            return None, 'An encrypted PDF cannot be uploaded. Try again.'
+            return None, ('An encrypted PDF cannot be uploaded. Please remove '
+                          'the encryption and try again.')
 
     strike2 = False
     if extension.lower() not in \

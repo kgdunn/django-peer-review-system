@@ -57,7 +57,7 @@ class RubricTemplate(models.Model):
                    '{{person}} (who just did the review) '
                    '{{total_score}} and {{percentage}}.'), )
 
-    hook_function = models.CharField(max_length=100,
+    hook_function = models.CharField(max_length=100, blank=True, null=True,
             help_text=('Hook that is called (with r_actual as only input)'
                        'when the review is completed. Called with async() '
                        'so it is OK if it is overhead intensive. Hook func '

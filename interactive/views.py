@@ -235,11 +235,12 @@ def kick_off_email(trigger, learner, entry_point=None, **kwargs):
     The user is visiting the page for the first time.
     * send email to tell them about the process.
     """
-    ctx = {'LTI_title': entry_point.LTI_title}
-
-    subject = insert_evaluate_variables(trigger.subject, ctx)
-    message = insert_evaluate_variables(trigger.message, ctx)
-    send_email(learner.email, subject, messages=message, delay_secs=10)
+    #ctx = {'LTI_title': entry_point.LTI_title}
+    #subject = insert_evaluate_variables(trigger.subject, ctx)
+    #message = insert_evaluate_variables(trigger.message, ctx)
+    #send_email(learner.email, subject, messages=message, delay_secs=10)
+    #
+    # This step has been removed to reduce the amount of emails sent.
     completed(learner, 'kick_off_email')
 
 
@@ -314,8 +315,6 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
                 prior_submission.is_valid = True
                 prior_submission.save()
 
-                grade.value = 10.0
-                grade.save(push=True)
                 submit_inst = (submit_inst, ('Your submission has been refused;'
                                ' a peer has just started reviewing your work.'))
 
@@ -560,8 +559,8 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
         <li class="peers_to_you {4}" type="a">(c) {5}</li>
     </ul>
     """
-    ctx_objects['peers_to_submitter_header'] = ('First submit some work for '
-                                                'peers to review')
+    ctx_objects['peers_to_submitter_header'] = ('You must first submit some '
+                                            'work for your peers to review.')
     ctx_objects['lineA'] = ('future-text',
                             "Read and evaluate reviewers' feedback")
     if not(has(learner, 'submitted')):
@@ -623,6 +622,14 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
     if sum(reviews) == 0:
         # There is no point to go further if there are no reviews completed
         # of the learner's work.
+        return
+
+    if not(has(learner, 'started_a_review')):
+        # The learner hasn't reviewed other's work; so they are not in state
+        # to evaluate others yet either.
+        ctx_objects['lineA'] = ('', ('Please complete a review first, before '
+                                     'evaluating the reviews received back.'))
+
         return
 
 
@@ -1205,16 +1212,21 @@ def create_evaluation_PDF(r_actual):
     with open(dst, "rb") as out_file:
         django_file = File(out_file)
 
+        # Key point: use the ``submitted_file_name`` field to check if
+        # this is a re-review (i.e. then we reuse the Submission instance).
         new_sub, was_new = Submission.objects.get_or_create(status='A',
                             entry_point=r_actual.rubric_template.entry_point,
                             trigger=r_actual.rubric_template.next_trigger,
                             is_valid=True,
                             submitted_by=r_actual.graded_by,
+                            submitted_file_name = r_actual.rubric_code
                         )
 
         new_sub.file_upload = django_file
-        new_sub.submitted_file_name = token + '.pdf'
         new_sub.save()
+
+    # The ``dst`` is not needed once we have saved the instance.
+    os.unlink(dst)
 
     # DELETE ANY PRIOR ATTEMPTS FOR THIS trigger/submitted_by combination.
     prior_evals = EvaluationReport.objects.filter(
@@ -1240,3 +1252,10 @@ def create_evaluation_PDF(r_actual):
                             )
     review_back_to_submitter.save()
 
+def create_rebuttal_PDF(r_actual):
+    """
+    Take an original submission (PDF), and combines an extra page or two,
+    that contains the N review (``r_actual``) from the N peers.
+
+    """
+    pass
