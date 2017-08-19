@@ -568,7 +568,8 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
 
     my_submission = Submission.objects.filter(entry_point=trigger.entry_point,
                                               is_valid=True,
-                                              submitted_by=learner)
+                                              submitted_by=learner)\
+                                      .exclude(status='A')
     reports = [False, ] * GLOBAL.num_peers
     reviews = [False,] * GLOBAL.num_peers
     idx = 0
