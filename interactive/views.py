@@ -47,6 +47,7 @@ from utils import send_email, insert_evaluate_variables, generate_random_token
 # Logging
 import logging
 logger = logging.getLogger(__name__)
+logger.debug('You are in: {0}'.format(sys.modules[__name__]))
 
 # Summary structure
 class Summary(object):
