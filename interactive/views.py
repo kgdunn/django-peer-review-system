@@ -5,6 +5,7 @@ from django.template.context_processors import csrf
 from django.template import Context, Template, loader
 from django.core.files import File
 from django.conf import settings
+from django.utils import timezone
 
 # Python and 3rd party imports
 import os
@@ -486,23 +487,21 @@ def get_line1(learner, trigger, summaries):
                             is_valid=True).exclude(status='A')
 
     # All ReviewReport that have been Allocated for Review to this learner
-    allocated_reviews = list(ReviewReport.objects.filter(reviewer=learner)\
-                                 .order_by('-created')) # for consistency
+    allocated_reviews = ReviewReport.objects.filter(reviewer=learner)\
+                                 .order_by('-created') # for consistency
 
 
-    for idx in range(GLOBAL.num_peers):
+    for idx, review in enumerate(allocated_reviews):
 
-        if not(has(learner, 'submitted')):
-            out.append(('', 'You must submit before you can review others.'))
-            continue
+        #if not(has(learner, 'submitted')):
+            #out.append(('', 'You must submit before you can review others.'))
+            #continue
 
-        if not(valid_subs.count() >= GLOBAL.min_in_pool_before_grouping_starts):
-            # Simplest case: no reviews are allocated to learner yet
+        #if not(valid_subs.count() >= GLOBAL.min_in_pool_before_grouping_starts):
+            ## Simplest case: no reviews are allocated to learner yet
+            #out.append(('', 'Waiting for a peer to submit their work ...'))
+            #continue
 
-            out.append(('', 'Waiting for a peer to submit their work ...'))
-            continue
-
-        review = allocated_reviews.pop()
         if not(review.order):
             review.order = idx+1
             review.save()
@@ -512,7 +511,7 @@ def get_line1(learner, trigger, summaries):
         status = 'Start your review'
         if prior.count():
             if prior[0].status in ('C', 'L'):
-                status = 'Completed'
+                status = 'Completed'# .format(prior[0].completed.strftime('%d %b %Y at %H:%M'))
                 summary = Summary(date=prior[0].completed,
                    action='Review number {0} completed; thank you!'\
                               .format(review.order, GLOBAL.num_peers),
@@ -528,20 +527,80 @@ def get_line1(learner, trigger, summaries):
                 '<a href="/interactive/review/{1}">{0}</a>'.format(status,
                                                        review.unique_code)))
 
+    for idx in range(GLOBAL.num_peers-len(out)):
+        #out.append(('future-text', 'Waiting for peer to read your review'))
+
+        if not(has(learner, 'submitted')):
+            out.append(('', 'You must submit before you can review others.'))
+            continue
+
+        if not(valid_subs.count() >= GLOBAL.min_in_pool_before_grouping_starts):
+            # Simplest case: no reviews are allocated to learner yet
+            out.append(('', 'Waiting for a peer to submit their work ...'))
+            continue
+
     return out
 
 def get_line2(learner, trigger, summaries):
+    """
+    Get the Summary and text display related to the evaluation being read.
+    """
     out = []
+    allocated_reviews = ReviewReport.objects.filter(reviewer=learner)\
+        .order_by('-created') # for consistency
+
     for idx in range(GLOBAL.num_peers):
-        out.append(('future-text',
-                    'Waiting for peer to read your review'))
+        out.append(('future-text', 'Waiting for peer to read your review'))
+
+
+    # We use ``allocated_reviews`` to ensure consistency of order,
+    # but we jump from that, using .next_code, to EvaluationReport. There
+    # we pick up the r_actual, and look at the dates and times on it.
+    for idx, review in enumerate(allocated_reviews):
+        rubrics = RubricActual.objects.filter(rubric_code=review.unique_code)
+        if rubrics:
+            rubric = rubrics[0]
+        else:
+            break
+        evalrep = EvaluationReport.objects.filter(unique_code=rubric.next_code)
+        for report in evalrep:
+            if report.r_actual:
+                out[idx] = ('', 'Peer read your review: {}'.format(\
+                    report.r_actual.created.strftime('%d %b %Y at %H:%M')))
+
     return out
 
 def get_line3(learner, trigger, summaries):
+    """
+    Get the Summary and text display related to the evaluation being evaluated.
+    """
     out = []
+    allocated_reviews = ReviewReport.objects.filter(reviewer=learner)\
+        .order_by('-created') # for consistency
+
     for idx in range(GLOBAL.num_peers):
-        out.append(('future-text',
-                    "Waiting for peer's evaluation of your review"))
+        out.append(('future-text', 'Waiting for peer to read your review'))
+
+    # We use ``allocated_reviews`` to ensure consistency of order,
+    # but we jump from that, using .next_code, to EvaluationReport. There
+    # we pick up the r_actual, and look at the dates and times on it.
+    for idx, review in enumerate(allocated_reviews):
+        rubrics = RubricActual.objects.filter(rubric_code=review.unique_code)
+        if rubrics:
+            rubric = rubrics[0]
+        else:
+            break
+        evalrep = EvaluationReport.objects.filter(unique_code=rubric.next_code)
+        for report in evalrep:
+            if hasattr(report.r_actual, 'evaluated'):
+                if report.r_actual.evaluated:
+                    out[idx] = ('', 'Peer evaluated your review: LINK')
+                    summary = Summary(action='Peer {0} evaluated your review'.\
+                                                          format(idx+1),
+                                      date=report.r_actual.evaluated,
+                                      link='LINK (TODO)', catg='sub')
+                    summaries.append(summary)
+
     return out
 
 def get_line4(learner, trigger, summaries):
@@ -684,21 +743,8 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
     ctx_objects['lineA'] = ('', text)
 
 
-    rubrics = RubricActual.objects.filter(submission=submission).order_by('created')
-    if has(learner, 'read_and_evaluated_all_reviews'):
-        pass
-        # Therefore now ready to start the rebuttal process; but used here to
-        # place a summary line
-
-        #evaluation_compilation = EvaluationReport(\
-            #submission=new_sub,
-                                    #trigger=r_actual.rubric_template.next_trigger,
-                                    #unique_code=token,
-                                    #sort_report='R',
-                                    #evaluator=r_actual.graded_by,
-        #)
-
-    else:
+    rubrics = RubricActual.objects.filter(submission=submission).order_by('evaluated')
+    if not(has(learner, 'read_and_evaluated_all_reviews')):
         n_evaluations = 0
         for rubric in rubrics:
             if rubric.evaluated:
@@ -727,14 +773,37 @@ def peers_provide_rebuttal(trigger, learner, entry_point=None,
         <li class="peers_to_you {4}" type="a">(c) {5}</li>
     </ul>
     """
-
-
-
-        # 4/ Indicate  submitter has read the reviews: so the reviewers see that
-    #    pass
-
     ctx_objects['lineB'] = ('future-text',
                             'Provide a rebuttal back to peers')
+    my_submissions = Submission.objects.filter(entry_point=trigger.entry_point,
+                                              is_valid=True,
+                                              submitted_by=learner)\
+                                     .exclude(status='A')
+    if my_submissions.count():
+        submission = my_submissions[0]
+    else:
+        return
+
+
+    if has(learner, 'read_and_evaluated_all_reviews'):
+        evaluations = EvaluationReport.objects.filter(trigger=trigger,
+                                                      sort_report='R',
+                                                    evaluator=learner)
+        evaluation = evaluations[0]
+        summary = Summary(date=evaluation.created,
+                          action=('You evaluated all reviews; thanks! Now '
+                                  'complete the rebuttal.'),
+                          link='LINK HERE', catg='sub')
+        summaries.append(summary)
+        ctx_objects['lineB'] = ('',
+                                '"Provide a rebuttal"(link) back to your peers')
+
+
+
+    # 4/ Indicate  submitter has read the reviews: so the reviewers see that
+    #    pass
+
+
 
 def peers_rebuttal_status(trigger, learner, entry_point=None,
                          summaries=list(), ctx_objects=dict(), **kwargs):
@@ -1022,7 +1091,8 @@ def review(request, unique_code=None):
 
     valid_subs = Submission.objects.filter(is_valid=True,
                                     entry_point=report.trigger.entry_point,
-                                    submitted_by=submitter)
+                                    trigger=report.trigger,
+                                    submitted_by=submitter).exclude(status='A')
     if valid_subs.count() != 1:
         logger.error(('Found more than 1 valid Submission for {} in entry '
                       'point {}'.format(valid_subs,
@@ -1315,6 +1385,7 @@ def create_rebuttal_PDF(r_actual):
 
 
     """
+    learner = r_actual.graded_by
     report = EvaluationReport.objects.get(unique_code=r_actual.rubric_code)
 
     submission = Submission.objects.filter(submitted_by=report.evaluator,
@@ -1327,6 +1398,8 @@ def create_rebuttal_PDF(r_actual):
     src = submission.file_upload.file.name
 
     flowables = []
+    n_evaluations = 0
+
     for idx, rubric in enumerate(rubrics):
         review_items, _ = rubric.report()
         flowables.append(Paragraph("Review from peer number {}".format(idx+1),
@@ -1340,6 +1413,27 @@ def create_rebuttal_PDF(r_actual):
 
         flowables.append(PageBreak())
 
+        # While we are here, also set the ``evaluated`` date/time on the rubric
+        # but only on the rubric that we are currently evaluating
+        if rubric.graded_by == report.peer_reviewer:
+            #rubric.evaluated = timezone.now()
+            #rubric.save()
+            # The evaluation date/time belongs with the rubric attached to
+            # the EvaluationReport (when was the evaluation completed by the
+            # submitter; not the rubric.evaluated, since that was submitted
+            # by the reviewer)
+            report.r_actual.evaluated = timezone.now()
+            report.r_actual.save()
+
+    n_evaluations = RubricActual.objects.filter(graded_by=r_actual.graded_by,
+                            rubric_template=r_actual.rubric_template).count()
+
+
+    if n_evaluations < GLOBAL.num_peers:
+        return
+
+    # Only continue to generate this report if it is the last review
+    completed(learner, 'read_and_evaluated_all_reviews')
 
     fd, temp_file = tempfile.mkstemp(suffix='.pdf')
     doc = BaseDocTemplate(temp_file)
@@ -1381,10 +1475,12 @@ def create_rebuttal_PDF(r_actual):
                             entry_point=r_actual.rubric_template.entry_point,
                             trigger=r_actual.rubric_template.next_trigger,
                             is_valid=True,
-                            submitted_by=r_actual.graded_by,
-                            # Might not make sense, since it is generated by
-                            # N different peers.
-                            #submitted_file_name = r_actual.rubric_code
+                            submitted_by=learner,
+
+                            # This fields can be left out, but we add something
+                            # here for display, to emphasize it is a merger
+                            # of reviews from N different peers.
+                            submitted_file_name = 'Merged reviews from eval'
                         )
 
         new_sub.file_upload = django_file
@@ -1393,29 +1489,14 @@ def create_rebuttal_PDF(r_actual):
     # The ``dst_file`` is not needed once we have saved the instance.
     os.unlink(dst_file)
 
-
-
-    # DELETE ANY PRIOR ATTEMPTS FOR THIS trigger/submitted_by combination.
-    prior_evals = EvaluationReport.objects.filter(
+    # UPDATE any prior EvaluationReport
+    prior_eval, _ = EvaluationReport.objects.get_or_create(
                             trigger=r_actual.rubric_template.next_trigger,
                             sort_report='R',
-
-                            # WE put this here, but it will simply be the
-                            # last reviewer's name. However, since this
-                            # review was d
-                            evaluator=r_actual.graded_by
+                            evaluator=learner
                         )
-    prior_evals.delete()
 
-
-    # OK, as long as the file upload path is always: "uploads/1/{0}.pdf"
     token = new_sub.file_upload.name.split('/')[2].strip('.pdf')
-
-    evaluation_compilation = EvaluationReport(\
-                                submission=new_sub,
-                                trigger=r_actual.rubric_template.next_trigger,
-                                unique_code=token,
-                                sort_report='R',
-                                evaluator=r_actual.graded_by,
-                            )
-    evaluation_compilation.save()
+    prior_eval.unique_code = token
+    prior_eval.submission = new_sub
+    prior_eval.save()
