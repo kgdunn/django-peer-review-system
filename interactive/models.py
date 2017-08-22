@@ -317,7 +317,17 @@ class EvaluationReport(models.Model):
     # is the ``peer_reviewer``.
     peer_reviewer = models.ForeignKey('basic.Person',
                                       related_name='peer_reviewer',
-                        help_text='The reviewer whose review is appended here')
+                                      blank=True, null=True,
+                                      help_text=('The reviewer whose review is '
+                                                 'appended here. Leave blank '
+                                                 'for rebuttals.'))
+
+    # What type of report is this?
+    STATUS = (('-', '----------'),
+              ('E', 'Evaluation'),
+              ('R', 'Rebuttal'),
+              )
+    sort_report = models.CharField(max_length=2, choices=STATUS, default='-')
 
     # The original submitter is the evaluator (they will evalute the review)
     evaluator = models.ForeignKey('basic.Person', related_name='evaluator',
@@ -332,7 +342,7 @@ class EvaluationReport(models.Model):
 
     submission = models.ForeignKey('submissions.Submission',
                                    null=True, blank=True,
-            help_text='Might not known, until the reviewer visits the page')
+            help_text='Might not be known, until the reviewer visits the page')
 
     # This field is the linking key between ``EvaluationReport`` and
     # ``RubricActual``
@@ -353,3 +363,5 @@ class EvaluationReport(models.Model):
                 'completed by [{2}]').format(self.unique_code,
                                               self.evaluator,
                                               self.peer_reviewer)
+
+

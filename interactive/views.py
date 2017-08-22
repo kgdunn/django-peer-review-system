@@ -17,14 +17,14 @@ from random import shuffle
 from collections import namedtuple, OrderedDict
 
 import networkx as nx
-from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame
+from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, PageBreak
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
 from reportlab.lib.colors import black
 from reportlab.platypus import Paragraph, Spacer, ListFlowable, ListItem
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
-from PyPDF2 import PdfFileWriter, PdfFileReader
+from PyPDF2 import PdfFileReader, PdfFileMerger
 
 # This app
 from .models import Trigger, GroupConfig, Membership, ReviewReport
@@ -337,13 +337,18 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
             * indicate that they can upload a new version
             * however, we wait until a pool of reviewers are available.
             """
-            ctx = {'LTI_title': entry_point.LTI_title,
-                   'filename': submission.submitted_file_name}
+            if trigger.subject and trigger.message:
+                ctx = {'LTI_title': entry_point.LTI_title,
+                       'filename': submission.submitted_file_name}
 
-            subject = insert_evaluate_variables(trigger.subject, ctx)
-            message = insert_evaluate_variables(trigger.message, ctx)
-            send_email(learner.email, subject, messages=message, delay_secs=5)
+                subject = insert_evaluate_variables(trigger.subject, ctx)
+                message = insert_evaluate_variables(trigger.message, ctx)
+                send_email(learner.email,
+                           subject,
+                           messages=message,
+                           delay_secs=5)
 
+            # else: don't send a message by email.
 
             # Create a group with this learner as the submitter
             already_exists = Membership.objects.filter(learner=learner,
@@ -478,7 +483,7 @@ def get_line1(learner, trigger, summaries):
 
     # All valid submissions for this EntryPoint
     valid_subs = Submission.objects.filter(entry_point=trigger.entry_point,
-                                               is_valid=True)
+                            is_valid=True).exclude(status='A')
 
     # All ReviewReport that have been Allocated for Review to this learner
     allocated_reviews = list(ReviewReport.objects.filter(reviewer=learner)\
@@ -493,8 +498,8 @@ def get_line1(learner, trigger, summaries):
 
         if not(valid_subs.count() >= GLOBAL.min_in_pool_before_grouping_starts):
             # Simplest case: no reviews are allocated to learner yet
-            for idx in range(GLOBAL.num_peers):
-                out.append(('', 'Waiting for a peer to submit their work ...'))
+
+            out.append(('', 'Waiting for a peer to submit their work ...'))
             continue
 
         review = allocated_reviews.pop()
@@ -570,27 +575,32 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
                                               is_valid=True,
                                               submitted_by=learner)\
                                       .exclude(status='A')
+
+    if my_submission.count() > 1:
+        logger.warn('More than one submission encountered')
+    submission = my_submission[0]
     reports = [False, ] * GLOBAL.num_peers
     reviews = [False,] * GLOBAL.num_peers
     idx = 0
     my_reviews = []
-    for submission in my_submission:
-        my_reviews = ReviewReport.objects.filter(submission=submission).\
-            order_by('created') # to ensure consistency in display
-        for report in my_reviews:
-            # There should be at most "GLOBAL.num_peers" reviews
-            reports[idx] = report
-            try:
-                rubric = RubricActual.objects.get(\
-                    rubric_code=reports[idx].unique_code)
-            except RubricActual.DoesNotExist:
-                continue
-            if rubric.submitted:
-                reviews[idx] = True
 
 
-            # Bump the counter and get the rest of the reviews.
-            idx += 1
+    my_reviews = ReviewReport.objects.filter(submission=submission).\
+        order_by('created') # to ensure consistency in display
+    for report in my_reviews:
+        # There should be at most "GLOBAL.num_peers" reviews
+        reports[idx] = report
+        try:
+            rubric = RubricActual.objects.get(\
+                rubric_code=reports[idx].unique_code)
+        except RubricActual.DoesNotExist:
+            continue
+        if rubric.submitted:
+            reviews[idx] = True
+
+
+        # Bump the counter and get the rest of the reviews.
+        idx += 1
 
     # This message is overridden later for the case when everyone is completed.
     template = """{{n_reviewed}} peer{{ n_reviewed|pluralize:" has,s have" }}
@@ -608,8 +618,10 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
 
     ctx_objects['peers_to_submitter_header'] = header
 
-
-    rubrics = RubricActual.objects.filter(submission=my_submission)
+    # From the perspective of the learner, we should always order the peers
+    # is the same way. Use the ``created`` field for that.
+    rubrics = RubricActual.objects.filter(submission=my_submission)\
+                                                            .order_by('created')
     for idx, ractual in enumerate(rubrics):
         summary = Summary(date=ractual.created, link='', catg='sub',
           action='Peer {} opened your review (not completed yet)'.format(idx+1))
@@ -672,9 +684,30 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
     ctx_objects['lineA'] = ('', text)
 
 
+    rubrics = RubricActual.objects.filter(submission=submission).order_by('created')
     if has(learner, 'read_and_evaluated_all_reviews'):
-        # Therefore now ready to start the rebuttal process
         pass
+        # Therefore now ready to start the rebuttal process; but used here to
+        # place a summary line
+
+        #evaluation_compilation = EvaluationReport(\
+            #submission=new_sub,
+                                    #trigger=r_actual.rubric_template.next_trigger,
+                                    #unique_code=token,
+                                    #sort_report='R',
+                                    #evaluator=r_actual.graded_by,
+        #)
+
+    else:
+        n_evaluations = 0
+        for rubric in rubrics:
+            if rubric.evaluated:
+                n_evaluations += 1
+        if n_evaluations >= GLOBAL.num_peers:
+            completed(learner, 'read_and_evaluated_all_reviews')
+
+
+
 
     if has(learner, 'completed_rebuttal'):
         pass
@@ -755,7 +788,8 @@ def invite_reviewers(learner, trigger):
     """
     Invites reviewers to start the review process
     """
-    valid_subs = Submission.objects.filter(trigger=trigger, is_valid=True)
+    valid_subs = Submission.objects.filter(trigger=trigger, is_valid=True).\
+                                                            exclude(status='A')
     if not(valid_subs.count() >= GLOBAL.min_in_pool_before_grouping_starts):
         return
 
@@ -806,7 +840,7 @@ def invite_reviewers(learner, trigger):
 
             if not(review.have_emailed):
                 send_email(learner.email, subject, messages=message,
-                           delay_secs=0)
+                           delay_secs=5)
 
                 # Ideally this is in the return hook, but for now leave it here.
                 review.have_emailed = True
@@ -1058,11 +1092,11 @@ def evaluate(request, unique_code=None):
     # We have a report to be evaluated, now generate the links.
     if report.r_actual is None:
         # Generate the actual rubric here for it.
-        eval_actual = get_create_actual_rubric(graded_by=report.evaluator,
-                                               trigger=report.trigger,
-                                               submission=report.submission,
-                                               rubric_code=report.unique_code)
-        report.r_actual = eval_actual[0]
+        eval_actual, _ = get_create_actual_rubric(graded_by=report.evaluator,
+                                                trigger=report.trigger,
+                                                submission=report.submission,
+                                                rubric_code=report.unique_code)
+        report.r_actual = eval_actual
         report.save()
 
     return handle_review(request, unique_code)
@@ -1072,41 +1106,10 @@ def evaluate(request, unique_code=None):
 # report evaluation.
 # -------------------------------------------
 
-def create_evaluation_PDF(r_actual):
+def reportlab_styles():
     """
-    Take an original submission (PDF), and combines an extra page or two,
-    that contains the review (``r_actual``).
+    Format the review with these styles.
     """
-
-    def formatted_options(options):
-        out = []
-        for idx, option in enumerate(options):
-
-            if option.rubric_item.option_type in ('DropD', 'Chcks', 'Radio'):
-                if hasattr(option, 'selected'):
-                    out.append(Paragraph(('<strong>{0}</strong>'
-                            '').format(option.criterion),  deflt))
-                else:
-                    out.append(Paragraph('<font color="lightgrey">{0}</font>'.\
-                                              format(option.criterion), deflt))
-            elif option.rubric_item.option_type == 'LText':
-                out.append(Paragraph(option.prior_text,  deflt))
-
-        return out
-
-
-    report = ReviewReport.objects.get(unique_code=r_actual.rubric_code)
-    peer_number = report.order
-    base_dir_for_file_uploads = settings.MEDIA_ROOT
-    token = generate_random_token(token_length=16)
-    src = r_actual.submission.file_upload.file.name
-    filename = 'uploads/{0}/{1}'.format(
-                            r_actual.rubric_template.entry_point.id,
-                            token + '.pdf')
-    dst = base_dir_for_file_uploads + filename
-
-
-    # Format the review
     styles= {
         'default': ParagraphStyle('default',
             fontName='Helvetica',
@@ -1151,17 +1154,35 @@ def create_evaluation_PDF(r_actual):
         alignment=TA_LEFT,
         textColor=black,
     )
-    deflt = styles['default']
+    return styles
+
+styles = reportlab_styles()
+default = styles['default']
+
+def report_render_rubric(r_actual, flowables):
+    """
+    Continues the rendering of the body of the report, using the rubric
+    ``r_actual``, and the supplied list of flowables which are appended to.
+    """
+    def formatted_options(options):
+        out = []
+        for idx, option in enumerate(options):
+
+            if option.rubric_item.option_type in ('DropD', 'Chcks', 'Radio'):
+                if hasattr(option, 'selected'):
+                    out.append(Paragraph(('<strong>{0}</strong>'
+                            '').format(option.criterion), default))
+                else:
+                    out.append(Paragraph('<font color="lightgrey">{0}</font>'.\
+                                            format(option.criterion), default))
+            elif option.rubric_item.option_type == 'LText':
+                out.append(Paragraph(option.prior_text,  default))
+
+        return out
+
+
+    styles = reportlab_styles()
     review_items, _ = r_actual.report()
-
-    flowables = []
-    flowables.append(Paragraph("Review from peer number {}".format(peer_number),
-                  styles['title']))
-    flowables.append(Spacer(1, 12))
-    flowables.append(Paragraph(("The option in bold represents the one selected"
-                                " by your reviewer."), deflt))
-    flowables.append(Spacer(1, 12))
-
     for item in review_items:
 
         flowables.append(Paragraph(item.ritem_template.criterion,
@@ -1176,6 +1197,41 @@ def create_evaluation_PDF(r_actual):
                                       start='circle'))
         flowables.append(Spacer(1, 12))
 
+
+
+def create_evaluation_PDF(r_actual):
+    """
+    Take an original submission (PDF), and combines an extra page or two,
+    that contains the review (``r_actual``).
+    """
+    report = ReviewReport.objects.get(unique_code=r_actual.rubric_code)
+    # From the perspective of the submitter, which peer am I?
+    rubrics = RubricActual.objects.filter(submission=report.submission).order_by('created')
+    peer_number = 0
+    for idx, rubric in enumerate(rubrics):
+        if report.reviewer == rubric.graded_by:
+            peer_number = idx + 1
+            break
+
+    base_dir_for_file_uploads = settings.MEDIA_ROOT
+    token = generate_random_token(token_length=16)
+    src = r_actual.submission.file_upload.file.name
+    filename = 'uploads/{0}/{1}'.format(
+                            r_actual.rubric_template.entry_point.id,
+                            token + '.pdf')
+    dst = base_dir_for_file_uploads + filename
+
+
+
+    flowables = []
+    flowables.append(Paragraph("Review from peer number {}".format(peer_number),
+                  styles['title']))
+    flowables.append(Spacer(1, 12))
+    flowables.append(Paragraph(("The option in bold represents the one selected"
+                                " by your reviewer."), default))
+    flowables.append(Spacer(1, 12))
+
+    report_render_rubric(r_actual, flowables)
 
     fd, temp_file = tempfile.mkstemp(suffix='.pdf')
     doc = BaseDocTemplate(temp_file)
@@ -1194,21 +1250,15 @@ def create_evaluation_PDF(r_actual):
     # Append the extra PDF page:
     pdf1 = PdfFileReader(src)
     pdf2 = PdfFileReader(temp_file)
-    writer = PdfFileWriter()
+    merger = PdfFileMerger(strict=False, )
 
-    # Add the extra page:
-    for page in range(0, pdf1.getNumPages()):
-        writer.addPage(pdf1.getPage(page))
-
-    for page in range(0, pdf2.getNumPages()):
-        writer.addPage(pdf2.getPage(page))
+    merger.append(pdf1, import_bookmarks=False)
+    merger.append(pdf2, import_bookmarks=False)
+    merger.write(dst)
+    merger.close()
 
     # Cleaning up ``pdf2``
     os.remove(temp_file)
-
-    # Write out the merged document to ``dst``
-    with open(dst, "wb") as out_file:
-        writer.write(out_file)
 
     with open(dst, "rb") as out_file:
         django_file = File(out_file)
@@ -1233,6 +1283,7 @@ def create_evaluation_PDF(r_actual):
     prior_evals = EvaluationReport.objects.filter(
                             trigger=r_actual.rubric_template.next_trigger,
                             peer_reviewer=r_actual.graded_by,
+                            sort_report='E',
                             evaluator=r_actual.submission.submitted_by
                         )
     prior_evals.delete()
@@ -1248,15 +1299,123 @@ def create_evaluation_PDF(r_actual):
     review_back_to_submitter = EvaluationReport(submission=new_sub,
                                 trigger=r_actual.rubric_template.next_trigger,
                                 unique_code=token,
+                                sort_report='E',
                                 peer_reviewer=r_actual.graded_by,
                                 evaluator=r_actual.submission.submitted_by,
                             )
     review_back_to_submitter.save()
 
+
+
+
 def create_rebuttal_PDF(r_actual):
     """
     Take an original submission (PDF), and combines an extra page or two,
-    that contains the N review (``r_actual``) from the N peers.
+    that contains the N review (``r_actual``) from the N peers. Not just 1 peer.
+
 
     """
-    pass
+    report = EvaluationReport.objects.get(unique_code=r_actual.rubric_code)
+
+    submission = Submission.objects.filter(submitted_by=report.evaluator,
+                                    entry_point=report.submission.entry_point,
+                                    is_valid=True).exclude(status='A')
+    submission = submission[0]
+
+    rubrics = RubricActual.objects.filter(submission=submission).order_by('created')
+
+    src = submission.file_upload.file.name
+
+    flowables = []
+    for idx, rubric in enumerate(rubrics):
+        review_items, _ = rubric.report()
+        flowables.append(Paragraph("Review from peer number {}".format(idx+1),
+                                   styles['title']))
+        flowables.append(Spacer(1, 12))
+        flowables.append(Paragraph(("The option in bold represents the one "
+                                    "selected by the reviewer."), default))
+        flowables.append(Spacer(1, 12))
+
+        report_render_rubric(rubric, flowables)
+
+        flowables.append(PageBreak())
+
+
+    fd, temp_file = tempfile.mkstemp(suffix='.pdf')
+    doc = BaseDocTemplate(temp_file)
+    doc.addPageTemplates(
+        [   PageTemplate(
+            frames=[
+                    Frame(doc.leftMargin, doc.bottomMargin, doc.width,
+                          doc.height,id=None),]
+                ),
+            ]
+    )
+    doc.build(flowables)
+    os.close(fd)
+
+
+    # Append the extra PDF page:
+    pdf1 = PdfFileReader(src)
+    pdf2 = PdfFileReader(temp_file)
+    merger = PdfFileMerger(strict=False, )
+
+    merger.append(pdf1, import_bookmarks=False)
+    merger.append(pdf2, import_bookmarks=False)
+
+    fd, dst_file = tempfile.mkstemp(suffix='.pdf')
+
+    merger.write(dst_file)
+    merger.close()
+
+    # Cleaning up ``pdf2``
+    os.remove(temp_file)
+
+    with open(dst_file, "rb") as out_file:
+        django_file = File(out_file)
+
+        # Key point: use the ``submitted_file_name`` field to check if
+        # this is a re-review (i.e. then we reuse the Submission instance).
+        new_sub, was_new = Submission.objects.get_or_create(\
+                            status='A',
+                            entry_point=r_actual.rubric_template.entry_point,
+                            trigger=r_actual.rubric_template.next_trigger,
+                            is_valid=True,
+                            submitted_by=r_actual.graded_by,
+                            # Might not make sense, since it is generated by
+                            # N different peers.
+                            #submitted_file_name = r_actual.rubric_code
+                        )
+
+        new_sub.file_upload = django_file
+        new_sub.save()
+
+    # The ``dst_file`` is not needed once we have saved the instance.
+    os.unlink(dst_file)
+
+
+
+    # DELETE ANY PRIOR ATTEMPTS FOR THIS trigger/submitted_by combination.
+    prior_evals = EvaluationReport.objects.filter(
+                            trigger=r_actual.rubric_template.next_trigger,
+                            sort_report='R',
+
+                            # WE put this here, but it will simply be the
+                            # last reviewer's name. However, since this
+                            # review was d
+                            evaluator=r_actual.graded_by
+                        )
+    prior_evals.delete()
+
+
+    # OK, as long as the file upload path is always: "uploads/1/{0}.pdf"
+    token = new_sub.file_upload.name.split('/')[2].strip('.pdf')
+
+    evaluation_compilation = EvaluationReport(\
+                                submission=new_sub,
+                                trigger=r_actual.rubric_template.next_trigger,
+                                unique_code=token,
+                                sort_report='R',
+                                evaluator=r_actual.graded_by,
+                            )
+    evaluation_compilation.save()

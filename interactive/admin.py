@@ -44,7 +44,7 @@ admin.site.register(ReviewReport, ReviewReportAdmin)
 
 
 class EvaluationReportAdmin(admin.ModelAdmin):
-    list_display = ("peer_reviewer", "evaluator",
+    list_display = ("evaluator", "peer_reviewer", "unique_code", "sort_report",
                     "r_actual", "trigger", "submission", "unique_code",
                     "created", "last_viewed")
 admin.site.register(EvaluationReport, EvaluationReportAdmin)

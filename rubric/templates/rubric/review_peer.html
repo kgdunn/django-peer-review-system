@@ -93,7 +93,9 @@
     {% if show_feedback %}
         The report is shown below. It is read-only, and no further changes/additions can be made to the review.
     {% else %}
-        <p>The work you are required to review is shown below. <span style="color: orange">You can start the review, come back later to continue editing and adding feedback. Your work is continually saved as you type and evaluate your peers.</span> <br>If you do not see any document here then you should please <a href="/{{submission.file_upload.url}}" target="_blank">first download it</a>.
+        <p>The work you are required to review is shown below.
+        {# <span style="color: orange">You can start the review, come back later to continue editing and adding feedback. Your work is continually saved as you type and evaluate your peers.</span>#}
+        If you do not see any document here then you should please <a href="/{{submission.file_upload.url}}" target="_blank">first download it</a>.
     {% endif %}
 
 </div>

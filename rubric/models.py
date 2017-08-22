@@ -91,6 +91,9 @@ class RubricActual(models.Model):
     modified = models.DateTimeField(auto_now=True)
     started = models.DateTimeField(verbose_name='When did user start grading?')
     completed = models.DateTimeField(verbose_name='When did user end grading?')
+    evaluated = models.DateTimeField(blank=True, null=True,
+        verbose_name='When did submitter evalute the review?',)
+
     status = models.CharField(max_length=2, default='A', choices=STATUS)
     submitted = models.BooleanField(default=False,
         help_text='Has been completed reviewed AND submitted by peer grader.')

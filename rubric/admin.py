@@ -16,7 +16,7 @@ admin.site.register(RubricTemplate, RubricTemplateAdmin)
 
 class RubricActualAdmin(admin.ModelAdmin):
     list_display = ("submission", "submitted", "status", "graded_by",
-                    "rubric_code", "created", "modified")
+                    "rubric_code", "next_code", "created", "modified")
     list_max_show_all = 500
     list_per_page = 500
 admin.site.register(RubricActual, RubricActualAdmin)
