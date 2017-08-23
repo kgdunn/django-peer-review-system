@@ -289,7 +289,7 @@ def import_edx_gradebook(request):
 
     return HttpResponse('out:' + out)
 
-def push_grades(sourcedid, grade_value):
+def push_grades_to_platform(sourcedid, grade_value):
     """
     Based on: https://community.brightspace.com/devcop/blog/ ...
                              so_you_want_to_extend_your_lms__part_1_lti_primer
@@ -324,3 +324,41 @@ def push_grades(sourcedid, grade_value):
         return True
     else:
         return False
+
+
+def push_grade(learner, grade_value, entry_point, ctx=dict(), testing=False,):
+    """
+    Pushes the ``grade_value`` for ``learner`` at the given ``entry_point``
+    to the platform.
+
+    This is the wrapper function, and should be the way to get the work done.
+
+    The function we call internally needs a dictionary, ``ctx`` with a key
+    ``sourcedid`` which you get from Django/POST request:
+
+    >>> sourcedid = request.POST.get('lis_result_sourcedid', '')
+    """
+
+    gradeitem = GradeItem.objects.filter(entry=entry_point)
+    if gradeitem:
+        gitem = gradeitem[0]
+    else:
+        return False
+
+    grade, _ = LearnerGrade.objects.get_or_create(gitem=gitem,
+                                                  learner=learner)
+
+    grade.value = grade_value
+    grade.save()
+
+    if grade_value > 1.0 and grade_value <= 100.0:
+        grade_to_push = grade_value / 100.0
+
+    if not(testing):
+        sourceid = ctx.get(ctx['sourcedid'], None)
+        return push_grades_to_platform(sourceid, grade_to_push)
+    else:
+        return True
+
+
+

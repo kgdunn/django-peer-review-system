@@ -24,7 +24,7 @@
         {% endif %}
     {% endfor %}
 </tr>
-<tr><td>Completed reviews of your peers' work</td>
+<tr><td>You completely reviewed your peers' work</td>
     {% for unit in entries %}
         {% if achieved|keyvalue:unit|keyvalue:'completed_all_reviews' %}
             <td>Yes</td>

@@ -38,6 +38,7 @@ from rubric.views import (handle_review, get_create_actual_rubric,
                           get_learner_details)
 from rubric.models import RubricTemplate, RubricActual
 from grades.models import GradeItem, LearnerGrade
+from grades.views import push_grade
 from submissions.views import get_submission, upload_submission
 from submissions.models import Submission
 from submissions.forms import (UploadFileForm_one_file,
@@ -85,19 +86,20 @@ def starting_point(request, course=None, learner=None, entry_point=None):
     2. Call the triggers to process sequentially.
     3. Render the page.
     """
-
     # Step 1:
-    gradeitem = GradeItem.objects.filter(entry=entry_point)
-    if gradeitem:
-        gitem = gradeitem[0]
-    else:
+    if not push_grade(learner, 0.0, entry_point, testing=True):
+
+    #gradeitem = GradeItem.objects.filter(entry=entry_point)
+    #if gradeitem:
+        #gitem = gradeitem[0]
+    #else:
         return HttpResponse('Please create a GradeItem attached to this Entry')
 
-    grade, first_time = LearnerGrade.objects.get_or_create(gitem=gitem,
-                                                           learner=learner)
-    if first_time:
-        grade.value = 0.0
-        grade.save()
+    #grade, first_time = LearnerGrade.objects.get_or_create(gitem=gitem,
+                                                           #learner=learner)
+    #if first_time:
+        #grade.value = 0.0
+        #grade.save()
 
 
     # Step 2: Call all triggers:
@@ -109,7 +111,12 @@ def starting_point(request, course=None, learner=None, entry_point=None):
     ctx_objects = {'now_time': now_time,
                    'learner': learner,
                    'course': course,
-                   'entry_point': entry_point,}
+                   'entry_point': entry_point,
+
+                   # Used for grading
+                   'lis_result_sourcedid': \
+                             request.POST.get('lis_result_sourcedid', ''),
+                }
     ctx_objects.update(csrf(request)) # add the csrf; used in forms
 
 
@@ -296,6 +303,8 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
             submission = submit_inst
 
 
+            push_grade(learner, 10, entry_point, ctx_objects)
+
 
             # Send an email
             """
@@ -458,16 +467,8 @@ def get_line1(learner, trigger, summaries):
                                  .order_by('-created') # for consistency
 
 
+    reviews_completed = [False, ] * GLOBAL.num_peers
     for idx, review in enumerate(allocated_reviews):
-
-        #if not(has(learner, 'submitted')):
-            #out.append(('', 'You must submit before you can review others.'))
-            #continue
-
-        #if not(valid_subs.count() >= GLOBAL.min_in_pool_before_grouping_starts):
-            ## Simplest case: no reviews are allocated to learner yet
-            #out.append(('', 'Waiting for a peer to submit their work ...'))
-            #continue
 
         if not(review.order):
             review.order = idx+1
@@ -478,7 +479,8 @@ def get_line1(learner, trigger, summaries):
         status = 'Start your review'
         if prior.count():
             if prior[0].status in ('C', 'L'):
-                status = 'Completed'# .format(prior[0].completed.strftime('%d %b %Y at %H:%M'))
+                status = 'Completed'
+                reviews_completed[idx] = True
                 summary = Summary(date=prior[0].completed,
                    action='Review number {0} completed; thank you!'\
                               .format(review.order, GLOBAL.num_peers),
@@ -494,8 +496,10 @@ def get_line1(learner, trigger, summaries):
                 '<a href="/interactive/review/{1}">{0}</a>'.format(status,
                                                        review.unique_code)))
 
+    if sum(reviews_completed) == GLOBAL.num_peers:
+        completed(learner, 'completed_all_reviews')
+
     for idx in range(GLOBAL.num_peers-len(out)):
-        #out.append(('future-text', 'Waiting for peer to read your review'))
 
         if not(has(learner, 'submitted')):
             out.append(('', 'You must submit before you can review others.'))
@@ -722,6 +726,10 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
 
     rubrics = RubricActual.objects.filter(submission=submission).order_by('evaluated')
     if not(has(learner, 'read_and_evaluated_all_reviews')):
+
+        # Can you ever reach here? This is supposed to be triggered
+        # in the ``create_rebuttal_PDF`` function.
+        assert(False)
         n_evaluations = 0
         for rubric in rubrics:
             if rubric.evaluated:
@@ -1249,7 +1257,7 @@ def report_render_rubric(r_actual, flowables):
 def create_evaluation_PDF(r_actual):
     """
     Take an original submission (PDF), and combines an extra page or two,
-    that contains the review (``r_actual``).
+    that contains a SINGLE review (``r_actual``).
     """
     report = ReviewReport.objects.get(unique_code=r_actual.rubric_code)
     # From the perspective of the submitter, which peer am I?
@@ -1292,7 +1300,6 @@ def create_evaluation_PDF(r_actual):
     )
     doc.build(flowables)
     os.close(fd)
-
 
     # Append the extra PDF page:
     pdf1 = PdfFileReader(src)
