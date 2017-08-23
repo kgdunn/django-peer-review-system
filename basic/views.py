@@ -157,7 +157,8 @@ def get_create_student(request, course):
         if learner.count() == 1:
             learner = learner[0]
         elif learner.count() > 1:
-            logger.error('Multiple enrollments. This should not occur.')
+            logger.error('Multiple enrollments [{0}]. This should not occur.'\
+                         .format(learner))
             # Find the learner in this course
             # TODO still. This is the case where the same email address is used
             #             in more than 1 platform (e.g. Brightspace and edX)
