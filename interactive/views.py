@@ -113,8 +113,8 @@ def starting_point(request, course=None, learner=None, entry_point=None):
                    'course': course,
                    'entry_point': entry_point,
 
-                   # Used for grading
-                   'lis_result_sourcedid': \
+                   # Used for pushing grades to the platform
+                   'sourcedid': \
                              request.POST.get('lis_result_sourcedid', ''),
                 }
     ctx_objects.update(csrf(request)) # add the csrf; used in forms
