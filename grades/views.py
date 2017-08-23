@@ -1,5 +1,19 @@
+"""
+To push grades to Brightspace:
+
+* need the ``push_grades.php`` function
+* set up Brightspace with a key and secret, and set these also in ``settings.py``
+  or in ``local_settings.py`` as
+
+  LTI_KEY = 'key'
+  LTI_SECRET = 'secret'
+
+"""
+
+
 from django.shortcuts import render
 from django.http import HttpResponse
+from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.clickjacking import xframe_options_exempt
 
@@ -300,6 +314,9 @@ def push_grades_to_platform(sourcedid, grade_value):
     2. The ``grade``: a value between 0.0 and 1.0
 
     Will return "True" if the grade was successfully set; else it returns None.
+
+
+
     """
 
     try:
