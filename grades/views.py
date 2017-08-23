@@ -9,8 +9,6 @@ To push grades to Brightspace:
   LTI_SECRET = 'secret'
 
 """
-
-
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.conf import settings
@@ -337,7 +335,7 @@ def push_grades_to_platform(sourcedid, grade_value):
                             shell=True,
                             stdout=subprocess.PIPE)
     script_response = proc.stdout.read()
-    logger.debug('PHP script response for grades: ' + str(script_response))
+    logger.debug('Grades [{0}]: {1}'.format(sourcedid, script_response))
 
     if script_response.decode('utf-8').find('Grade was set') >= 0:
         return True
