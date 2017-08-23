@@ -33,6 +33,7 @@ from .models import AchieveConfig, Achievement
 from .models import EvaluationReport
 
 # Our other apps
+from basic.models import EntryPoint
 from rubric.views import (handle_review, get_create_actual_rubric,
                           get_learner_details)
 from rubric.models import RubricTemplate, RubricActual
@@ -184,43 +185,7 @@ def render_template(trigger, ctx_objects):
     return insert_evaluate_variables(trigger.template, ctx_objects)
 
 
-def has(learner, achievement):
-    """
-    See's if a user has completed a certain achievement.
-    """
-    possible = Achievement.objects.filter(learner=learner,
-                                          achieved__name=achievement)
-    if possible.count() == 0:
-        return False
-    else:
-        return possible[0].done
 
-
-def completed(learner, achievement):
-    """
-    Complete this item for the learner's achievement
-    """
-    possible = Achievement.objects.filter(learner=learner,
-                                          achieved__name=achievement)
-    if possible.count() == 0:
-        completed = Achievement(learner=learner,
-                        achieved=AchieveConfig.objects.get(name=achievement))
-    else:
-        completed = possible[0]
-
-    completed.done = True
-    completed.save()
-
-def reportcard(learner, entry_point):
-    """
-    Get the "reportcard" (a dictionary) of the learner's achievements
-    """
-
-    report = OrderedDict()
-    for item in AchieveConfig.objects.filter(entry_point=entry_point)\
-                                                      .order_by('order'):
-        report[item.name] = has(learner, item.name)
-    return report
 
 # ------------------------------
 # The various trigger functions
@@ -567,7 +532,7 @@ def get_line2(learner, trigger, summaries):
         evalrep = EvaluationReport.objects.filter(unique_code=rubric.next_code)
         for report in evalrep:
             if report.r_actual:
-                out[idx] = ('', 'Peer read your review')
+                out[idx] = ('', 'Peer has read your review')
 
                 summaries.append(Summary(date=report.r_actual.created,
                                action='Peer {0} read your review'.format(idx+1),
@@ -740,13 +705,16 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
                                      "Please wait."))
             return
 
-
+        extra = ' (still to do)'
+        if hasattr(report.r_actual, 'status'):
+            if report.r_actual.status in ('C', 'L'):
+                extra = ' (completed)'
 
         if (idx > 0) and (idx < GLOBAL.num_peers):
             text += ';&nbsp;'
 
-        text += 'evaluate <a href="/interactive/evaluate/{0}/">peer {1}</a>'.\
-                                    format(report.unique_code, idx+1)
+        text += 'evaluate <a href="/interactive/evaluate/{0}/">peer {1}</a>{2}'\
+                 .format(report.unique_code, idx+1, extra)
 
     text += '.'
     ctx_objects['lineA'] = ('', text)
@@ -1509,3 +1477,76 @@ def create_rebuttal_PDF(r_actual):
     prior_eval.unique_code = token
     prior_eval.submission = new_sub
     prior_eval.save()
+
+#---------
+# Functions related to the learner's progress
+#---------
+
+def has(learner, achievement, detailed=False):
+    """
+    See if a user has completed a certain achievement.
+    """
+    possible = Achievement.objects.filter(learner=learner,
+                                          achieved__name=achievement)
+    if possible.count() == 0:
+        return False
+    else:
+        if detailed:
+            return possible[0]
+        else:
+            return possible[0].done
+
+
+def completed(learner, achievement):
+    """
+    Complete this item for the learner's achievement
+    """
+    possible = Achievement.objects.filter(learner=learner,
+                                          achieved__name=achievement)
+    if possible.count() == 0:
+        completed = Achievement(learner=learner,
+                        achieved=AchieveConfig.objects.get(name=achievement))
+    else:
+        completed = possible[0]
+
+    completed.done = True
+    completed.save()
+
+
+def reportcard(learner, entry_point, detailed=False):
+    """
+    Get the "reportcard" (a dictionary) of the learner's achievements
+    """
+
+    report = OrderedDict()
+    for item in AchieveConfig.objects.filter(entry_point=entry_point)\
+                                                      .order_by('order'):
+        report[item.name] = has(learner, item.name, detailed)
+    return report
+
+
+def overview(request, course=None, learner=None, entry_point=None):
+    """
+    Student gets an overview of their grade here.
+    We use all ``entry_points`` related to a course, except this entry point.
+    """
+    entries = EntryPoint.objects.filter(course=course).order_by('order')
+
+    achieved = {}
+
+    # achieved[entry_point][achievement_config]
+
+    entry_display = []
+    for entry in entries:
+        if entry == entry_point:
+            continue
+        achieved[entry] = reportcard(learner, entry, detailed=True)
+        entry_display.append(entry)
+
+    ctx = {'learner': learner,
+           'course': course,
+           'achieved': achieved,
+           'entries': entry_display}
+
+
+    return loader.render_to_string('interactive/display_progress.html', ctx)

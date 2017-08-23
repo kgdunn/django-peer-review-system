@@ -1,0 +1,60 @@
+{% extends "basic/base.html" %}
+{% block content %}
+
+
+<table>
+<tr><td>Submitted a document</td>
+
+    {% for unit in entries %}
+        {% if achieved[unit]['submitted'] %}
+            <td>Yes</td>
+        {% else %}
+            <td>No</td>
+        {% endif %}
+    {% endfor %}
+</tr>
+<tr><td>Completed reviews of your peers' work</td>
+    {% for unit in entries %}
+        {% if achieved[unit]['completed_all_reviews'] %}
+            <td>Yes</td>
+        {% else %}
+            <td>No</td>
+        {% endif %}
+    {% endfor %}
+</tr>
+
+<tr><td>Have read and evaluated reviews about your work</td>
+    {% for unit in entries %}
+        {% if achieved[unit]['read_and_evaluated_all_reviews'] %}
+            <td>Yes</td>
+        {% else %}
+            <td>No</td>
+        {% endif %}
+    {% endfor %}
+</tr>
+
+
+<tr><td>Have completed the rebuttal</td>
+    {% for unit in entries %}
+        {% if achieved[unit]['completed_rebuttal'] %}
+            <td>Yes</td>
+        {% else %}
+            <td>No</td>
+        {% endif %}
+    {% endfor %}
+</tr>
+
+<tr><td>Have assessed all rebuttals received</td>
+    {% for unit in entries %}
+        {% if achieved[unit]['completed_rebuttal'] %}
+            <td>Yes</td>
+        {% else %}
+            <td>No</td>
+        {% endif %}
+    {% endfor %}
+</tr>
+
+</table>
+
+
+{% endblock %}

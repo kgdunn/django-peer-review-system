@@ -56,7 +56,7 @@
 {% if show_feedback %} {# show peer/self feedback #}
     {% if item.ritem_template.option_type == 'LText' %}{% endif%}
     {% if item.ritem_template.option_type == 'DropD' or item.ritem_template.option_type == 'Radio' %}
-        <em>Score received</em>: {{item.results.0}}
+        {% if item.results.0 %}<em>Score received</em>: {{item.results.0}} {% endif %}
         {% if item.results.2%};average value = {{item.results.2|floatformat}}{% endif %}
     {% endif %}
 {% else %}

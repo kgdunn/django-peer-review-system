@@ -5,102 +5,20 @@ from utils import generate_random_token
 
 Key assumptions:
 * You have to submit before you can start reviewing others
+* We start the review process when we have a sufficiently large pool of reviewers
+* You have to wait till your work is reviewed before you can review someone else
 
-3	Submitted a document the first time      -> update text in page; thank email
+
+5	Submitted a document the first time
 10  Document is submitted and set; no more updates are possible
-11 Has read received reviews
-15 Has read received reviews
 20	Started review of peer's work
-25	Completed review of peer's work     -> web update for both sides
-31 Has completely evaluated review from peer 1 -> weblink to see peer's eval
-41 Has read evaluation received back from peer 1
-61 Has written rebuttal to peers
-71 Has read the rebuttal received from peer 1
-81 Has assessed the rebuttal received from peer 1
-91 Has seen assessment from peer 1
-100 Process completed
-
-
----- Submission (by the student)
-0	Not started, visited the starting page   -> send email
-1   Has been sent a welcoming email          -> nothing
-3	Submitted a document the first time      -> update text in page; thank email
-                                             -> after sufficient peers
-                                                * send email to reviewers
-                                                * create rubric for peers
-4, 5, 6, 7, 8, 9                             -> Everytime the document is
-                                                submitted (again)
-10  Document is submitted and set; no more updates are possible
-
-
-
----- Evaluation (by the student of their peer)
-
-10 Evaluation submissions
-
-# Cannot be tracked with grades
-#11 Has read received review from peer 1  -> web update only (both sides)
-#12 Has read received review from peer 2  -> web update only & email after == N
-#13 Has read received review from peer 3
-#14 Has read received review from peer 4
-#15 Has read received review from peer 5  -> web update only & email after == N
-#                                            * email submitter. Reviews are in,
-#                                              and time to evaluate feedback from peers.
-
----- Review (by the student of their peers)
-20	Started review of peer 1's work
-21	Started review of peer 2's work
-22	Started review of peer 3's work
-23	Started review of peer 4's work
-24	Started review of peer 5's work
-
-25	Completed review of peer 1's work     -> web update for both sides
-26	Completed review of peer 2's work     -> web update for both sides
-27	Completed review of peer 3's work
-28	Completed review of peer 4's work
-29	Completed review of peer 5's work
-
-
----- Evaluation (by the student of their peer)
-31 Has completely evaluated review from peer 1 -> weblink to see peer's eval
-32 Has completely evaluated review from peer 2
-33 Has completely evaluated review from peer 3
-34 Has completely evaluated review from peer 4
-35 Has completely evaluated review from peer 5
-
-41 Has read evaluation received back from peer 1
-42 Has read evaluation received back from peer 2
-43 Has read evaluation received back from peer 3
-44 Has read evaluation received back from peer 4
-45 Has read evaluation received back from peer 5
-
----- Rebuttal (by the student back to their peer)
-50 ??
-61 Has written rebuttal to peers
-
-71 Has read the rebuttal received from peer 1
-72 Has read the rebuttal received from peer 2
-73 Has read the rebuttal received from peer 3
-74 Has read the rebuttal received from peer 4
-75 Has read the rebuttal received from peer 5
-
----- Assessment (of rebuttals)
-81 Has assessed the rebuttal received from peer 1
-82 Has assessed the rebuttal received from peer 2
-83 Has assessed the rebuttal received from peer 3
-84 Has assessed the rebuttal received from peer 4
-85 Has assessed the rebuttal received from peer 5
-
----- Wrapping up
-91 Has seen assessment from peer 1
-92 Has seen assessment from peer 2
-93 Has seen assessment from peer 3
-94 Has seen assessment from peer 4
-95 Has seen assessment from peer 5
-
+30 	Completed reviews of peer's work
+50  Has completely evaluated review from peer
+70  Has written rebuttal to peers
+80  Has assessed all rebuttals from peers
+90  Has seen assessments; actually it will jump to 100 at that point
 100 Process completed
 """
-
 
 class AchieveConfig(models.Model):
     """
@@ -111,6 +29,7 @@ class AchieveConfig(models.Model):
                                    help_text='Detailed description')
     order = models.PositiveSmallIntegerField(default=0)
     entry_point = models.ForeignKey('basic.EntryPoint', null=True, blank=True)
+
     achievements = models.ManyToManyField('basic.Person',
                                      through='Achievement',
                                      )
@@ -126,6 +45,8 @@ class Achievement(models.Model):
     achieved = models.ForeignKey(AchieveConfig, on_delete=models.CASCADE)
     when = models.DateTimeField(auto_now_add=True)
     last = models.DateTimeField(auto_now=True)
+
+    # Has the learner achieved this goal, or not?
     done = models.BooleanField(default=False)
 
     def __str__(self):

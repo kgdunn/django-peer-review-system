@@ -133,6 +133,10 @@ class EntryPoint(models.Model):
     #instructions = models.TextField(help_text='May contain HTML instructions',
     #            verbose_name='Overall instructions to learners', )
 
+    order = models.PositiveSmallIntegerField(default=0,
+            help_text=('Used to order the achievement display in a course with '
+                       'many entry points.'))
+
     entry_function = models.CharField(max_length=100, default='',
        help_text='Django function, with syntax: "app_name.views.function_name"')
 

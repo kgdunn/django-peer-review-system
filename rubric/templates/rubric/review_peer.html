@@ -117,7 +117,6 @@
             {% if not show_feedback %}
                 {{rubric.general_instructions|safe}}
                 <br>
-
                 <form action="{% url 'submit_peer_review_feedback' ractual_code=ractual_code %}"
                       method="POST" enctype="multipart/form-data">{% csrf_token %}
                 {% if rubric.submit_button_also_shown_on_top %}
