@@ -355,7 +355,7 @@ def push_grade(learner, grade_value, entry_point, ctx=dict(), testing=False,):
 
     >>> sourcedid = request.POST.get('lis_result_sourcedid', '')
     """
-
+    logger.debug((ctx, learner, grade_value, entry_point, testing))
     gradeitem = GradeItem.objects.filter(entry=entry_point)
     if gradeitem:
         gitem = gradeitem[0]

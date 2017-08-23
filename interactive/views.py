@@ -86,6 +86,7 @@ def starting_point(request, course=None, learner=None, entry_point=None):
     2. Call the triggers to process sequentially.
     3. Render the page.
     """
+    logger.debug(request.POST)
     # Step 1:
     if not push_grade(learner, 0.0, entry_point, testing=True):
 
