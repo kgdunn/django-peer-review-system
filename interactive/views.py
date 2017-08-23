@@ -603,8 +603,7 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
                                             'work for your peers to review.')
     ctx_objects['lineA'] = ('future-text',
                             "Read and evaluate reviewers' feedback")
-    if not(has(learner, 'submitted')):
-        return
+
 
     my_submission = Submission.objects.filter(entry_point=trigger.entry_point,
                                               is_valid=True,
@@ -613,6 +612,11 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
 
     if my_submission.count() > 1:
         logger.warn('More than one submission encountered')
+
+    if not(has(learner, 'submitted')) or my_submission.count()==0:
+        return
+
+
     submission = my_submission[0]
     reports = [False, ] * GLOBAL.num_peers
     reviews = [False,] * GLOBAL.num_peers
