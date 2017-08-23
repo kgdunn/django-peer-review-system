@@ -56,8 +56,10 @@ def entry_point_discovery(request):
     if (message):
         return HttpResponse(message)
 
-    person.last_lis = request.POST.get('lis_result_sourcedid', '')
-    person.save()
+    if request.POST.get('lis_result_sourcedid', ''):
+        # Update only if needed.
+        person.last_lis = request.POST.get('lis_result_sourcedid', '')
+        person.save()
 
 
     # So, if we get to this point we guarantee a valid ``course``, ``learner``,

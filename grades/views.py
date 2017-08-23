@@ -314,9 +314,6 @@ def push_grades_to_platform(sourcedid, grade_value):
     2. The ``grade``: a value between 0.0 and 1.0
 
     Will return "True" if the grade was successfully set; else it returns None.
-
-
-
     """
 
     try:
