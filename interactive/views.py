@@ -1087,6 +1087,12 @@ def review(request, unique_code=None):
         logger.error(('Found more than 1 valid Submission for {} in entry '
                       'point {}'.format(valid_subs,
                                         report.trigger.entry_point)))
+        return HttpResponse(("You've used an incorrect link; or a problem with "
+                             'the peer review system has occurred. Please '
+                             'content k.g.dunn@tudelft.nl with the approximate '
+                             'date and time that this occurred, and he can '
+                             'try to assist you further.'))
+
     submission = valid_subs[0]
     report.submission = submission
     report.save()
