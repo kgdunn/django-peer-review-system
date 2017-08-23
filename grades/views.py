@@ -339,7 +339,7 @@ def push_grades_to_platform(sourcedid, grade_value):
     script_response = proc.stdout.read()
     logger.debug('PHP script response for grades: ' + str(script_response))
 
-    if script_response.find('Grade was set') >= 0:
+    if script_response.decode('utf-8').find('Grade was set') >= 0:
         return True
     else:
         return False
