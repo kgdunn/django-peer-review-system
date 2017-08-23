@@ -499,6 +499,7 @@ def get_line1(learner, trigger, summaries):
 
     if sum(reviews_completed) == GLOBAL.num_peers:
         completed(learner, 'completed_all_reviews')
+        push_grade(learner, 30.0, trigger.entry_point)
 
     for idx in range(GLOBAL.num_peers-len(out)):
 
@@ -1085,7 +1086,7 @@ def review(request, unique_code=None):
                                     submitted_by=submitter).exclude(status='A')
     if valid_subs.count() != 1:
         logger.error(('Found more than 1 valid Submission for {} in entry '
-                      'point {}'.format(valid_subs,
+                      'point "{}"'.format(valid_subs,
                                         report.trigger.entry_point)))
         return HttpResponse(("You've used an incorrect link; or a problem with "
                              'the peer review system has occurred. Please '
@@ -1242,7 +1243,8 @@ def report_render_rubric(r_actual, flowables):
                     out.append(Paragraph('<font color="lightgrey">{0}</font>'.\
                                             format(option.criterion), default))
             elif option.rubric_item.option_type == 'LText':
-                out.append(Paragraph(option.prior_text,  default))
+                out.append(Paragraph(option.prior_text.replace('\n','<br />\n'),
+                                     default))
 
         return out
 

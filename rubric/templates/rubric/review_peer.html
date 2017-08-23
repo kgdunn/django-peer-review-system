@@ -88,7 +88,7 @@
 
 {% block content %}
 <div id="header">
-    <div id="review-realtime-feedback" style="float:right; padding-top: 1em; padding-right: 1em;"></div>
+    <div class="review-realtime-feedback" style="float:right; padding-top: 1em; padding-right: 1em;"></div>
     <h2>Hello {{person.display_name}}</h2>
     {% if show_feedback %}
         The report is shown below. It is read-only, and no further changes/additions can be made to the review.
@@ -97,7 +97,6 @@
         {# <span style="color: orange">You can start the review, come back later to continue editing and adding feedback. Your work is continually saved as you type and evaluate your peers.</span>#}
         If you do not see any document here then you should please <a href="/{{submission.file_upload.url}}" target="_blank">first download it</a>.
     {% endif %}
-
 </div>
 
 <div class="colmask rightmenu">
@@ -105,7 +104,7 @@
         <div class="col1">
             <!-- Column 1 start -->
             <object data="/{{submission.file_upload.url}}" type="application/pdf"
-                width="100%" height="84%">
+                width="100%" height="85%">
                 alt : <a href="/{{submission.file_upload.url}}">Peer review document</a>
             </object>
             <!-- Column 1 end -->
@@ -124,7 +123,6 @@
                 {% endif %}
                 <hr>
             {% endif %}
-            <div class="clear"></div>
 
             {% for item in r_item_actuals %} {# This alternates the major ITEMS in the rubric #}
                 <fieldset id="fieldset-item-{{item.ritem_template.order}}" class="{% cycle 'odd' 'even' %}">
@@ -137,7 +135,6 @@
                 <span class="submit_button" >
                 <input type="submit" name="below-{{ractual_code}}" value="Submit your review"></span>
                 </form>
-                Don't forget to submit your review when complete.
             {% endif %}
             {% endspaceless %}
             <!-- Column 2 end -->
@@ -146,6 +143,7 @@
 </div>
 
 <div id="footer">
+<div style="float:right; padding-right: 1em; color: orange">Do not forget to submit once you are completed.</div>
 </div>
 
 {% endblock %}
@@ -166,7 +164,7 @@ $( "input" ).click(function (event) {
         dataType: 'html'
     })
     .always(function(html_response) {
-        $('#review-realtime-feedback').html(html_response);
+        $('.review-realtime-feedback').html(html_response);
     });
 
 }).change();
@@ -184,7 +182,7 @@ $( "select" ).change(function (event) {
         dataType: 'html'
     })
     .always(function(html_response) {
-        $('#review-realtime-feedback').html(html_response);
+        $('.review-realtime-feedback').html(html_response);
     });
 
 }).change();
@@ -209,7 +207,7 @@ $(document).ready(function() {
                 url: '{% url 'xhr_store_text' ractual_code=ractual_code %}',
                 data: postdata,
                 cache: false,
-                success: function(html_response) {$('#review-realtime-feedback').html(html_response);},
+                success: function(html_response) {$('.review-realtime-feedback').html(html_response);},
                 error: function (response, desc, exception) {// custom error
                 }
             });
