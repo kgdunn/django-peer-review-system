@@ -1,12 +1,23 @@
 {% extends "basic/base.html" %}
+
+{% load template_extras %}
+
+
 {% block content %}
 
 
 <table>
+<thead><tr>
+<td>Achievement</td>
+{% for unit in entries %}
+    <td>{{unit.LTI_title}}</td>
+{% endfor %}
+</tr></thead>
+<tbody>
 <tr><td>Submitted a document</td>
 
     {% for unit in entries %}
-        {% if achieved[unit]['submitted'] %}
+        {% if achieved|keyvalue:unit|keyvalue:'submitted' %}
             <td>Yes</td>
         {% else %}
             <td>No</td>
@@ -15,7 +26,7 @@
 </tr>
 <tr><td>Completed reviews of your peers' work</td>
     {% for unit in entries %}
-        {% if achieved[unit]['completed_all_reviews'] %}
+        {% if achieved|keyvalue:unit|keyvalue:'completed_all_reviews' %}
             <td>Yes</td>
         {% else %}
             <td>No</td>
@@ -25,7 +36,7 @@
 
 <tr><td>Have read and evaluated reviews about your work</td>
     {% for unit in entries %}
-        {% if achieved[unit]['read_and_evaluated_all_reviews'] %}
+        {% if achieved|keyvalue:unit|keyvalue:'read_and_evaluated_all_reviews' %}
             <td>Yes</td>
         {% else %}
             <td>No</td>
@@ -36,7 +47,7 @@
 
 <tr><td>Have completed the rebuttal</td>
     {% for unit in entries %}
-        {% if achieved[unit]['completed_rebuttal'] %}
+        {% if achieved|keyvalue:unit|keyvalue:'completed_rebuttal' %}
             <td>Yes</td>
         {% else %}
             <td>No</td>
@@ -46,14 +57,14 @@
 
 <tr><td>Have assessed all rebuttals received</td>
     {% for unit in entries %}
-        {% if achieved[unit]['completed_rebuttal'] %}
+        {% if achieved|keyvalue:unit|keyvalue:'assessed_rebuttals' %}
             <td>Yes</td>
         {% else %}
             <td>No</td>
         {% endif %}
     {% endfor %}
 </tr>
-
+</tbody>
 </table>
 
 

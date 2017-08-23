@@ -1548,5 +1548,5 @@ def overview(request, course=None, learner=None, entry_point=None):
            'achieved': achieved,
            'entries': entry_display}
 
-
-    return loader.render_to_string('interactive/display_progress.html', ctx)
+    html = loader.render_to_string('interactive/display_progress.html', ctx)
+    return HttpResponse(html)
