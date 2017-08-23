@@ -343,7 +343,7 @@ def push_grades_to_platform(sourcedid, grade_value):
         return False
 
 
-def push_grade(learner, grade_value, entry_point, ctx=dict(), testing=False,):
+def push_grade(learner, grade_value, entry_point, testing=False):
     """
     Pushes the ``grade_value`` for ``learner`` at the given ``entry_point``
     to the platform.
@@ -372,8 +372,7 @@ def push_grade(learner, grade_value, entry_point, ctx=dict(), testing=False,):
         grade_to_push = grade_value / 100.0
 
     if not(testing):
-        sourceid = ctx.get('sourcedid', None)
-        return push_grades_to_platform(sourceid, grade_to_push)
+        return push_grades_to_platform(learner.last_lis, grade_to_push)
     else:
         return True
 

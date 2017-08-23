@@ -304,7 +304,7 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
             submission = submit_inst
 
 
-            push_grade(learner, 10, entry_point, ctx_objects)
+            push_grade(learner, 10, entry_point)
 
 
             # Send an email
