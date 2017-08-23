@@ -24,10 +24,12 @@ from basic.models import Person, Course
 
 # Python imports
 import io
+import os
 import csv
 import six
 import decimal
 import datetime
+import subprocess
 from collections import defaultdict, namedtuple
 
 # Logging
@@ -335,7 +337,7 @@ def push_grades_to_platform(sourcedid, grade_value):
                             shell=True,
                             stdout=subprocess.PIPE)
     script_response = proc.stdout.read()
-    logger.debug('PHP script response: ' + str(script_response))
+    logger.debug('PHP script response for grades: ' + str(script_response))
 
     if script_response.find('Grade was set') >= 0:
         return True
