@@ -237,9 +237,9 @@ def kick_off_email(trigger, learner, entry_point=None, **kwargs):
     The user is visiting the page for the first time.
     * send email to tell them about the process.
     """
-    #ctx = {'LTI_title': entry_point.LTI_title}
-    #subject = insert_evaluate_variables(trigger.subject, ctx)
-    #message = insert_evaluate_variables(trigger.message, ctx)
+    ctx = {'LTI_title': entry_point.LTI_title}
+    subject = insert_evaluate_variables(trigger.subject, ctx)
+    message = insert_evaluate_variables(trigger.message, ctx)
     #send_email(learner.email, subject, messages=message, delay_secs=10)
     #
     # This step has been removed to reduce the amount of emails sent.
@@ -261,7 +261,7 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
     {  "accepted_file_types_comma_separated": "PDF",
        "max_file_upload_size_MB": <unlimited>,  [specify as 10 (not a string)]
        "allow_multiple_files": "false",
-       "send_email_on_success": "true"
+       "send_email_on_success": "false"
     }
 
     """
@@ -286,7 +286,7 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
         trigger.max_file_upload_size_MB = 10
 
     if not(hasattr(trigger, 'send_email_on_success')):
-        trigger.send_email_on_success = True
+        trigger.send_email_on_success = False
 
     if getattr(trigger, 'allow_multiple_files', False):
         file_upload_form = UploadFileForm_multiple_file()
@@ -339,7 +339,8 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
             * indicate that they can upload a new version
             * however, we wait until a pool of reviewers are available.
             """
-            if trigger.subject and trigger.message:
+            if trigger.subject and trigger.message and \
+                                                 trigger.send_email_on_success:
                 ctx = {'LTI_title': entry_point.LTI_title,
                        'filename': submission.submitted_file_name}
 
@@ -566,8 +567,12 @@ def get_line2(learner, trigger, summaries):
         evalrep = EvaluationReport.objects.filter(unique_code=rubric.next_code)
         for report in evalrep:
             if report.r_actual:
-                out[idx] = ('', 'Peer read your review: {}'.format(\
-                    report.r_actual.created.strftime('%d %b %Y at %H:%M')))
+                out[idx] = ('', 'Peer read your review')
+
+                summaries.append(Summary(date=report.r_actual.created,
+                               action='Peer {0} read your review'.format(idx+1),
+                               link='', catg='rev')
+                            )
 
     return out
 
@@ -599,7 +604,7 @@ def get_line3(learner, trigger, summaries):
                     summary = Summary(action='Peer {0} evaluated your review'.\
                                                           format(idx+1),
                                       date=report.r_actual.evaluated,
-                                      link='LINK (TODO)', catg='sub')
+                                      link='LINK (TODO)', catg='rev')
                     summaries.append(summary)
 
     return out
@@ -648,7 +653,10 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
     my_reviews = ReviewReport.objects.filter(submission=submission).\
         order_by('created') # to ensure consistency in display
     for report in my_reviews:
-        # There should be at most "GLOBAL.num_peers" reviews
+        # There should be at most "GLOBAL.num_peers" reviews.
+
+        # An error occurs here where a review is allocated beyond the number of
+        # intended reviews.
         reports[idx] = report
         try:
             rubric = RubricActual.objects.get(\
@@ -684,7 +692,7 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
                                                             .order_by('created')
     for idx, ractual in enumerate(rubrics):
         summary = Summary(date=ractual.created, link='', catg='sub',
-          action='Peer {} opened your review (not completed yet)'.format(idx+1))
+          action='Peer {} started a review of your work'.format(idx+1))
         summaries.append(summary)
 
         if ractual.status in ('C', 'L') and ractual.submitted:
@@ -792,7 +800,7 @@ def peers_provide_rebuttal(trigger, learner, entry_point=None,
                                                     evaluator=learner)
         evaluation = evaluations[0]
         summary = Summary(date=evaluation.created,
-                          action=('You evaluated all reviews; thanks! Now '
+                          action=('You evaluated all reviews. Now '
                                   'complete the rebuttal.'),
                           link='LINK HERE', catg='sub')
         summaries.append(summary)

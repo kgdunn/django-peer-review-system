@@ -7,7 +7,7 @@ import magic
 from PyPDF2 import PdfFileReader
 
 # Import from our other apps
-from utils import get_IP_address, generate_random_token, send_email
+from utils import get_IP_address, generate_random_token
 
 # Imports from this app
 from submissions.models import Submission
@@ -372,33 +372,35 @@ def upload_submission(request, learner, entry_point, trigger, no_thumbnail=True)
     sub.save()
 
 
-    if group_members['group_instance']:
-        address = group_members['member_email_list']
-        first_line = 'You, or someone in your group,'
-        extra_line = ('That is why all members in your group will receive '
-                      'this message.')
-    else:
-        address = [learner.email, ]
-        first_line = 'You'
-        extra_line = ''
+    # EMAILING SHOULD BE DONE IN THE CALLING FUNCTION, NOT HERE.
 
-    message = ('{0} have successfully submitted a document for: {1}.\n'
-               'This is for the course: {2}.\n'
-               '\n'
-               'You may submit multiple times, up to the deadline, or until '
-               'your report is sent out for peer review. Only the most recent '
-               'submission is kept. {3}\n'
-               '\n--\n'
-               'This is an automated message. Please do not reply to this '
-               'email address. It will not be received by anyone.\n')
-    message = message.format(first_line, entry_point.LTI_title,
-                             entry_point.course.name,
-                             extra_line)
+    #if group_members['group_instance']:
+        #address = group_members['member_email_list']
+        #first_line = 'You, or someone in your group,'
+        #extra_line = ('That is why all members in your group will receive '
+                      #'this message.')
+    #else:
+        #address = [learner.email, ]
+        #first_line = 'You'
+        #extra_line = ''
 
-    if trigger.send_email_on_success:
-        logger.debug('Sending email: {0}'.format(address))
-        subject = trigger.name + ' for peer review: successfully submitted'
-        out = send_email(address, subject, message)
-        logger.debug('Number of emails sent (should be 1): {0}'.format(out[0]))
+    #message = ('{0} have successfully submitted a document for: {1}.\n'
+               #'This is for the course: {2}.\n'
+               #'\n'
+               #'You may submit multiple times, up to the deadline, or until '
+               #'your report is sent out for peer review. Only the most recent '
+               #'submission is kept. {3}\n'
+               #'\n--\n'
+               #'This is an automated message. Please do not reply to this '
+               #'email address. It will not be received by anyone.\n')
+    #message = message.format(first_line, entry_point.LTI_title,
+                             #entry_point.course.name,
+                             #extra_line)
+
+    #if trigger.send_email_on_success:
+        #logger.debug('Sending email: {0}'.format(address))
+        #subject = trigger.name + ' for peer review: successfully submitted'
+        #out = send_email(address, subject, message)
+        #logger.debug('Number of emails sent (should be 1): {0}'.format(out[0]))
 
     return sub
