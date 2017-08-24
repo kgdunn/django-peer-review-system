@@ -973,36 +973,34 @@ class group_graph(object):
                                     weight=1)
 
 
-    def get_next_review(self, exclude=None):
-        """
-        Given the graph, get the next reviewer.
+    #def get_next_review(self, exclude=None):
+        #"""
+        #Given the graph, get the next reviewer.
+        #"""
+        #potential = self.graph.nodes()
+        #if exclude:
+            #index = potential.index(exclude)
+            #potential.pop(index)
 
-        You can optionally specify the ``
-        """
-        potential = self.graph.nodes()
-        if exclude:
-            index = potential.index(exclude)
-            potential.pop(index)
+        #shuffle(potential)
+        #in_degree = []
+        #for idx, node in enumerate(potential):
+            #in_degree.append((self.graph.in_degree(node), idx))
 
-        shuffle(potential)
-        in_degree = []
-        for idx, node in enumerate(potential):
-            in_degree.append((self.graph.in_degree(node), idx))
+        #in_degree.sort()
+        #next_one = in_degree.pop(0)
 
-        in_degree.sort()
-        next_one = in_degree.pop(0)
-
-        if next_one[0] <= GLOBAL.num_peers:
-            return potential[next_one[1]]
-        else:
-            return None
+        #if next_one[0] <= GLOBAL.num_peers:
+            #return potential[next_one[1]]
+        #else:
+            #return None
 
 
     def get_submitter_to_review(self, exclude_reviewer):
         """
         Get the next submitter's work to review. You must specify the
-        reviewer's Person instance, to ensure they are excluded as a
-        potential submission to evaluate.
+        reviewer's Person instance (``exclude_reviewer``), to ensure they are
+        excluded as a potential submission to evaluate.
 
 
         Rules:
@@ -1011,6 +1009,48 @@ class group_graph(object):
         3. If unavoidable, go to the person with the least number of allocated
            reviews (incoming arrows)
         4. After that, assign randomly.
+
+            potential = self.graph.nodes()
+            if exclude_reviewer:
+                index = potential.index(exclude_reviewer)
+                potential.pop(index)
+
+            # Important to shuffle here, so the indices are randomized
+            shuffle(potential)
+
+            # tuple-order: (outdegree, indegree, node_index)
+            allocate = []
+            for idx, node in enumerate(potential):
+                allocate.append((self.graph.out_degree(node),
+                                 self.graph.in_degree(node),
+                                 idx))
+
+            # Even now when we sort, we are sorting on indices that have been
+            # randomly allocated
+            allocate.sort()
+
+            next_one = allocate.pop(0)
+            while (next_one[0] <= GLOBAL.num_peers) and (self.graph.has_edge(\
+                    potential[next_one[2]], exclude_reviewer)):
+                next_one = allocate.pop(0)
+
+            return potential[next_one[2]]
+
+
+
+        Revised version:
+
+        1. Arrows go FROM the submitter, and TO the reviewer.
+        2. Exclude/prevent the review from possibly happening a second time!!
+        2. Exclude nodes which are saturated: in = out = Nmax
+        2. Score the nodes as: deg(in) - deg(out). Therefore 0 is a balanced
+           node, and negative means that the node's work has gone out more
+           times than the person self has reviewed others.
+        3. Add small (+/- 0.1 amounts of random (normal distributed) noise to
+           the score.
+        4. Subtract (Nmax-0.5) from the score if the the current
+           ``exclude_reviewer`` already has their work reviewed by the person.
+           This avoids a back-arrow, but doesn't make it impossible.
         """
 
         # TODO: ensure the submitter's work is not reviewed too many times
