@@ -46,7 +46,7 @@
                 {% endif %}
             {% else %}
                 <div class="textwrapper">
-                    <textarea class="pr-textarea" cols="2" rows="10" name="item-{{item.ritem_template.order}}" placeholder="{{option.criterion}}">{% if option.prior_text %}{{option.prior_text}}{% else %}{{option.criterion}}{% endif %}</textarea>
+                    <textarea class="pr-textarea" cols="2" rows="{{item.ritem_template.num_rows}}" name="item-{{item.ritem_template.order}}" placeholder="{{option.criterion}}">{% if option.prior_text %}{{option.prior_text}}{% else %}{{option.criterion}}{% endif %}</textarea>
                 </div>
             {% endif %}
 

@@ -114,12 +114,12 @@
 
             {% spaceless %}
             {% if not show_feedback %}
-                {{rubric.general_instructions|safe}}
+                {{rubric_template.general_instructions|safe}}
                 <br>
                 <form action="{% url 'submit_peer_review_feedback' ractual_code=ractual_code %}"
                       method="POST" enctype="multipart/form-data">{% csrf_token %}
-                {% if rubric.submit_button_also_shown_on_top %}
-                    <div class="submit_button" ><input  type="submit" name="{{ractual_code}}" value="Submit your review"></div>
+                {% if rubric_template.submit_button_also_shown_on_top %}
+                    <div class="submit_button" ><input  type="submit" name="{{ractual_code}}" value="{{rubric_template.submit_button_text|safe}}"></div>
                 {% endif %}
                 <hr>
             {% endif %}
@@ -133,7 +133,7 @@
 
             {% if not show_feedback %}
                 <span class="submit_button" >
-                <input type="submit" name="below-{{ractual_code}}" value="Submit your review"></span>
+                <input type="submit" name="below-{{ractual_code}}" value="{{rubric_template.submit_button_text|safe}}"></span>
                 </form>
             {% endif %}
             {% endspaceless %}

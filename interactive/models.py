@@ -281,9 +281,12 @@ class EvaluationReport(models.Model):
         super(EvaluationReport, self).save(*args, **kwargs)
 
     def __str__(self):
-        return ('[{0}]: Evaluation by submitter [{1}] of review that was '
-                'completed by [{2}]').format(self.unique_code,
-                                              self.evaluator,
-                                              self.peer_reviewer)
-
-
+        if self.sort_report == 'R':
+            return ('[{0}]: Rebuttal by submitter [{1}] of review that was '
+                    'completed by peers').format(self.unique_code,
+                                                 self.evaluator)
+        else:
+            return ('[{0}]: Evaluation by submitter [{1}] of review that was '
+                    'completed by [{2}]').format(self.unique_code,
+                                                 self.evaluator,
+                                                 self.peer_reviewer)

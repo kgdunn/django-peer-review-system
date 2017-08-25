@@ -36,6 +36,11 @@ class RubricTemplate(models.Model):
 
     general_instructions = models.TextField(default='')
 
+    submit_button_text = models.CharField(max_length=255,
+                                          default='Submit your review',
+                                          blank=False, null=False,
+                            help_text='The text used on the submit button')
+
     maximum_score = models.FloatField(default=0.0)
 
     show_order = models.BooleanField(default=True,
@@ -57,7 +62,8 @@ class RubricTemplate(models.Model):
                    '{{person}} (who just did the review) '
                    '{{total_score}} and {{percentage}}.'), )
 
-    hook_function = models.CharField(max_length=100, blank=True, null=True,
+    hook_function = models.CharField(max_length=100, blank=True, null=False,
+                                     default='',
             help_text=('Hook that is called (with r_actual as only input)'
                        'when the review is completed. Called with async() '
                        'so it is OK if it is overhead intensive. Hook func '
@@ -189,6 +195,8 @@ class RItemTemplate(models.Model):
     criterion = models.TextField(help_text=('The prompt/criterion for the row '
                                             'in the rubric'))
     max_score = models.FloatField(help_text='Highest score achievable here')
+    num_rows = models.PositiveSmallIntegerField(default=10,
+                    help_text='Height of field, if it is a text box.')
 
     TYPE = (('Radio', 'Radio buttons (default)'),
             ('DropD', 'Dropdown of scores'),

@@ -788,19 +788,23 @@ def peers_provide_rebuttal(trigger, learner, entry_point=None,
     else:
         return
 
-
+    # Learner has not only seen, but also evaluated all the reviews. Now it
+    # is time to do fill in the rebuttal rubric.
     if has(learner, 'read_and_evaluated_all_reviews'):
         evaluations = EvaluationReport.objects.filter(trigger=trigger,
                                                       sort_report='R',
                                                     evaluator=learner)
         evaluation = evaluations[0]
+        link = '<a href="/interactive/rebuttal/{}">{}</a> {}'
         summary = Summary(date=evaluation.created,
-                          action=('You evaluated all reviews. Now '
+                          action=('You evaluated all reviews. Please '
                                   'complete the rebuttal.'),
-                          link='LINK HERE', catg='sub')
+                                  link=link.format(evaluation.unique_code,
+                                                   'Rebuttal', ''), catg='sub')
         summaries.append(summary)
-        ctx_objects['lineB'] = ('',
-                                '"Provide a rebuttal"(link) back to your peers')
+        ctx_objects['lineB'] = ('', link.format(evaluation.unique_code,
+                                                'Provide a rebuttal',
+                                                'back to your peers'))
 
 
 
@@ -1270,6 +1274,32 @@ def see_evaluation(request, unique_code=None):
 
 
 
+def rebuttal(request, unique_code=None):
+    """
+    Generate the rebuttal rubric, if needed, and returns that to the process
+    that handles display and processing of the rubric.
+    """
+    reports = EvaluationReport.objects.filter(unique_code=unique_code)
+    if reports.count() != 1:
+        logger.error('Incorrect Evaluation requested: {}'.format(unique_code))
+        return HttpResponse(("You've used an incorrect link. Please check the "
+                             'web address to ensure there was not a typing '
+                             'error.<p>No evaluation found with that link.'))
+
+    report = reports[0]
+
+
+    # We have a report to be evaluated, now generate the links.
+    if report.r_actual is None:
+        # Generate the actual rubric here for it.
+        rebut_actual, _ = get_create_actual_rubric(graded_by=report.evaluator,
+                                                trigger=report.trigger,
+                                                submission=report.submission,
+                                                rubric_code=report.unique_code)
+        report.r_actual = rebut_actual
+        report.save()
+
+    return handle_review(request, report.r_actual.rubric_code)
 
 
 # Utility function: to handle the generation of a ``Submission`` for a
@@ -1397,10 +1427,10 @@ def create_evaluation_PDF(r_actual):
     flowables = []
     flowables.append(Paragraph("Review from peer number {}".format(peer_number),
                   styles['title']))
-    flowables.append(Spacer(1, 12))
+    flowables.append(Spacer(1, 6))
     flowables.append(Paragraph(("The option in bold represents the one selected"
                                 " by your reviewer."), default))
-    flowables.append(Spacer(1, 12))
+    flowables.append(Spacer(1, 6))
 
     report_render_rubric(r_actual, flowables)
 
@@ -1505,10 +1535,10 @@ def create_rebuttal_PDF(r_actual):
         review_items, _ = rubric.report()
         flowables.append(Paragraph("Review from peer number {}".format(idx+1),
                                    styles['title']))
-        flowables.append(Spacer(1, 12))
+        flowables.append(Spacer(1, 6))
         flowables.append(Paragraph(("The option in bold represents the one "
                                     "selected by the reviewer."), default))
-        flowables.append(Spacer(1, 12))
+        flowables.append(Spacer(1, 6))
 
         report_render_rubric(rubric, flowables)
 
@@ -1528,7 +1558,6 @@ def create_rebuttal_PDF(r_actual):
 
     n_evaluations = RubricActual.objects.filter(graded_by=r_actual.graded_by,
                             rubric_template=r_actual.rubric_template).count()
-
 
     if n_evaluations < GLOBAL.num_peers:
         return

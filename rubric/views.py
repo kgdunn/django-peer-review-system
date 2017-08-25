@@ -114,7 +114,7 @@ def handle_review(request, ractual_code):
            'submission': r_actual.submission,
            'person': reviewer,
            'r_item_actuals' : r_item_actuals,
-           'rubric' : r_actual.rubric_template,
+           'rubric_template' : r_actual.rubric_template,
            'report': report,
            'show_feedback': show_feedback,
            'show_special': False,
@@ -210,7 +210,7 @@ def submit_peer_review_feedback(request, ractual_code):
         # functionality that is needed for next steps, eg. PDF creation, etc.
 
         func = getattr(sys.modules['interactive.views'],
-                       r_actual.rubric_template.hook_function)
+                       r_actual.rubric_template.hook_function, None)
         if func:
             func(r_actual=r_actual)
 
@@ -243,7 +243,8 @@ def submit_peer_review_feedback(request, ractual_code):
            'word_count': word_count,
            'person': reviewer,
            'total_score': total_score,
-           'percentage': percentage
+           'percentage': percentage,
+
            }
     ctx['thankyou'] = insert_evaluate_variables(\
                                 r_actual.rubric_template.thankyou_template,
