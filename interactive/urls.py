@@ -21,4 +21,10 @@ urlpatterns = [
         name='rebuttal_with_unique_code'),
 
 
+
+    url(r'^assessment/(?P<unique_code>.+)/$',
+        views.assessment,
+        name='assessment_with_unique_code'),
+
+
 ]

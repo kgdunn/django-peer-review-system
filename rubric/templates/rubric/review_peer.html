@@ -125,7 +125,7 @@
             {% endif %}
 
             {% for item in r_item_actuals %} {# This alternates the major ITEMS in the rubric #}
-                <fieldset id="fieldset-item-{{item.ritem_template.order}}" class="{% cycle 'odd' 'even' %}">
+                <fieldset id="fieldset-item-{{item.ritem_template.order}}" class="rubric-{% cycle 'odd' 'even' %}">
                     {% include "rubric/render_one_item.html" with show_feedback=show_feedback%}
                 </fieldset>
             <hr>

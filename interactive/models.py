@@ -161,8 +161,14 @@ class Membership(models.Model):
     learner = models.ForeignKey('basic.Person', on_delete=models.CASCADE)
     group = models.ForeignKey(GroupConfig, on_delete=models.CASCADE)
     role = models.CharField(choices=ROLES, max_length=6)
+
+    # Note: in practice, we don't use this field. It's always fixed. But leave
+    #       it here for future use
     fixed = models.BooleanField(default=False,
             help_text='Once fixed, this membership cannot be changed')
+
+    created = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return '[{0}] is {{{1}}}: {2}'.format(self.group.group_name,
@@ -246,8 +252,9 @@ class EvaluationReport(models.Model):
 
     # What type of report is this?
     STATUS = (('-', '----------'),
-              ('E', 'Evaluation'),
-              ('R', 'Rebuttal'),
+              ('E', 'Evaluation'), # <-- going from review to rebuttal
+              ('R', 'Rebuttal'),   # <-- going from evaluation to rebuttal
+              ('A', 'Assessment')  # <-- going from rebuttal to assessment
               )
     sort_report = models.CharField(max_length=2, choices=STATUS, default='-')
 
@@ -285,7 +292,12 @@ class EvaluationReport(models.Model):
             return ('[{0}]: Rebuttal by submitter [{1}] of review that was '
                     'completed by peers').format(self.unique_code,
                                                  self.evaluator)
-        else:
+
+        elif self.sort_report == 'A':
+            return ('[{0}]: Assessment by submitter [{1}] of review that was '
+                            'completed by peers').format(self.unique_code,
+                                                         self.evaluator)
+        elif self.sort_report == 'E':
             return ('[{0}]: Evaluation by submitter [{1}] of review that was '
                     'completed by [{2}]').format(self.unique_code,
                                                  self.evaluator,

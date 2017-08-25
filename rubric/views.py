@@ -188,7 +188,7 @@ def submit_peer_review_feedback(request, ractual_code):
     words = [r.word_count for r in RubricActual.objects.filter(status='C',
                                     rubric_template=r_actual.rubric_template)]
     words = np.array(words)
-    median_words = np.median(words[words!=0])
+    median_words = np.round(np.median(words[words!=0]))  # to avoid 160.5 words
     if np.isnan(median_words):
         median_words = 0
 
