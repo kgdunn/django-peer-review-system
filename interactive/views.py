@@ -12,6 +12,7 @@ import os
 import sys
 import json
 import time
+import random
 import datetime
 import tempfile
 from random import shuffle
@@ -49,7 +50,6 @@ from utils import send_email, insert_evaluate_variables, generate_random_token
 # Logging
 import logging
 logger = logging.getLogger(__name__)
-logger.debug('You are in: {0}'.format(sys.modules[__name__]))
 
 # Summary structure
 class Summary(object):
@@ -86,22 +86,9 @@ def starting_point(request, course=None, learner=None, entry_point=None):
     2. Call the triggers to process sequentially.
     3. Render the page.
     """
-    logger.debug(request.POST)
     # Step 1:
     if not push_grade(learner, 0.0, entry_point, testing=True):
-
-    #gradeitem = GradeItem.objects.filter(entry=entry_point)
-    #if gradeitem:
-        #gitem = gradeitem[0]
-    #else:
         return HttpResponse('Please create a GradeItem attached to this Entry')
-
-    #grade, first_time = LearnerGrade.objects.get_or_create(gitem=gitem,
-                                                           #learner=learner)
-    #if first_time:
-        #grade.value = 0.0
-        #grade.save()
-
 
     # Step 2: Call all triggers:
     triggers = Trigger.objects.filter(entry_point=entry_point,
@@ -121,7 +108,6 @@ def starting_point(request, course=None, learner=None, entry_point=None):
     ctx_objects.update(csrf(request)) # add the csrf; used in forms
 
 
-
     # First run through to ensure all triggers exist
     for trigger in triggers:
         try:
@@ -137,8 +123,6 @@ def starting_point(request, course=None, learner=None, entry_point=None):
             except json.decoder.JSONDecodeError as err:
                 return HttpResponse(('Error parsing the kwargs: {0} [{1}]'
                                      .format(err, kwargs)))
-
-
 
     summaries = []
     for trigger in triggers:
@@ -378,7 +362,7 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
                           action='You successfully submitted your document',
                           link='<a href="{0}" target="_blank">{1}</a>'.format(\
                               trigger.submission.file_upload.url, "View"),
-                          catg='sub')
+                          catg='')
         summaries.append(summary)
 
     ctx_objects['submission'] = render_template(trigger, ctx_objects)
@@ -467,6 +451,11 @@ def get_line1(learner, trigger, summaries):
     allocated_reviews = ReviewReport.objects.filter(reviewer=learner)\
                                  .order_by('-created') # for consistency
 
+    graph = group_graph(trigger.entry_point)
+    if graph.graph.has_node(learner):
+        in_degree = graph.graph.in_degree(learner)
+    else:
+        allocated_reviews = []
 
     reviews_completed = [False, ] * GLOBAL.num_peers
     for idx, review in enumerate(allocated_reviews):
@@ -475,15 +464,24 @@ def get_line1(learner, trigger, summaries):
             review.order = idx+1
             review.save()
 
+        if in_degree == 0 and idx == 0:
+            status = 'Start your review'
+        elif in_degree == 0 and idx == 1:
+            status = out.append(('future-text',
+                                 'Waiting for a peer to submit their work ...'))
+            continue
+        elif in_degree >= 1:
+            status = 'Start your review'
+
+
         # What is the status of this review. Cross check with RubricActual
         prior = RubricActual.objects.filter(rubric_code=review.unique_code)
-        status = 'Start your review'
         if prior.count():
             if prior[0].status in ('C', 'L'):
                 status = 'Completed'
                 reviews_completed[idx] = True
                 summary = Summary(date=prior[0].completed,
-                   action='Review number {0} completed; thank you!'\
+                   action='You completed review number {0}; thank you!'\
                               .format(review.order, GLOBAL.num_peers),
                    link='<a href="/interactive/review/{0}">View</a>'.format(\
                                                        review.unique_code),
@@ -556,7 +554,7 @@ def get_line3(learner, trigger, summaries):
         .order_by('-created') # for consistency
 
     for idx in range(GLOBAL.num_peers):
-        out.append(('future-text', 'Waiting for peer to read your review'))
+        out.append(('future-text', 'Waiting for peer to evaluate your review'))
 
     # We use ``allocated_reviews`` to ensure consistency of order,
     # but we jump from that, using .next_code, to EvaluationReport. There
@@ -569,14 +567,32 @@ def get_line3(learner, trigger, summaries):
             break
         evalrep = EvaluationReport.objects.filter(unique_code=rubric.next_code)
         for report in evalrep:
-            if hasattr(report.r_actual, 'evaluated'):
-                if report.r_actual.evaluated:
-                    out[idx] = ('', 'Peer evaluated your review: LINK')
-                    summary = Summary(action='Peer {0} evaluated your review'.\
-                                                          format(idx+1),
-                                      date=report.r_actual.evaluated,
-                                      link='LINK (TODO)', catg='rev')
-                    summaries.append(summary)
+            if not report.r_actual:
+                continue
+            if  getattr(report.r_actual, 'next_code', ''):
+                eval_code = report.r_actual.next_code
+            else:
+                # Generate the ``next_code`` as needed, to allow the
+                # reviewer to see the evaluation (read-only) of the original
+                # submitter.
+                report.r_actual.next_code = eval_code = generate_random_token()
+                report.r_actual.save()
+
+            if getattr(report.r_actual, 'evaluated', ''):
+
+                link = '<a href="/interactive/see-evaluation/{0}">{1}</a>'
+                out[idx] = ('',
+                            'Peer evaluated your review: {0}'.format(link.\
+                            format(eval_code, 'see evaluation')) )
+
+
+                summary = Summary(action='Peer {0} evaluated your review'.\
+                                                      format(idx+1),
+                                  date=report.r_actual.evaluated,
+                                  link=link.format(eval_code, 'View'),
+                                  catg='rev')
+                summaries.append(summary)
+
 
     return out
 
@@ -657,7 +673,7 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
 
     if sum(reviews) == GLOBAL.num_peers:
         completed(learner, 'all_reviews_from_peers_completed')
-        header = "All peers have reviewed your work."
+        header = "All peers have completely reviewed your work."
 
     ctx_objects['peers_to_submitter_header'] = header
 
@@ -695,6 +711,13 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
         return
 
 
+    # Slow-down throttle here: we don't want to allow the submitter to start
+    # evaluation unless they have finished their reviews.
+
+    #if not(has(learner, 'completed_all_reviews')):
+    #    return
+
+
     # If we have reached this point it is because the submitter can now
     # view their feedback. Therefore we only iterate over the COMPLETED rubrics.
     #
@@ -729,27 +752,17 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
     text += '.'
     ctx_objects['lineA'] = ('', text)
 
-
-    rubrics = RubricActual.objects.filter(submission=submission).order_by('evaluated')
-    if not(has(learner, 'read_and_evaluated_all_reviews')):
-
-        # Can you ever reach here? This is supposed to be triggered
-        # in the ``create_rebuttal_PDF`` function.
-        assert(False)
-        n_evaluations = 0
-        for rubric in rubrics:
-            if rubric.evaluated:
-                n_evaluations += 1
-        if n_evaluations >= GLOBAL.num_peers:
-            completed(learner, 'read_and_evaluated_all_reviews')
-
-
-
+    #rubrics = RubricActual.objects.filter(submission=submission).order_by('evaluated')
+    #if not(has(learner, 'read_and_evaluated_all_reviews')):
+        #n_evaluations = 0
+        #for rubric in rubrics:
+            #if rubric.evaluated:
+                #n_evaluations += 1
+        #if n_evaluations >= GLOBAL.num_peers:
+            #completed(learner, 'read_and_evaluated_all_reviews')
 
     if has(learner, 'completed_rebuttal'):
         pass
-
-
 
 
 def peers_provide_rebuttal(trigger, learner, entry_point=None,
@@ -857,7 +870,7 @@ def invite_reviewers(learner, trigger):
     # emails to all potential reviewers: it is time to start reviewing
     #
     # The number of Submissions should be equal to the nubmer of nodes in graph:
-    graph = group_graph(trigger)
+    graph = group_graph(trigger.entry_point)
     if len(valid_subs) != graph.graph.order():
         logger.warn(('Number of valid subs [{0}]is not equal to graph '
                 'order [{1}]'.format(len(valid_subs), graph.graph.order())))
@@ -946,16 +959,16 @@ class group_graph(object):
     ## Do the group formation / regrouping here
     #GroupConfig.Lock.locked = True
     """
-    def __init__(self, trigger):
+    def __init__(self, entry_point):
 
-        groups = GroupConfig.objects.filter(entry_point=trigger.entry_point)
+        groups = GroupConfig.objects.filter(entry_point=entry_point)
 
         # Added these two lines, so the graphs are always created randomly
         groups = list(groups)
         shuffle(groups)
 
         self.graph = nx.DiGraph()
-        self.trigger = trigger
+        self.entry_point = entry_point
         submitters = []
         for group in groups:
 
@@ -1053,7 +1066,7 @@ class group_graph(object):
            This avoids a back-arrow, but doesn't make it impossible.
         """
 
-        # TODO: ensure the submitter's work is not reviewed too many times
+
 
         potential = self.graph.nodes()
         if exclude_reviewer:
@@ -1063,23 +1076,42 @@ class group_graph(object):
         # Important to shuffle here, so the indices are randomized
         shuffle(potential)
 
-        # tuple-order: (outdegree, indegree, node_index)
-        allocate = []
+        scores = []  # of tuples: (score, node_index)
         for idx, node in enumerate(potential):
-            allocate.append((self.graph.out_degree(node),
-                             self.graph.in_degree(node),
-                             idx))
+            # The learner (``exclude_reviewer``) has already reviewed ``node``
+            if self.graph.has_edge(node, exclude_reviewer):
+                continue
 
-        # Even now when we sort, we are sorting on indices that have been
-        # randomly allocated
-        allocate.sort()
+            bias = random.normalvariate(mu=0, sigma=0.1)
+            if self.graph.has_edge(exclude_reviewer, node):
+                bias = bias - (GLOBAL.num_peers-0.5)
 
-        next_one = allocate.pop(0)
-        while (next_one[0] <= GLOBAL.num_peers) and (self.graph.has_edge(\
-                potential[next_one[2]], exclude_reviewer)):
-            next_one = allocate.pop(0)
+            score = self.graph.in_degree(node) - self.graph.out_degree(node) + bias
 
-        return potential[next_one[2]]
+            scores.append((score, idx))
+
+        # Sort from low to high, and next we pop off the last value (highest)
+        scores.sort()
+        try:
+            next_one = scores.pop()
+        except IndexError:
+            logger.error(('No more nodes to pop out for next reviewer. '
+                          'learner={}\n----{}\n----{}').format(exclude_reviewer,
+                                                             self.graph.nodes(),
+                                                             self.graph.edges()
+                                                            ))
+            # Only to prevent failure, but this is serious.
+            return None
+
+        if self.graph.out_degree(potential[next_one[1]]) > GLOBAL.num_peers:
+            # TODO: ensure the submitter's work is not reviewed too many times
+            logger.error('Too many reviewers of {}'.format(potential[next_one[1]]))
+            assert(False)
+            return None
+
+        return potential[next_one[1]]
+
+
 
 
 
@@ -1116,7 +1148,7 @@ def review(request, unique_code=None):
             return handle_review(request, unique_code)
 
 
-    graph = group_graph(report.trigger)
+    graph = group_graph(report.trigger.entry_point)
     submitter = graph.get_submitter_to_review(exclude_reviewer=\
                                                          report.reviewer)
 
@@ -1146,6 +1178,7 @@ def review(request, unique_code=None):
     completed(report.reviewer, 'started_a_review')
     completed(report.reviewer, 'work_has_started_to_be_reviewed')
 
+    # Update the Membership, which will update the graph.
 
     if report.grpconf is None: # which it also should be ...
         submitter_member = Membership.objects.get(learner=submitter,
@@ -1207,6 +1240,36 @@ def evaluate(request, unique_code=None):
         report.save()
 
     return handle_review(request, unique_code)
+
+
+def see_evaluation(request, unique_code=None):
+    """
+    Shows the read-only evaluation to the peer reviewer (who originally
+    reviewed the report, and has been evaluated by the original submitter).
+
+    Set the r_actual to locked (to prevent the evaluator, i.e. the original
+    submitter from changing anything further to the report)
+    """
+
+    # Note: we use the ``next_code`` field here, not the actual ``unique_code``
+    #       field, since we want to first set the rubric to locked, so it
+    #       shows as read-only.
+    rubrics = RubricActual.objects.filter(next_code=unique_code)
+    if rubrics.count() != 1:
+        logger.error('Incorrect R/O eval requested: {}'.format(unique_code))
+        return HttpResponse(("You've used an incorrect link. Please check the "
+                             'web address to ensure there was not a typing '
+                             'error.<p>No evaluation to see with that link.'))
+
+    rubric = rubrics[0]
+    rubric.status = 'L'
+    rubric.save()
+
+    # Now pass the rubric.rubric_code through, not the acquired unique_code.
+    return handle_review(request, rubric.rubric_code)
+
+
+
 
 
 # Utility function: to handle the generation of a ``Submission`` for a
@@ -1403,7 +1466,8 @@ def create_evaluation_PDF(r_actual):
     r_actual.next_code = token
     r_actual.save()
 
-    review_back_to_submitter = EvaluationReport(submission=new_sub,
+    review_back_to_submitter = EvaluationReport(
+                                submission=new_sub,
                                 trigger=r_actual.rubric_template.next_trigger,
                                 unique_code=token,
                                 sort_report='E',

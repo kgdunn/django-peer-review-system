@@ -210,7 +210,8 @@ class ReviewReport(models.Model):
     # This code is filled in only when the submitter of the original submission
     # can come read the review. Prior to that the review is editable for the
     # reviewer.
-    submitter_code = models.CharField(max_length=16, editable=False, blank=True)
+    # NOT USED
+    #submitter_code = models.CharField(max_length=16, editable=False, blank=True)
 
 
     created = models.DateTimeField(auto_now_add=True)

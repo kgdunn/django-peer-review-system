@@ -17,15 +17,6 @@ $(document).ready( function () {
 } );
 </script>
 
-<style>
-.rev{  /* my reviews of others */
-  color: darkgreen;
-}
-.sub{  /* about reviews of my submission */
-  color: purple;
-}
-</style>
-
 <table class="summaries pr-admin" id="interactive_summary">
 <thead>
 <tr>
@@ -36,7 +27,7 @@ $(document).ready( function () {
 </thead>
 <tbody>
 {% for summary in summary_list %}
-<tr class="summary-{% cycle 'odd' 'even' %}">
+<tr>
   <td data-search="{{summary.date|date:"d F Y"}} {{summary.date|date:"H:i"}}"
       data-order="{{summary.date.timestamp}}">
       {{summary.date|date:"d F Y"}} {{summary.date|date:"H:i"}}</td>

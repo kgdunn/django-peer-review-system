@@ -13,5 +13,8 @@ urlpatterns = [
         name='evaluate_with_unique_code'),
 
 
+    url(r'^see-evaluation/(?P<unique_code>.+)/$',
+        views.see_evaluation,
+        name='see_readonly_evaluation_with_unique_code'),
 
 ]

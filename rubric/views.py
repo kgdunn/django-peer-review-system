@@ -49,10 +49,7 @@ def handle_review(request, ractual_code):
     if r_actual.status == 'L':
         show_feedback = True
 
-
-
-    logger.debug('Getting review for {0}:'.format(reviewer))
-
+    # NOTE: it is not always the reviewer getting this report!
     #report = get_peer_grading_data(reviewer, feedback_phase)
 
     # Intentionally put the order_by here, to ensure that any errors in the
@@ -139,6 +136,10 @@ def submit_peer_review_feedback(request, ractual_code):
     if reviewer is None:
         # This branch only happens with error conditions.
         return r_actual
+
+
+    if r_actual.status == 'L':
+        return render(request, 'rubric/locked.html', {})
 
     r_item_actuals = r_actual.ritemactual_set.all()
 
@@ -354,6 +355,11 @@ def xhr_store(request, ractual_code):
     if learner is None:
         # This branch only happens with error conditions.
         return HttpResponse('')
+
+    if r_actual.status in ('L',):
+        return HttpResponse(('<span style="color:red">Changes not saved; review'
+                             ' has been locked.</span>'))
+
     r_item_actual = r_actual.ritemactual_set.filter(\
                                              ritem_template__order=item_number)
     if r_item_actual.count() == 0:
@@ -423,6 +429,14 @@ def xhr_store_text(request, ractual_code):
     Processes the XHR for text fields: it is slightly different than the
     ``xhr_store`` function elsewhere in this file.
     """
+    r_actual, learner = get_learner_details(ractual_code)
+    if learner is None:
+        return HttpResponse('')
+
+    if r_actual.status in ('L',):
+        return HttpResponse(('<span style="color:red">Changes not saved; review'
+                             ' has been locked.</span>'))
+
     for item, comment in request.POST.items():
         if not comment:
             continue
@@ -433,9 +447,8 @@ def xhr_store_text(request, ractual_code):
             item_number = int(item.split('item-')[1])
 
 
-        r_actual, learner = get_learner_details(ractual_code)
-        if learner is None:
-            return HttpResponse('')
+
+
         r_item_actual = r_actual.ritemactual_set.filter(\
                                             ritem_template__order=item_number)
 

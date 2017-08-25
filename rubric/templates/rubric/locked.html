@@ -1,0 +1,49 @@
+{% extends "basic/base.html" %}
+
+{% block content %}
+<style>
+body {
+    font-size: 11pt;
+}
+.main-container {
+  float: left;
+  position: relative;
+  left: 50%;
+  padding-top:3em;
+}
+.fixer-container {
+  float: left;
+  position: relative;
+  left: -50%;
+}
+
+.clear {clear: both;}
+</style>
+
+
+<div class="main-container">
+  <div class="fixer-container">
+
+    <span style="color:red; font-size:200%">
+    <p>Some/all updates you made were not saved, because while you were
+    do that, the review was <b>locked</b>.
+    <P>This happens, for example, if a peer has started to evaluate your review,
+    or has seen your feedback.
+    <p>Locking a review ensures consistency of what they see, and what you
+    originally submitted.
+    </span>
+    <br><br><br>
+
+    <span style="color:black">Click your back button to see the final state
+    of your review that was displayed to your peer(s).
+    </span>
+
+
+
+  </div>
+</div>
+
+
+
+{% endblock %}
+{% block footer %}{% endblock %}
