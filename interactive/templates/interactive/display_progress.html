@@ -18,18 +18,18 @@
 
     {% for unit in entries %}
         {% if achieved|keyvalue:unit|keyvalue:'submitted' %}
-            <td>Yes</td>
+            <td><i class="fa fa-check" aria-hidden="true"></i></td>
         {% else %}
-            <td>No</td>
+            <td><i class="fa fa-times" aria-hidden="true"></i></td>
         {% endif %}
     {% endfor %}
 </tr>
 <tr><td>You completely reviewed your peers' work</td>
     {% for unit in entries %}
         {% if achieved|keyvalue:unit|keyvalue:'completed_all_reviews' %}
-            <td>Yes</td>
+            <td><i class="fa fa-check" aria-hidden="true"></i></td>
         {% else %}
-            <td>No</td>
+            <td><i class="fa fa-times" aria-hidden="true"></i></td>
         {% endif %}
     {% endfor %}
 </tr>
@@ -37,9 +37,9 @@
 <tr><td>Have read and evaluated reviews about your work</td>
     {% for unit in entries %}
         {% if achieved|keyvalue:unit|keyvalue:'read_and_evaluated_all_reviews' %}
-            <td>Yes</td>
+            <td><i class="fa fa-check" aria-hidden="true"></i></td>
         {% else %}
-            <td>No</td>
+            <td><i class="fa fa-times" aria-hidden="true"></i></td>
         {% endif %}
     {% endfor %}
 </tr>
@@ -48,9 +48,9 @@
 <tr><td>Have completed the rebuttal</td>
     {% for unit in entries %}
         {% if achieved|keyvalue:unit|keyvalue:'completed_rebuttal' %}
-            <td>Yes</td>
+            <td><i class="fa fa-check" aria-hidden="true"></i></td>
         {% else %}
-            <td>No</td>
+            <td><i class="fa fa-times" aria-hidden="true"></i></td>
         {% endif %}
     {% endfor %}
 </tr>
@@ -58,9 +58,9 @@
 <tr><td>Have assessed all rebuttals received</td>
     {% for unit in entries %}
         {% if achieved|keyvalue:unit|keyvalue:'assessed_rebuttals' %}
-            <td>Yes</td>
+            <td><i class="fa fa-check" aria-hidden="true"></i></td>
         {% else %}
-            <td>No</td>
+            <td><i class="fa fa-times" aria-hidden="true"></i></td>
         {% endif %}
     {% endfor %}
 </tr>
