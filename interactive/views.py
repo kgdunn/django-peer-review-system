@@ -1897,6 +1897,8 @@ def overview(request, course=None, learner=None, entry_point=None):
     Student gets an overview of their grade here.
     We use all ``entry_points`` related to a course, except this entry point.
     """
+
+
     entries = EntryPoint.objects.filter(course=course).order_by('order')
 
     achieved = {}
@@ -1904,11 +1906,16 @@ def overview(request, course=None, learner=None, entry_point=None):
     # achieved[entry_point][achievement_config]
 
     entry_display = []
+    graphs = []
     for entry in entries:
         if entry == entry_point:
             continue
         achieved[entry] = reportcard(learner, entry, detailed=True)
         entry_display.append(entry)
+
+        if learner.role in ('Admin', ):
+            graphs.append(group_graph(entry).graph)
+
 
     ctx = {'learner': learner,
            'course': course,
