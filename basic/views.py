@@ -152,8 +152,6 @@ def get_create_student(request, course):
 
         # Used to get the user when they are redirected outside the LMS.
         # and most often, if a form is being filled in, and returned via POST.
-        logger.debug('Getting user from POST field.')
-
         learner_ID = request.POST.get('learner_ID', '') or \
                      request.GET.get('learner_ID','')
 

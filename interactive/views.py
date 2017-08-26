@@ -973,6 +973,9 @@ def invite_reviewers(learner, trigger):
     if len(valid_subs) != graph.graph.order():
         logger.warn(('Number of valid subs [{0}]is not equal to graph '
                 'order [{1}]'.format(len(valid_subs), graph.graph.order())))
+        # Rather return; fix it up and then come back later
+
+        return
 
     for learner in graph.graph.nodes():
         # These ``Persons`` have a valid submission. Invite them to review.
