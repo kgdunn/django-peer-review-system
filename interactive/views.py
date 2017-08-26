@@ -866,7 +866,7 @@ def peers_provide_rebuttal(trigger, learner, entry_point=None,
     </ul>
     """
     ctx_objects['lineB'] = ('future-text',
-                            'Provide a rebuttal back to peers')
+                            'Provide rebuttal back to peers once you evaluated')
     my_submissions = Submission.objects.filter(entry_point=trigger.entry_point,
                                               is_valid=True,
                                               submitted_by=learner)\
