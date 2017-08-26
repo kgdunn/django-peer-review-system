@@ -488,17 +488,16 @@ def get_line1(learner, trigger, summaries):
                 summary = Summary(date=prior[0].completed,
                    action='You completed review number {0}; thank you!'\
                               .format(review.order, GLOBAL.num_peers),
-                   link='<a href="/interactive/review/{0}">View</a>'.format(\
-                                                       review.unique_code),
+                   link=('<a href="/interactive/review/{0}" target="_blank">'
+                         'View</a>').format(review.unique_code),
                    catg='rev')
                 summaries.append(summary)
 
             elif prior[0].status in ('P', 'V'):
                 status = 'Continue your review'
 
-        out.append(('',
-                '<a href="/interactive/review/{1}">{0}</a>'.format(status,
-                                                       review.unique_code)))
+        out.append(('', ('<a href="/interactive/review/{1}" target="_blank">'
+                         '{0}</a>').format(status, review.unique_code)))
 
     if sum(reviews_completed) == GLOBAL.num_peers:
         completed(learner, 'completed_all_reviews')
@@ -585,7 +584,8 @@ def get_line3(learner, trigger, summaries):
 
             if getattr(report.r_actual, 'evaluated', ''):
 
-                link = '<a href="/interactive/see-evaluation/{0}">{1}</a>'
+                link = ('<a href="/interactive/see-evaluation/{0}" '
+                        'target="_blank">{1}</a>')
                 out[idx] = ('',
                             'Peer evaluated your review: {0}'.format(link.\
                             format(eval_code, 'see evaluation')) )
@@ -669,7 +669,7 @@ def get_line5(learner, trigger, summaries):
         else:
             continue
 
-        link = '<a href="/interactive/assessment/{0}">{1}</a> {2}'
+        link = '<a href="/interactive/assessment/{0}" target="_blank">{1}</a> {2}'
         out[idx] = ('', link.format(rebuttal.unique_code,
                                     'Assess their rebuttal',
                                     'of your review'))
@@ -830,8 +830,9 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
         if (idx > 0) and (idx < GLOBAL.num_peers):
             text += ';&nbsp;'
 
-        text += 'evaluate <a href="/interactive/evaluate/{0}/">peer {1}</a>{2}'\
-                 .format(report.unique_code, idx+1, extra)
+        text += ('evaluate <a href="/interactive/evaluate/{0}/" '
+                 'target="_blank">peer {1}</a>{2}').format(report.unique_code,
+                                                           idx+1, extra)
 
     text += '.'
     ctx_objects['lineA'] = ('', text)
@@ -879,7 +880,7 @@ def peers_provide_rebuttal(trigger, learner, entry_point=None,
                                                       sort_report='R',
                                                     evaluator=learner)
         evaluation = evaluations[0]
-        link = '<a href="/interactive/rebuttal/{}">{}</a> {}'
+        link = '<a href="/interactive/rebuttal/{}" target="_blank">{}</a> {}'
 
         if has(learner, 'completed_rebuttal'):
             summary = Summary(date=evaluation.created,
