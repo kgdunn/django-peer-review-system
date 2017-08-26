@@ -767,7 +767,7 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
                                                             .order_by('created')
     for idx, ractual in enumerate(rubrics):
         summary = Summary(date=ractual.created, link='', catg='sub',
-          action='Peer {} started a review of your work.'.format(idx+1))
+          action='Peer {} began a review of your work.'.format(idx+1))
         summaries.append(summary)
 
         if ractual.status in ('C', 'L') and ractual.submitted:
@@ -797,9 +797,8 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
 
     # Slow-down throttle here: we don't want to allow the submitter to start
     # evaluation unless they have finished their reviews.
-
-    #if not(has(learner, 'completed_all_reviews')):
-    #    return
+    if not(has(learner, 'completed_all_reviews')):
+        return
 
 
     # If we have reached this point it is because the submitter can now
