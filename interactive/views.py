@@ -798,6 +798,10 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
     # Slow-down throttle here: we don't want to allow the submitter to start
     # evaluation unless they have finished their reviews.
     if not(has(learner, 'completed_all_reviews')):
+        header = ("All peers have completely reviewed your work. However, you "
+                  "can only see that feedback once you have finished all your "
+                  "allocated reviews.")
+        ctx_objects['peers_to_submitter_header'] = header
         return
 
 
