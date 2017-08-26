@@ -139,6 +139,7 @@ def submit_peer_review_feedback(request, ractual_code):
 
 
     if r_actual.status == 'L':
+        logger.info('FYI: Locked review message was displayed')
         return render(request, 'rubric/locked.html', {})
 
     r_item_actuals = r_actual.ritemactual_set.all()
