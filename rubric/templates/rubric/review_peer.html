@@ -95,7 +95,7 @@
     {% else %}
         <p>The work you are required to review is shown below.
         {# <span style="color: orange">You can start the review, come back later to continue editing and adding feedback. Your work is continually saved as you type and evaluate your peers.</span>#}
-        If you do not see any document here then you should please <a href="/{{submission.file_upload.url}}" target="_blank">first download it</a>.
+        If you do not see any document here then you should please <a href="{{submission.file_upload.url}}" target="_blank">first download it</a>.
     {% endif %}
 </div>
 
@@ -105,7 +105,7 @@
             <!-- Column 1 start -->
             <object data="/{{submission.file_upload.url}}" type="application/pdf"
                 width="100%" height="85%">
-                alt : <a href="/{{submission.file_upload.url}}">Peer review document</a>
+                alt : <a href="{{submission.file_upload.url}}">Peer review document</a>
             </object>
             <!-- Column 1 end -->
         </div>
