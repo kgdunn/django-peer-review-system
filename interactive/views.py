@@ -645,7 +645,7 @@ def get_line5(learner, trigger, summaries):
     out = []
     for idx in range(GLOBAL.num_peers):
         out.append(('future-text',
-                    "Waiting for peer's rebuttal of your review"))
+                    "Your assessment of their rebuttal"))
 
     if not(has(learner, 'completed_all_reviews')):
         return out
