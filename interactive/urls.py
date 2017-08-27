@@ -25,6 +25,11 @@ urlpatterns = [
     url(r'^assessment/(?P<unique_code>.+)/$',
         views.assessment,
         name='assessment_with_unique_code'),
+    url(r'^see-assessment/(?P<unique_code>.+)/$',
+        views.see_assessment,
+        name='see_readonly_assessment_with_unique_code'),
+
+
 
 
 ]

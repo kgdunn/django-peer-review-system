@@ -469,14 +469,15 @@ def get_line1(learner, trigger, summaries):
             review.order = idx+1
             review.save()
 
-        if in_degree == 0 and idx == 0:
-            status = 'Start your review'
-        elif in_degree == 0 and idx == 1:
-            status = out.append(('future-text',
-                                 'Waiting for a peer to submit their work ...'))
-            continue
-        elif in_degree >= 1:
-            status = 'Start your review'
+        # Based on experimentation: not worth rate limiting reviews.
+        #if in_degree == 0 and idx == 0:
+        #    status = 'Start your review'
+        #elif in_degree == 0 and idx == 1:
+        #    status = out.append(('future-text',
+        #                         'Waiting for a peer to submit their work ...'))
+        #    continue
+        #elif in_degree >= 1:
+        status = 'Start your review'
 
 
         # What is the status of this review. Cross check with RubricActual
@@ -607,7 +608,7 @@ def get_line4(learner, trigger, summaries):
     """
     out = []
     for idx in range(GLOBAL.num_peers):
-        if has(learner, 'completed_all_reviews'):
+        if has(learner, 'completed_all_reviews') or not(has(learner, 'started_a_review')):
             out.append(('future-text', "Waiting for peer's rebuttal of your review"))
         else:
             out.append(('future-text', "Please complete all allocated reviews first"))
@@ -662,14 +663,16 @@ def get_line5(learner, trigger, summaries):
         if not review.submission:
             continue
         rebut_reports = EvaluationReport.objects.filter(sort_report='A',
-                                       evaluator=review.submission.submitted_by)
+                                       evaluator=review.submission.submitted_by,
+                                       peer_reviewer=learner)
 
         if rebut_reports:
             rebuttal = rebut_reports[0]
         else:
             continue
 
-        link = '<a href="/interactive/assessment/{0}" target="_blank">{1}</a> {2}'
+        link = ('<a href="/interactive/assessment/{0}" target="_blank">'
+                '{1}</a> {2}')
         out[idx] = ('', link.format(rebuttal.unique_code,
                                     'Assess their rebuttal',
                                     'of your review'))
@@ -784,7 +787,7 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
         # The learner hasn't reviewed other's work; so they are not in state
         # to evaluate others yet either.
         ctx_objects['lineA'] = ('', ('Please complete a review first, before '
-                                     'evaluating the reviews received back.'))
+                                     'evaluating their reviews.'))
 
         return
 
@@ -840,14 +843,6 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
     text += '.'
     ctx_objects['lineA'] = ('', text)
 
-    #rubrics = RubricActual.objects.filter(submission=submission).order_by('evaluated')
-    #if not(has(learner, 'read_and_evaluated_all_reviews')):
-        #n_evaluations = 0
-        #for rubric in rubrics:
-            #if rubric.evaluated:
-                #n_evaluations += 1
-        #if n_evaluations >= GLOBAL.num_peers:
-            #completed(learner, 'read_and_evaluated_all_reviews')
 
     if has(learner, 'completed_rebuttal'):
         pass
@@ -867,14 +862,6 @@ def peers_provide_rebuttal(trigger, learner, entry_point=None,
     """
     ctx_objects['lineB'] = ('future-text',
                             'Provide rebuttal back to peers once you evaluated')
-    my_submissions = Submission.objects.filter(entry_point=trigger.entry_point,
-                                              is_valid=True,
-                                              submitted_by=learner)\
-                                     .exclude(status='A')
-    if my_submissions.count():
-        submission = my_submissions[0]
-    else:
-        return
 
     # Learner has not only seen, but also evaluated all the reviews. Now it
     # is time to do fill in the rebuttal rubric.
@@ -926,6 +913,55 @@ def peers_rebuttal_assessment(trigger, learner, entry_point=None,
     """
     ctx_objects['lineC'] = ('future-text',
                             'Waiting for rebuttal to be read and assessed')
+
+    # Update on the status of the assessment.
+
+
+    if not(has(learner, 'completed_rebuttal')):
+        return
+
+    # From the perspective of the learner, we should always order the peers
+    # is the same way. Use the ``created`` field for that.
+    my_submission = Submission.objects.filter(entry_point=trigger.entry_point,
+                                              is_valid=True,
+                                              submitted_by=learner)\
+                                                            .exclude(status='A')
+
+    rubrics = RubricActual.objects.filter(submission=my_submission)\
+        .order_by('created')
+
+    text = 'Rebuttal status: '
+
+    # There should also be GLOBAL.num_peers reports here
+    assessments = EvaluationReport.objects.filter(trigger=trigger,
+                                                  sort_report='A',
+                                                  evaluator=learner)
+
+    for idx, ractual in enumerate(rubrics):
+        assessment = assessments.filter(peer_reviewer=ractual.graded_by)
+        extra = ''
+        link = ('<a href="/interactive/see-assessment/{}" target="_blank">'
+                '{}</a>')
+
+        if assessment[0].r_actual:
+            verb = 'read by'
+            extra =' (waiting for their assessment)'
+            if assessment[0].r_actual.status in ('C', 'L'):
+                verb = 'assessed by'
+                extra = ' ({})'.format(link.format(assessment[0].r_actual.rubric_code,
+                                    'view it', ''))
+
+        else:
+            verb = 'waiting for'
+
+
+        text += '{} peer {}{}'.format(verb, idx+1, extra)
+        if (idx >= 0) and (idx < len(rubrics)-1):
+            text += ';&nbsp;'
+
+    text += '.'
+    ctx_objects['lineC'] = ('', text)
+
 
 def peers_summarize(trigger, learner, entry_point=None,
                          summaries=list(), ctx_objects=dict(), **kwargs):
@@ -1115,7 +1151,7 @@ class group_graph(object):
             #return None
 
 
-    def get_submitter_to_review(self, exclude_reviewer):
+    def get_submitter_to_review_old(self, exclude_reviewer):
         """
         Get the next submitter's work to review. You must specify the
         reviewer's Person instance (``exclude_reviewer``), to ensure they are
@@ -1213,8 +1249,45 @@ class group_graph(object):
 
         return potential[next_one[1]]
 
+    def get_submitter_for(self, reviewer):
+        """
+        The ``reviewer`` wants a submitter's document to review. How do we
+        select that?
+        Experiments show that we get the higher chance of a balanced digraph
+        when purely random assignments are made, without hindering the reviewer.
+        """
+        potential = self.graph.nodes()
+        if reviewer:
+            index = potential.index(reviewer)
+            potential.pop(index)
 
+        # Shuffle here, so the indices are randomized
+        shuffle(potential)
 
+        runs = 0
+        while potential:
+            runs += 1
+
+            node = potential.pop()
+            if self.graph.has_edge(node, reviewer):
+                # 2: already a connection.
+                continue
+
+            # Adding in the fact that edges cannot be reversed increases the failure
+            # rate. TODO: avoid mirrored edges rather (it is too extreme to prevent
+            # mirrored edges)
+            #elif self.graph.has_edge(reviewer, node):
+            #    a=2
+
+            elif self.graph.out_degree(node) >= GLOBAL.num_peers:
+                # 3: We cannot over-review a node, so ensure its out degree is not
+                # too high. Keep working through the scores till you find one.
+                continue
+
+            else:
+                return node
+
+        return None
 
 
 def review(request, unique_code=None):
@@ -1251,8 +1324,7 @@ def review(request, unique_code=None):
 
 
     graph = group_graph(report.trigger.entry_point)
-    submitter = graph.get_submitter_to_review(exclude_reviewer=\
-                                                         report.reviewer)
+    submitter = graph.get_submitter_for(reviewer=report.reviewer)
 
     valid_subs = Submission.objects.filter(is_valid=True,
                                     entry_point=report.trigger.entry_point,
@@ -1426,6 +1498,67 @@ def assessment(request, unique_code=None):
         report.save()
 
     return handle_review(request, report.r_actual.rubric_code)
+
+
+def see_assessment(request, unique_code=None):
+    """
+    Shows the read-only assessment to the peer reviewer (who originally
+    reviewed the report, and has been rebutted by the original submitter).
+
+    Set the r_actual to locked (to prevent the evaluator, i.e. the original
+    submitter from changing anything further to the report)
+    """
+
+    # Get the rubric
+    # Set it to locked
+    # Show the report
+    return HttpResponse('assessment shown here')
+
+    #reports = EvaluationReport.objects.filter(unique_code=unique_code)
+    #if reports.count() != 1:
+        #logger.error('Incorrect Assessment requested: {}'.format(unique_code))
+        #return HttpResponse(("You've used an incorrect link. Please check the "
+                             #'web address to ensure there was not a typing '
+                             #'error.<p>No assessment found with that link.'))
+
+    #report = reports[0]
+
+
+    ## We have a report to be evaluated, now generate the links.
+    #if report.r_actual is None:
+        ## Generate the actual rubric here for it.
+        #rebut_actual, _ = get_create_actual_rubric(graded_by=report.evaluator,
+                                                #trigger=report.trigger,
+                                                #submission=report.submission,
+                                                #rubric_code=report.unique_code)
+        #report.r_actual = rebut_actual
+        #report.save()
+
+    #return handle_review(request, report.r_actual.rubric_code)
+
+
+#a
+
+
+## Note: we use the ``next_code`` field here, not the actual ``unique_code``
+##       field, since we want to first set the rubric to locked, so it
+##       shows as read-only.
+#rubrics = RubricActual.objects.filter(next_code=unique_code)
+#if rubrics.count() != 1:
+    #logger.error('Incorrect R/O eval requested: {}'.format(unique_code))
+    #return HttpResponse(("You've used an incorrect link. Please check the "
+                         #'web address to ensure there was not a typing '
+                         #'error.<p>No evaluation to see with that link.'))
+
+#rubric = rubrics[0]
+#rubric.status = 'L'
+#rubric.save()
+
+## Now pass the rubric.rubric_code through, not the acquired unique_code.
+#return handle_review(request, rubric.rubric_code)
+
+
+
 
 
 
@@ -1776,6 +1909,10 @@ def create_assessment_PDF(r_actual):
                                 "reviewers’ comments. This single rebuttal text"
                                 " is sent to all reviewers, so not all comments"
                                 " might apply to you."), default))
+    flowables.append(Paragraph(("The original submission, with all peer reviews"
+                                " is attached below. Scroll down to see them."),
+                               default))
+
     flowables.append(Spacer(1, 6))
     report_render_rubric(r_actual, flowables)
     flowables.append(PageBreak())
@@ -1801,8 +1938,9 @@ def create_assessment_PDF(r_actual):
     pdf2 = PdfFileReader(temp_file)
     merger = PdfFileMerger(strict=False, )
 
-    merger.append(pdf1, import_bookmarks=False)
+    # NOTE: we want the rebuttal on the top, the document afterwards.
     merger.append(pdf2, import_bookmarks=False)
+    merger.append(pdf1, import_bookmarks=False)
 
     fd, dst_file = tempfile.mkstemp(suffix='.pdf')
 
@@ -1835,16 +1973,34 @@ def create_assessment_PDF(r_actual):
     os.unlink(dst_file)
 
     # UPDATE any prior EvaluationReport
-    prior_eval, _ = EvaluationReport.objects.get_or_create(
-                            trigger=r_actual.rubric_template.next_trigger,
-                            sort_report='A',
-                            evaluator=learner
-    )
+    # Create an assessment report, one for each peer
 
-    token = new_sub.file_upload.name.split('/')[2].strip('.pdf')
-    prior_eval.unique_code = token
-    prior_eval.submission = new_sub
-    prior_eval.save()
+    # Who are the learner's peers at this point?
+    my_group = Membership.objects.get(role='Submit',
+                                          learner=learner,
+                                          group__entry_point=r_actual.rubric_template.entry_point)
+
+    my_peers = Membership.objects.filter(role='Review',
+                                             group=my_group.group).order_by('created')
+
+
+    for peer in my_peers:
+
+
+        prior_assess, _ = EvaluationReport.objects.get_or_create(
+                                trigger=r_actual.rubric_template.next_trigger,
+                                sort_report='A',
+                                evaluator=learner,
+                                peer_reviewer=peer.learner,
+        )
+
+        # DO NOT assign the unique_code. Let it be automatically created.
+        # We want different codes for the different peers, so we get
+        # N_peers distinct assessments.
+        #prior_assess.unique_code = token
+
+        prior_assess.submission = new_sub
+        prior_assess.save()
 
 
     # At this point you should async email the peers:

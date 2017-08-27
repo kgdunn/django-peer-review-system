@@ -108,6 +108,9 @@ class GroupConfig(models.Model):
     group_name = models.CharField(max_length=100,
                                   help_text='If empty, will be auto-generated',
                                   blank=True, null=True)
+
+    # Must specify the entry point, because in different entry points, the
+    # group names will be different, and used for different purposes.
     entry_point = models.ForeignKey('basic.EntryPoint', null=True, blank=True)
     members = models.ManyToManyField('basic.Person',
                                      through='Membership',
@@ -259,6 +262,9 @@ class EvaluationReport(models.Model):
     sort_report = models.CharField(max_length=2, choices=STATUS, default='-')
 
     # The original submitter is the evaluator (they will evalute the review)
+    #
+    # TODO: rename this field to ``submitter`` (since in different sort_report
+    #       the word "evaluator" is confusing, e.g. during assessment phase)
     evaluator = models.ForeignKey('basic.Person', related_name='evaluator',
                         help_text='The original submitter is the evaluator')
 
@@ -294,9 +300,10 @@ class EvaluationReport(models.Model):
                                                  self.evaluator)
 
         elif self.sort_report == 'A':
-            return ('[{0}]: Assessment by submitter [{1}] of review that was '
-                            'completed by peers').format(self.unique_code,
-                                                         self.evaluator)
+            return ('[{0}]: Assessment of rebuttal supplied by submitter [{1}]; '
+                            'done by {2}').format(self.unique_code,
+                                                  self.evaluator,
+                                                  self.peer_reviewer)
         elif self.sort_report == 'E':
             return ('[{0}]: Evaluation by submitter [{1}] of review that was '
                     'completed by [{2}]').format(self.unique_code,
