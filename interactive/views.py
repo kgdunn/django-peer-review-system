@@ -497,8 +497,16 @@ def get_line1(learner, trigger, summaries):
             elif prior[0].status in ('P', 'V'):
                 status = 'Continue your review'
 
-        out.append(('', ('<a href="/interactive/review/{1}" target="_blank">'
-                         '{0}</a>').format(status, review.unique_code)))
+            # We have a potential review
+            out.append(('', ('<a href="/interactive/review/{1}" target="_blank"'
+                             '>{0}</a>').format(status, review.unique_code)))
+        else:
+            graph = group_graph(trigger.entry_point)
+            potential_submitter = graph.get_submitter_for(reviewer=learner)
+            if potential_submitter is None:
+                out.append(('future-text',
+                            'Waiting for a peer to submit their work ...'))
+
 
     if sum(reviews_completed) == GLOBAL.num_peers:
         completed(learner, 'completed_all_reviews')
@@ -671,17 +679,33 @@ def get_line5(learner, trigger, summaries):
         else:
             continue
 
-        link = ('<a href="/interactive/assessment/{0}" target="_blank">'
+        link = ('{3}<a href="/interactive/assessment/{0}" target="_blank">'
                 '{1}</a> {2}')
         out[idx] = ('', link.format(rebuttal.unique_code,
                                     'Assess their rebuttal',
-                                    'of your review'))
+                                    'of your review', ''))
 
+        extra = 'Assess it'
+        try:
+            rubric = RubricActual.objects.get(rubric_code=rebuttal.unique_code)
+            if rubric.status in ('C', 'L'):
+                extra = 'View'
+                out[idx] = ('', link.format(rebuttal.unique_code,
+                                            'assessed their rebuttal',
+                                            'of your review', 'You have '))
+                summary = Summary(action='You assessed rebuttal for peer {0}.'.format(idx+1),
+                        date=rebuttal.r_actual.completed,
+                        link=link.format(rebuttal.unique_code, extra, '', ''),
+                        catg='rev')
+                summaries.append(summary)
+
+
+        except RubricActual.DoesNotExist:
+            pass
 
         summary = Summary(action='Rebuttal written by peer {0}.'.format(idx+1),
                           date=rebuttal.created,
-                          link=link.format(rebuttal.unique_code,
-                                           'Assess it', ''),
+                          link=link.format(rebuttal.unique_code, extra, '', ''),
                           catg='rev')
         summaries.append(summary)
 
@@ -944,15 +968,23 @@ def peers_rebuttal_assessment(trigger, learner, entry_point=None,
                 '{}</a>')
 
         if assessment[0].r_actual:
-            verb = 'read by'
+            verb = 'has been read by'
             extra =' (waiting for their assessment)'
             if assessment[0].r_actual.status in ('C', 'L'):
                 verb = 'assessed by'
-                extra = ' ({})'.format(link.format(assessment[0].r_actual.rubric_code,
+                extra = ' ({})'.format(link.format(\
+                                    assessment[0].r_actual.rubric_code,
                                     'view it', ''))
 
+                summary = Summary(date=assessment[0].r_actual.completed,
+                    action=('Peer {} assessed your rebuttal.').format(idx+1),
+                    link=link.format(assessment[0].r_actual.rubric_code, 'View',
+                                     ''),
+                    catg='sub')
+                summaries.append(summary)
         else:
             verb = 'waiting for'
+            extra = ' to read it'
 
 
         text += '{} peer {}{}'.format(verb, idx+1, extra)
@@ -1326,6 +1358,15 @@ def review(request, unique_code=None):
     graph = group_graph(report.trigger.entry_point)
     submitter = graph.get_submitter_for(reviewer=report.reviewer)
 
+    if submitter is None:
+        logger.error('NO MORE SUBMITTERS FOR {}; entry point "{}". '.format(\
+                                        report.reviewer,
+                                        report.trigger.entry_point))
+        return HttpResponse(('The pool of available reviews is currently '
+                             'zero. Please wait and return later to get a '
+                             'review after one of your peer uploads. '))
+
+
     valid_subs = Submission.objects.filter(is_valid=True,
                                     entry_point=report.trigger.entry_point,
                                     trigger=report.trigger,
@@ -1508,58 +1549,22 @@ def see_assessment(request, unique_code=None):
     Set the r_actual to locked (to prevent the evaluator, i.e. the original
     submitter from changing anything further to the report)
     """
+    # Get the rubric and s it to locked, so it shows as read-only.
+    reports = EvaluationReport.objects.filter(unique_code=unique_code)
+    if reports.count() != 1:
+        logger.error('Incorrect R/O Assessment request: {}'.format(unique_code))
+        return HttpResponse(("You've used an incorrect link. Please check the "
+                             'web address to ensure there was not a typing '
+                             'error.<p>No assessment found with that link.'))
 
-    # Get the rubric
-    # Set it to locked
-    # Show the report
-    return HttpResponse('assessment shown here')
+    report = reports[0]
 
-    #reports = EvaluationReport.objects.filter(unique_code=unique_code)
-    #if reports.count() != 1:
-        #logger.error('Incorrect Assessment requested: {}'.format(unique_code))
-        #return HttpResponse(("You've used an incorrect link. Please check the "
-                             #'web address to ensure there was not a typing '
-                             #'error.<p>No assessment found with that link.'))
+    rubric = report.r_actual
+    rubric.status = 'L'
+    rubric.save()
 
-    #report = reports[0]
-
-
-    ## We have a report to be evaluated, now generate the links.
-    #if report.r_actual is None:
-        ## Generate the actual rubric here for it.
-        #rebut_actual, _ = get_create_actual_rubric(graded_by=report.evaluator,
-                                                #trigger=report.trigger,
-                                                #submission=report.submission,
-                                                #rubric_code=report.unique_code)
-        #report.r_actual = rebut_actual
-        #report.save()
-
-    #return handle_review(request, report.r_actual.rubric_code)
-
-
-#a
-
-
-## Note: we use the ``next_code`` field here, not the actual ``unique_code``
-##       field, since we want to first set the rubric to locked, so it
-##       shows as read-only.
-#rubrics = RubricActual.objects.filter(next_code=unique_code)
-#if rubrics.count() != 1:
-    #logger.error('Incorrect R/O eval requested: {}'.format(unique_code))
-    #return HttpResponse(("You've used an incorrect link. Please check the "
-                         #'web address to ensure there was not a typing '
-                         #'error.<p>No evaluation to see with that link.'))
-
-#rubric = rubrics[0]
-#rubric.status = 'L'
-#rubric.save()
-
-## Now pass the rubric.rubric_code through, not the acquired unique_code.
-#return handle_review(request, rubric.rubric_code)
-
-
-
-
+    # Now pass the rubric.rubric_code through, not the acquired unique_code.
+    return handle_review(request, rubric.rubric_code)
 
 
 # Utility function: to handle the generation of a ``Submission`` for a
