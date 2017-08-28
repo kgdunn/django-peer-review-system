@@ -190,8 +190,6 @@ class ReviewReport(models.Model):
     # Was ``learner`` when we copied this from v1.
     reviewer = models.ForeignKey('basic.Person')
 
-    have_emailed = models.BooleanField(default=False)
-
     group = models.ForeignKey('basic.Group', blank=True, null=True,
         default=None, help_text="If a group submission, links to group.")
 

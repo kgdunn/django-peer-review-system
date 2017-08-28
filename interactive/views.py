@@ -424,12 +424,6 @@ def get_line1(learner, trigger, summaries):
     allocated_reviews = ReviewReport.objects.filter(reviewer=learner)\
                                  .order_by('-created') # for consistency
 
-    graph = group_graph(trigger.entry_point)
-    if graph.graph.has_node(learner):
-        in_degree = graph.graph.in_degree(learner)
-    else:
-        allocated_reviews = []
-
     reviews_completed = [False, ] * GLOBAL.num_peers
     for idx, review in enumerate(allocated_reviews):
 
@@ -437,17 +431,7 @@ def get_line1(learner, trigger, summaries):
             review.order = idx+1
             review.save()
 
-        # Based on experimentation: not worth rate limiting reviews.
-        #if in_degree == 0 and idx == 0:
-        #    status = 'Start your review'
-        #elif in_degree == 0 and idx == 1:
-        #    status = out.append(('future',
-        #                         'Waiting for a peer to submit their work ...'))
-        #    continue
-        #elif in_degree >= 1:
         status = 'Start your review'
-
-
         # What is the status of this review. Cross check with RubricActual
         prior = RubricActual.objects.filter(rubric_code=review.unique_code)
         if prior.count():
@@ -465,15 +449,17 @@ def get_line1(learner, trigger, summaries):
             elif prior[0].status in ('P', 'V'):
                 status = 'Continue your review'
 
-            # We have a potential review
-            out.append(('', ('<a href="/interactive/review/{1}" target="_blank"'
-                             '>{0}</a>').format(status, review.unique_code)))
-        else:
+        # We have a potential review
+        out.append(('', ('<a href="/interactive/review/{1}" target="_blank">'
+                         '{0}</a>').format(status, review.unique_code)))
+
+        if prior.count() == 0:
             graph = group_graph(trigger.entry_point)
             potential_submitter = graph.get_submitter_for(reviewer=learner)
             if potential_submitter is None:
-                out.append(('future',
-                            'Waiting for a peer to submit their work ...'))
+                # If there is no potential submitter, AND, no prior r_actuals:
+                out[idx] = (('future',
+                             'Waiting for a peer to submit their work ...'))
 
 
     if sum(reviews_completed) == GLOBAL.num_peers:
@@ -1029,53 +1015,16 @@ def invite_reviewers(learner, trigger):
         # These ``Persons`` have a valid submission. Invite them to review.
         # Has a reviewer been allocated this submission yet?
         allocated = ReviewReport.objects.filter(trigger=trigger,
-                                                reviewer=learner,
-                                                have_emailed=True)
-        while allocated.count() < GLOBAL.num_peers:
+                                                reviewer=learner)
 
-            review, _ = ReviewReport.objects.get_or_create(trigger=trigger,
-                                                           reviewer=learner,
-                                                           have_emailed=False)
+        if allocated.count() == GLOBAL.num_peers:
+            continue
+
+        for idx in range(GLOBAL.num_peers - allocated.count()):
+            review = ReviewReport(trigger=trigger,
+                                  reviewer=learner)
             review.save()
 
-            ## Then send them an email, but only once
-            #message = """
-            #Reviewing and interacting with the work of other students helps
-            #stimulate learning and insight you might not have developed
-            #otherwise.
-
-            #So for the course {1} you are required to completed {0} reviews of
-            #work from your peers. This is for the component of the course: {2}.
-
-            #Please complete the reviews as soon as possible to progress to the
-            #next stages: evaluation, assessment and rebuttal.
-
-            #You can start the review with <a href="{3}">this link</a>.
-
-            #You will receive an email for every review you are to complete.
-
-            #Good luck!
-            #""".format(GLOBAL.num_peers,
-                       #trigger.entry_point.course,
-                       #trigger.entry_point.LTI_title,
-                       #settings.BASE_URL + '/interactive/review/' + review.unique_code)
-            #subject = '[{0}]: start your peer review'.format(\
-                                                #trigger.entry_point.course)
-
-            #if not(review.have_emailed):
-                #send_email(learner.email, subject, messages=message,
-                           #delay_secs=5)
-
-                ## Ideally this is in the return hook, but for now leave it here.
-                #review.have_emailed = True
-                #review.save()
-
-            # Update the allocation list
-            allocated = ReviewReport.objects.filter(trigger=trigger,
-                                                    reviewer=learner,
-                                                    have_emailed=True)
-
-            #completed(learner, achievement='email_to_start_reviewing')
 
 
 # Functions related to the graph and grouping
@@ -1808,8 +1757,10 @@ def create_rebuttal_PDF(r_actual):
         return
 
     # Only continue to generate this report if it is the last review
-    completed(learner, 'read_and_evaluated_all_reviews', trigger.entry_point)
-    push_grade(learner, 50.0, trigger.entry_point)
+    completed(learner,
+              'read_and_evaluated_all_reviews',
+              r_actual.rubric_template.trigger.entry_point)
+    push_grade(learner, 50.0, r_actual.rubric_template.trigger.entry_point)
 
 
     fd, temp_file = tempfile.mkstemp(suffix='.pdf')

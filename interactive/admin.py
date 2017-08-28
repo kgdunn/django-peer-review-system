@@ -26,6 +26,7 @@ admin.site.register(Trigger, TriggerAdmin)
 class GroupConfigAdmin(admin.ModelAdmin):
     list_display = ("group_name", "entry_point",)
     ordering = ['entry_point', '-group_name']
+    list_filter = ['entry_point']
 admin.site.register(GroupConfig, GroupConfigAdmin)
 
 
