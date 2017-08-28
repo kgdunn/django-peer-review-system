@@ -7,6 +7,9 @@ from django.core.files import File
 from django.conf import settings
 from django.utils import timezone
 
+# Debugging
+import wingdbstub
+
 # Python and 3rd party imports
 import os
 import sys
@@ -1033,6 +1036,7 @@ def invite_reviewers(learner, trigger):
             review, _ = ReviewReport.objects.get_or_create(trigger=trigger,
                                                            reviewer=learner,
                                                            have_emailed=False)
+            review.save()
 
             ## Then send them an email, but only once
             #message = """
