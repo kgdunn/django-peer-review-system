@@ -182,26 +182,6 @@ def render_template(trigger, ctx_objects):
 # ------------------------------
 # The various trigger functions
 # ------------------------------
-def kick_off_email(trigger, learner, entry_point=None, **kwargs):
-    """
-    Initiates the kick-off email to the student, to encourage an upload.
-    """
-
-    if has(learner, 'kick_off_email'):
-        return None
-
-    """
-    The user is visiting the page for the first time.
-    * send email to tell them about the process.
-    """
-    ctx = {'LTI_title': entry_point.LTI_title}
-    subject = insert_evaluate_variables(trigger.subject, ctx)
-    message = insert_evaluate_variables(trigger.message, ctx)
-    #send_email(learner.email, subject, messages=message, delay_secs=10)
-    #
-    # This step has been removed to reduce the amount of emails sent.
-    completed(learner, 'kick_off_email')
-
 
 def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
                    ctx_objects=dict(), **kwargs):
@@ -288,7 +268,7 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
             submission = submit_inst
 
 
-            push_grade(learner, 10, entry_point)
+            push_grade(learner, 10.0, entry_point)
 
 
             # Send an email
@@ -327,7 +307,7 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
 
 
             # Learner has completed this step:
-            completed(learner, achievement='submitted')
+            completed(learner, 'submitted', entry_point)
 
             # Finished creating a new group. Now check if we have enough
             # reviewers to invite.
@@ -350,7 +330,7 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
     #             have submitted something already.
     #       Also, if the learner's work is started to being reviewed by a peer
     #       then the original submitter cannot resubmit.
-    if has(learner, 'work_has_started_to_be_reviewed'):
+    if has(learner, 'work_has_started_to_be_reviewed', entry_point):
         trigger.allow_submit = False  # False, if no more submissions allowed
     else:
         trigger.allow_submit = True
@@ -366,21 +346,6 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
         summaries.append(summary)
 
     ctx_objects['submission'] = render_template(trigger, ctx_objects)
-
-
-def your_reviews_create_evaluations(trigger, learner, entry_point=None,
-                         summaries=list(), ctx_objects=dict(), **kwargs):
-    """
-    TODO: at this point load all the reviews of the learner that are completed
-    which are attached to the prior trigger.
-
-
-    Create (asybc) a PDF of these. And create a submission.
-    Copy the code currently in rubric/views.py here.
-
-
-    """
-    return
 
 
 def your_reviews_of_your_peers(trigger, learner, entry_point=None,
@@ -473,7 +438,7 @@ def get_line1(learner, trigger, summaries):
         #if in_degree == 0 and idx == 0:
         #    status = 'Start your review'
         #elif in_degree == 0 and idx == 1:
-        #    status = out.append(('future-text',
+        #    status = out.append(('future',
         #                         'Waiting for a peer to submit their work ...'))
         #    continue
         #elif in_degree >= 1:
@@ -504,17 +469,17 @@ def get_line1(learner, trigger, summaries):
             graph = group_graph(trigger.entry_point)
             potential_submitter = graph.get_submitter_for(reviewer=learner)
             if potential_submitter is None:
-                out.append(('future-text',
+                out.append(('future',
                             'Waiting for a peer to submit their work ...'))
 
 
     if sum(reviews_completed) == GLOBAL.num_peers:
-        completed(learner, 'completed_all_reviews')
+        completed(learner, 'completed_all_reviews', trigger.entry_point)
         push_grade(learner, 30.0, trigger.entry_point)
 
     for idx in range(GLOBAL.num_peers-len(out)):
 
-        if not(has(learner, 'submitted')):
+        if not(has(learner, 'submitted', trigger.entry_point)):
             out.append(('', 'You must submit before you can review others.'))
             continue
 
@@ -534,7 +499,7 @@ def get_line2(learner, trigger, summaries):
         .order_by('-created') # for consistency
 
     for idx in range(GLOBAL.num_peers):
-        out.append(('future-text', 'Waiting for peer to read your review'))
+        out.append(('future', 'Waiting for peer to read your review'))
 
 
     # We use ``allocated_reviews`` to ensure consistency of order,
@@ -567,7 +532,7 @@ def get_line3(learner, trigger, summaries):
         .order_by('-created') # for consistency
 
     for idx in range(GLOBAL.num_peers):
-        out.append(('future-text', 'Waiting for peer to evaluate your review'))
+        out.append(('future', 'Waiting for peer to evaluate your review'))
 
     # We use ``allocated_reviews`` to ensure consistency of order,
     # but we jump from that, using .next_code, to EvaluationReport. There
@@ -616,12 +581,13 @@ def get_line4(learner, trigger, summaries):
     """
     out = []
     for idx in range(GLOBAL.num_peers):
-        if has(learner, 'completed_all_reviews') or not(has(learner, 'started_a_review')):
-            out.append(('future-text', "Waiting for peer's rebuttal of your review"))
+        if has(learner, 'completed_all_reviews', trigger.entry_point) or \
+                     not(has(learner, 'started_a_review', trigger.entry_point)):
+            out.append(('future', "Waiting for peer's rebuttal of your review"))
         else:
-            out.append(('future-text', "Please complete all allocated reviews first"))
+            out.append(('future', "Please complete all allocated reviews first"))
 
-    if not(has(learner, 'completed_all_reviews')):
+    if not(has(learner, 'completed_all_reviews', trigger.entry_point)):
         return out
 
     allocated_reviews = ReviewReport.objects.filter(reviewer=learner)\
@@ -653,10 +619,9 @@ def get_line5(learner, trigger, summaries):
     """
     out = []
     for idx in range(GLOBAL.num_peers):
-        out.append(('future-text',
-                    "Your assessment of their rebuttal"))
+        out.append(('future', "Your assessment of their rebuttal"))
 
-    if not(has(learner, 'completed_all_reviews')):
+    if not(has(learner, 'completed_all_reviews', trigger.entry_point)):
         return out
 
     allocated_reviews = ReviewReport.objects.filter(reviewer=learner)\
@@ -666,6 +631,8 @@ def get_line5(learner, trigger, summaries):
     # We use ``allocated_reviews`` to ensure consistency of order,
     # but we jump from that directly to the Rebuttal report (sort_report='A')
     # that was generated by the submitter (evaluator=review.submission.submitted_by)
+
+    n_rebuttals_completed = 0
 
     for idx, review in enumerate(allocated_reviews):
         if not review.submission:
@@ -689,6 +656,7 @@ def get_line5(learner, trigger, summaries):
         try:
             rubric = RubricActual.objects.get(rubric_code=rebuttal.unique_code)
             if rubric.status in ('C', 'L'):
+                n_rebuttals_completed += 1
                 extra = 'View'
                 out[idx] = ('', link.format(rebuttal.unique_code,
                                             'assessed their rebuttal',
@@ -710,6 +678,11 @@ def get_line5(learner, trigger, summaries):
         summaries.append(summary)
 
 
+    if n_rebuttals_completed == GLOBAL.num_peers:
+        completed(learner, 'assessed_rebuttals	', trigger.entry_point)
+        push_grade(learner, 90.0, trigger.entry_point)
+
+
     # All done!
     return out
 
@@ -729,7 +702,7 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
     """
     ctx_objects['peers_to_submitter_header'] = ('You must first submit some '
                                             'work for your peers to review.')
-    ctx_objects['lineA'] = ('future-text',
+    ctx_objects['lineA'] = ('future',
                             "Read and evaluate reviewers' feedback")
 
 
@@ -741,7 +714,7 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
     if my_submission.count() > 1:
         logger.warn('More than one submission encountered')
 
-    if not(has(learner, 'submitted')) or my_submission.count()==0:
+    if not(has(learner, 'submitted', entry_point)) or my_submission.count()==0:
         return
 
 
@@ -783,7 +756,7 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
                                      )
 
     if sum(reviews) == GLOBAL.num_peers:
-        completed(learner, 'all_reviews_from_peers_completed')
+        completed(learner, 'all_reviews_from_peers_completed', entry_point)
         header = "All peers have completely reviewed your work."
 
     ctx_objects['peers_to_submitter_header'] = header
@@ -807,7 +780,7 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
         # of the learner's work.
         return
 
-    if not(has(learner, 'started_a_review')):
+    if not(has(learner, 'started_a_review', entry_point)):
         # The learner hasn't reviewed other's work; so they are not in state
         # to evaluate others yet either.
         ctx_objects['lineA'] = ('', ('Please complete a review first, before '
@@ -818,13 +791,13 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
 
     # We cannot go further, unless all the reviews by the learner's peers are
     # completed.
-    if not(has(learner, 'all_reviews_from_peers_completed')):
+    if not(has(learner, 'all_reviews_from_peers_completed', entry_point)):
         return
 
 
     # Slow-down throttle here: we don't want to allow the submitter to start
     # evaluation unless they have finished their reviews.
-    if not(has(learner, 'completed_all_reviews')):
+    if not(has(learner, 'completed_all_reviews', entry_point)):
         header = ("All peers have completely reviewed your work. However, you "
                   "can only see that feedback once you have finished all your "
                   "allocated reviews.")
@@ -868,7 +841,7 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
     ctx_objects['lineA'] = ('', text)
 
 
-    if has(learner, 'completed_rebuttal'):
+    if has(learner, 'completed_rebuttal', entry_point):
         pass
 
 
@@ -884,19 +857,19 @@ def peers_provide_rebuttal(trigger, learner, entry_point=None,
         <li class="peers_to_you {4}" type="a">(c) {5}</li>
     </ul>
     """
-    ctx_objects['lineB'] = ('future-text',
+    ctx_objects['lineB'] = ('future',
                             'Provide rebuttal back to peers once you evaluated')
 
     # Learner has not only seen, but also evaluated all the reviews. Now it
     # is time to do fill in the rebuttal rubric.
-    if has(learner, 'read_and_evaluated_all_reviews'):
+    if has(learner, 'read_and_evaluated_all_reviews', entry_point):
         evaluations = EvaluationReport.objects.filter(trigger=trigger,
                                                       sort_report='R',
                                                     evaluator=learner)
         evaluation = evaluations[0]
         link = '<a href="/interactive/rebuttal/{}" target="_blank">{}</a> {}'
 
-        if has(learner, 'completed_rebuttal'):
+        if has(learner, 'completed_rebuttal', entry_point):
             summary = Summary(date=evaluation.created,
                               action=('You evaluated all reviews; thank you!'),
                               catg='sub')
@@ -935,13 +908,13 @@ def peers_rebuttal_assessment(trigger, learner, entry_point=None,
         <li class="peers_to_you {4}" type="a">(c) {5}</li>    <--- this line
     </ul>
     """
-    ctx_objects['lineC'] = ('future-text',
+    ctx_objects['lineC'] = ('future',
                             'Waiting for rebuttal to be read and assessed')
 
     # Update on the status of the assessment.
 
 
-    if not(has(learner, 'completed_rebuttal')):
+    if not(has(learner, 'completed_rebuttal', entry_point)):
         return
 
     # From the perspective of the learner, we should always order the peers
@@ -1061,44 +1034,44 @@ def invite_reviewers(learner, trigger):
                                                            reviewer=learner,
                                                            have_emailed=False)
 
-            # Then send them an email, but only once
-            message = """
-            Reviewing and interacting with the work of other students helps
-            stimulate learning and insight you might not have developed
-            otherwise.
+            ## Then send them an email, but only once
+            #message = """
+            #Reviewing and interacting with the work of other students helps
+            #stimulate learning and insight you might not have developed
+            #otherwise.
 
-            So for the course {1} you are required to completed {0} reviews of
-            work from your peers. This is for the component of the course: {2}.
+            #So for the course {1} you are required to completed {0} reviews of
+            #work from your peers. This is for the component of the course: {2}.
 
-            Please complete the reviews as soon as possible to progress to the
-            next stages: evaluation, assessment and rebuttal.
+            #Please complete the reviews as soon as possible to progress to the
+            #next stages: evaluation, assessment and rebuttal.
 
-            You can start the review with <a href="{3}">this link</a>.
+            #You can start the review with <a href="{3}">this link</a>.
 
-            You will receive an email for every review you are to complete.
+            #You will receive an email for every review you are to complete.
 
-            Good luck!
-            """.format(GLOBAL.num_peers,
-                       trigger.entry_point.course,
-                       trigger.entry_point.LTI_title,
-                       settings.BASE_URL + '/interactive/review/' + review.unique_code)
-            subject = '[{0}]: start your peer review'.format(\
-                                                trigger.entry_point.course)
+            #Good luck!
+            #""".format(GLOBAL.num_peers,
+                       #trigger.entry_point.course,
+                       #trigger.entry_point.LTI_title,
+                       #settings.BASE_URL + '/interactive/review/' + review.unique_code)
+            #subject = '[{0}]: start your peer review'.format(\
+                                                #trigger.entry_point.course)
 
-            if not(review.have_emailed):
-                send_email(learner.email, subject, messages=message,
-                           delay_secs=5)
+            #if not(review.have_emailed):
+                #send_email(learner.email, subject, messages=message,
+                           #delay_secs=5)
 
-                # Ideally this is in the return hook, but for now leave it here.
-                review.have_emailed = True
-                review.save()
+                ## Ideally this is in the return hook, but for now leave it here.
+                #review.have_emailed = True
+                #review.save()
 
             # Update the allocation list
             allocated = ReviewReport.objects.filter(trigger=trigger,
                                                     reviewer=learner,
                                                     have_emailed=True)
 
-            completed(learner, achievement='email_to_start_reviewing')
+            #completed(learner, achievement='email_to_start_reviewing')
 
 
 # Functions related to the graph and grouping
@@ -1386,12 +1359,16 @@ def review(request, unique_code=None):
     report.save()
 
     # 2. Prevent the document from being re-uploaded by submitter
-    completed(report.submission.submitted_by, 'work_has_started_to_be_reviewed')
+    completed(report.submission.submitted_by,
+              'work_has_started_to_be_reviewed',
+              report.trigger.entry_point)
 
 
     # 3. Prevent the learner also from resubmitting
-    completed(report.reviewer, 'started_a_review')
-    completed(report.reviewer, 'work_has_started_to_be_reviewed')
+    completed(report.reviewer, 'started_a_review', report.trigger.entry_point)
+    completed(report.reviewer,
+              'work_has_started_to_be_reviewed',
+              report.trigger.entry_point)
 
     # Update the Membership, which will update the graph.
 
@@ -1794,8 +1771,6 @@ def create_rebuttal_PDF(r_actual):
     src = submission.file_upload.file.name
 
     flowables = []
-    n_evaluations = 0
-
     for idx, rubric in enumerate(rubrics):
         review_items, _ = rubric.report()
         flowables.append(Paragraph("Review from peer number {}".format(idx+1),
@@ -1829,7 +1804,9 @@ def create_rebuttal_PDF(r_actual):
         return
 
     # Only continue to generate this report if it is the last review
-    completed(learner, 'read_and_evaluated_all_reviews')
+    completed(learner, 'read_and_evaluated_all_reviews', trigger.entry_point)
+    push_grade(learner, 50.0, trigger.entry_point)
+
 
     fd, temp_file = tempfile.mkstemp(suffix='.pdf')
     doc = BaseDocTemplate(temp_file)
@@ -1905,7 +1882,6 @@ def create_assessment_PDF(r_actual):
     """
     learner = r_actual.graded_by
 
-
     flowables = []
     review_items, _ = r_actual.report()
     flowables.append(Paragraph("Rebuttal", styles['title']))
@@ -1923,7 +1899,10 @@ def create_assessment_PDF(r_actual):
     flowables.append(PageBreak())
 
     # This marks the point where the learner has completed their rebuttal
-    completed(learner, 'completed_rebuttal')
+    completed(learner, 'completed_rebuttal',
+              r_actual.rubric_template.entry_point)
+    push_grade(learner, 70.0, r_actual.rubric_template.entry_point)
+
 
     fd, temp_file = tempfile.mkstemp(suffix='.pdf')
     doc = BaseDocTemplate(temp_file)
@@ -2017,12 +1996,13 @@ def create_assessment_PDF(r_actual):
 # Functions related to the learner's progress
 #---------
 
-def has(learner, achievement, detailed=False):
+def has(learner, achievement, entry_point, detailed=False):
     """
     See if a user has completed a certain achievement.
     """
     possible = Achievement.objects.filter(learner=learner,
-                                          achieved__name=achievement)
+                                          achieved__name=achievement,
+                                          achieved__entry_point=entry_point)
     if possible.count() == 0:
         return False
     else:
@@ -2032,12 +2012,13 @@ def has(learner, achievement, detailed=False):
             return possible[0].done
 
 
-def completed(learner, achievement):
+def completed(learner, achievement, entry_point):
     """
     Complete this item for the learner's achievement
     """
     possible = Achievement.objects.filter(learner=learner,
-                                          achieved__name=achievement)
+                                          achieved__name=achievement,
+                                          achieved__entry_point=entry_point)
     if possible.count() == 0:
         completed = Achievement(learner=learner,
                         achieved=AchieveConfig.objects.get(name=achievement))
@@ -2055,8 +2036,8 @@ def reportcard(learner, entry_point, detailed=False):
 
     report = OrderedDict()
     for item in AchieveConfig.objects.filter(entry_point=entry_point)\
-                                                      .order_by('order'):
-        report[item.name] = has(learner, item.name, detailed)
+                                                      .order_by('score'):
+        report[item.name] = has(learner, item.name, entry_point, detailed)
     return report
 
 

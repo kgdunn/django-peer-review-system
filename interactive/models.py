@@ -27,7 +27,7 @@ class AchieveConfig(models.Model):
     name = models.CharField(max_length=100, help_text='Display name')
     description = models.TextField(blank=True, null=True,
                                    help_text='Detailed description')
-    order = models.PositiveSmallIntegerField(default=0)
+    score = models.PositiveSmallIntegerField(default=0)
     entry_point = models.ForeignKey('basic.EntryPoint', null=True, blank=True)
 
     achievements = models.ManyToManyField('basic.Person',
@@ -35,7 +35,7 @@ class AchieveConfig(models.Model):
                                      )
 
     def __str__(self):
-        return '[{0}] {1}'.format(self.order, self.name)
+        return '[{0}] {1}'.format(self.score, self.name)
 
 
 class Achievement(models.Model):
@@ -81,8 +81,6 @@ class Trigger(models.Model):
                               help_text='Comma separated key-value pairs')
     template = models.TextField(blank=True,
                help_text='This template will be rendered with the variables.')
-    lower = models.PositiveSmallIntegerField(help_text='Called if >= to this')
-    upper = models.PositiveSmallIntegerField(help_text='Called if <= to this')
 
 #admin_only = models.BooleanField
     start_dt = models.DateTimeField(default=timezone.now,

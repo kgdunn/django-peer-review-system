@@ -5,8 +5,8 @@ from .models import EvaluationReport, AchieveConfig, Achievement
 
 
 class AchieveConfigAdmin(admin.ModelAdmin):
-    list_display = ("name", "description", "order", "entry_point")
-    ordering = ['entry_point', "order"]
+    list_display = ("name", "description", "score", "entry_point")
+    ordering = ['entry_point', "score"]
 admin.site.register(AchieveConfig, AchieveConfigAdmin)
 
 
@@ -16,7 +16,7 @@ admin.site.register(Achievement, AchievementAdmin)
 
 
 class TriggerAdmin(admin.ModelAdmin):
-    list_display = ("name", "order", "lower", "upper", "function", "is_active",
+    list_display = ("name", "order", "function", "is_active",
                     "entry_point", "start_dt", "end_dt")
     ordering = ['order', 'name']
     list_filter = ['entry_point']

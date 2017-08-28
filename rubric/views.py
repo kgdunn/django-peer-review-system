@@ -95,13 +95,15 @@ def handle_review(request, ractual_code):
         #    item.results[4] = '\n'.join(item.results[4])
 
 
-    if has_prior_answers:
-        logger.debug('Continue-review: {0}'.format(reviewer))
+    if has_prior_answers and (show_feedback == False):
         create_hit(request, item=r_actual, event='continue-review-session',
                    user=reviewer, other_info='Returning back')
 
-    else:
+    elif has_prior_answers and show_feedback:
+        create_hit(request, item=r_actual, event='viewing-review-session',
+                   user=reviewer, other_info='Showing readonly')
 
+    else:
         r_actual.status = 'V'
         r_actual.save()
 

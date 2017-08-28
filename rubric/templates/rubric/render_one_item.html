@@ -32,18 +32,26 @@
         <div  class="LText" style="display: block;" id="item-{{item.ritem_template.order}}">
             <label for="item-{{item.ritem_template.order}}" id="item-{{item.ritem_template.order}}"></label>
             {% if show_feedback %}
-                {% if item.results.0 %}
-                    The feedback you received from your peers was:
+                {% comment "This was the old template for the 1st peer review system"%}
+                    {% if item.results.0 %}
+                        The feedback you received from your peers was:
+                        <div class="textwrapper">
+                            <textarea cols="2" rows="10" name="item-{{item.ritem_template.order}}" readonly>{{item.results.0}}</textarea>
+                        </div>
+                    {% endif %}
+                    {% if item.results.4%}
+                    The feedback you received from your instructor/TA/expert was:
                     <div class="textwrapper">
-                        <textarea cols="2" rows="10" name="item-{{item.ritem_template.order}}" readonly>{{item.results.0}}</textarea>
+                        <textarea cols="2" rows="10" name="item-{{item.ritem_template.order}}" readonly>{{item.results.4}}</textarea>
                     </div>
-                {% endif %}
-                {% if item.results.4%}
-                The feedback you received from your instructor/TA/expert was:
+                    {% endif %}
+                {% endcomment %}
+
                 <div class="textwrapper">
-                    <textarea cols="2" rows="10" name="item-{{item.ritem_template.order}}" readonly>{{item.results.4}}</textarea>
+                    <textarea style="background:#eee" cols="2" rows="{{item.ritem_template.num_rows}}" name="item-{{item.ritem_template.order}}" readonly>{% if option.prior_text %}{{option.prior_text}}{% endif %}</textarea>
                 </div>
-                {% endif %}
+
+
             {% else %}
                 <div class="textwrapper">
                     <textarea class="pr-textarea" cols="2" rows="{{item.ritem_template.num_rows}}" name="item-{{item.ritem_template.order}}" placeholder="{{option.criterion}}">{% if option.prior_text %}{{option.prior_text}}{% else %}{{option.criterion}}{% endif %}</textarea>

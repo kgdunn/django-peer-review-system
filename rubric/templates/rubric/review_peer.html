@@ -111,10 +111,11 @@
         </div>
         <div class="col2">
             <!-- Column 2 start -->
+            {{rubric_template.general_instructions|safe}}
 
             {% spaceless %}
             {% if not show_feedback %}
-                {{rubric_template.general_instructions|safe}}
+
                 <br>
                 <form action="{% url 'submit_peer_review_feedback' ractual_code=ractual_code %}"
                       method="POST" enctype="multipart/form-data">{% csrf_token %}
@@ -143,7 +144,7 @@
 </div>
 
 <div id="footer">
-<div style="float:right; padding-right: 1em; color: orange">Do not forget to submit once you are completed.</div>
+{% if not show_feedback %}<div style="float:right; padding-right: 1em; color: orange">Do not forget to submit once you are completed.</div>{%endif%}
 </div>
 
 {% endblock %}
