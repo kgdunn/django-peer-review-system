@@ -18,7 +18,7 @@ admin.site.register(Achievement, AchievementAdmin)
 class TriggerAdmin(admin.ModelAdmin):
     list_display = ("name", "order", "function", "is_active",
                     "entry_point", "start_dt", "end_dt")
-    ordering = ['order', 'name']
+    ordering = ["-entry_point", 'order', 'name']
     list_filter = ['entry_point']
 admin.site.register(Trigger, TriggerAdmin)
 

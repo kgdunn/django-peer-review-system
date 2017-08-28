@@ -9,3 +9,8 @@ def keyvalue(dictn, key):
         return dictn[key]
     except KeyError:
         return ''
+
+
+@register.filter(name='getfield')
+def getfield(obj, field):
+    return getattr(obj, field, default='')
