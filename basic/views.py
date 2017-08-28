@@ -29,8 +29,7 @@ def entry_point_discovery(request):
     logger.debug('Entering: {0} || {1}'.format(course_ID, entry_ID))
 
     if not(course_ID) or not(entry_ID):
-        return HttpResponse(("No course, or entry point were specified. "
-                             "Cannot continue. Sorry."))
+        return HttpResponse(("Homepage of the interactive peer review tool."))
 
     try:
         if ' ' in course_ID:
