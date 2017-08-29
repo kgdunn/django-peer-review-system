@@ -280,6 +280,8 @@ class EvaluationReport(models.Model):
     # We could have merged both models, but they do belong logically separate.
     unique_code = models.CharField(max_length=16, editable=False, blank=True)
 
+    # This helps us link the Evaluation report to any prior rubric/phase
+    # that came before this one.
     prior_code = models.CharField(max_length=16, editable=False, blank=True)
 
     created = models.DateTimeField(auto_now_add=True)
