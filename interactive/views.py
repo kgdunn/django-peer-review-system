@@ -1422,9 +1422,22 @@ def rebuttal(request, unique_code=None):
     """
     reports = EvaluationReport.objects.filter(unique_code=unique_code)
     if reports.count() != 1:
-        logger.error('Incorrect Rebuttal requested: {}'.format(unique_code))
-        return HttpResponse(("You've used an incorrect link. Please check the "
-                             'web address to ensure there was not a typing '
+        error = True
+
+        # Rebuttals are a special case for now. Try looking up the r_actual
+        # with that same code instead.
+
+        rubric = RubricActual.objects.filter(rubric_code=unique_code)
+        if rubric.count() == 1:
+            reports = rubric[0].evaluationreport_set.filter(sort_report='R',
+                                            evaluator=rubric[0].graded_by)
+            if reports:
+                error = False
+
+        if error:
+            logger.error('Incorrect Rebuttal requested: {}'.format(unique_code))
+            return HttpResponse(("You've used an incorrect link. Please check "
+                             'the web address to ensure there was not a typing '
                              'error.<p>No rebuttal found with that link.'))
 
     report = reports[0]

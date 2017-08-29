@@ -48,7 +48,7 @@ $(document).ready( function () {
     {% for unit in entries %}
         {% if achieved|keyvalue:unit|keyvalue:'submitted' %}
             {% with achievement=achieved|keyvalue:unit|keyvalue:'submitted' %}
-            <td><i class="fa fa-check" aria-hidden="true"></i>&nbsp;{{ achievement.when|date:"d M Y, H:i"  }}</td>
+            <td><i class="fa fa-check" aria-hidden="true"></i>&nbsp;{{ achievement.when|date:"d M Y, H:i"}}</td>
             {% endwith %}
         {% else %}
             <td><i class="fa fa-times" aria-hidden="true"></i></td>
@@ -58,7 +58,9 @@ $(document).ready( function () {
 <tr><td class="first-column">2. You completely reviewed all your peers' work</td>
     {% for unit in entries %}
         {% if achieved|keyvalue:unit|keyvalue:'completed_all_reviews' %}
-            <td><i class="fa fa-check" aria-hidden="true"></i></td>
+            {% with achievement=achieved|keyvalue:unit|keyvalue:'completed_all_reviews' %}
+            <td><i class="fa fa-check" aria-hidden="true"></i>&nbsp;{{ achievement.when|date:"d M Y, H:i"}}</td>
+            {% endwith %}
         {% else %}
             <td><i class="fa fa-times" aria-hidden="true"></i></td>
         {% endif %}
@@ -68,7 +70,9 @@ $(document).ready( function () {
 <tr><td class="first-column">3. Have read and evaluated reviews about your work</td>
     {% for unit in entries %}
         {% if achieved|keyvalue:unit|keyvalue:'read_and_evaluated_all_reviews' %}
-            <td><i class="fa fa-check" aria-hidden="true"></i></td>
+            {% with achievement=achieved|keyvalue:unit|keyvalue:'read_and_evaluated_all_reviews' %}
+            <td><i class="fa fa-check" aria-hidden="true"></i>&nbsp;{{ achievement.when|date:"d M Y, H:i"}}</td>
+            {% endwith %}
         {% else %}
             <td><i class="fa fa-times" aria-hidden="true"></i></td>
         {% endif %}
@@ -79,7 +83,9 @@ $(document).ready( function () {
 <tr><td class="first-column">4. Have completed the rebuttal</td>
     {% for unit in entries %}
         {% if achieved|keyvalue:unit|keyvalue:'completed_rebuttal' %}
-            <td><i class="fa fa-check" aria-hidden="true"></i></td>
+            {% with achievement=achieved|keyvalue:unit|keyvalue:'completed_rebuttal' %}
+            <td><i class="fa fa-check" aria-hidden="true"></i>&nbsp;{{ achievement.when|date:"d M Y, H:i"}}</td>
+            {% endwith %}
         {% else %}
             <td><i class="fa fa-times" aria-hidden="true"></i></td>
         {% endif %}
@@ -89,7 +95,9 @@ $(document).ready( function () {
 <tr><td class="first-column">5. Have assessed all rebuttals received</td>
     {% for unit in entries %}
         {% if achieved|keyvalue:unit|keyvalue:'assessed_rebuttals' %}
-            <td><i class="fa fa-check" aria-hidden="true"></i></td>
+            {% with achievement=achieved|keyvalue:unit|keyvalue:'assessed_rebuttals' %}
+            <td><i class="fa fa-check" aria-hidden="true"></i>&nbsp;{{ achievement.when|date:"d M Y, H:i"}}</td>
+            {% endwith %}
         {% else %}
             <td><i class="fa fa-times" aria-hidden="true"></i></td>
         {% endif %}
