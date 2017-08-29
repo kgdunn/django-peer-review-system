@@ -271,9 +271,6 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
             submission = submit_inst
 
 
-            push_grade(learner, 10.0, entry_point)
-
-
             # Send an email
             """
             The user has submitted their document:
@@ -310,7 +307,7 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
 
 
             # Learner has completed this step:
-            completed(learner, 'submitted', entry_point)
+            completed(learner, 'submitted', entry_point, push_grade=True)
 
             # Finished creating a new group. Now check if we have enough
             # reviewers to invite.
@@ -669,8 +666,8 @@ def get_line5(learner, trigger, summaries):
 
 
     if n_rebuttals_completed == GLOBAL.num_peers:
-        completed(learner, 'assessed_rebuttals', trigger.entry_point)
-        push_grade(learner, 90.0, trigger.entry_point)
+        completed(learner, 'assessed_rebuttals',
+                  trigger.entry_point, push_grade=True)
 
 
     # All done!
