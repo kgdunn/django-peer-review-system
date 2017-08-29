@@ -42,7 +42,7 @@ from rubric.views import (handle_review, get_create_actual_rubric,
                           get_learner_details)
 from rubric.models import RubricTemplate, RubricActual
 from grades.models import GradeItem, LearnerGrade
-from grades.views import push_grade
+from grades.views import push_grade as push_to_gradebook
 from submissions.views import get_submission, upload_submission
 from submissions.models import Submission
 from submissions.forms import (UploadFileForm_one_file,
@@ -90,7 +90,7 @@ def starting_point(request, course=None, learner=None, entry_point=None):
     3. Render the page.
     """
     # Step 1:
-    if not push_grade(learner, 0.0, entry_point, testing=True):
+    if not push_to_gradebook(learner, 0.0, entry_point, testing=True):
         return HttpResponse('Please create a GradeItem attached to this Entry')
 
     # Step 2: Call all triggers:
@@ -463,8 +463,9 @@ def get_line1(learner, trigger, summaries):
 
 
     if sum(reviews_completed) == GLOBAL.num_peers:
-        completed(learner, 'completed_all_reviews', trigger.entry_point)
-        push_grade(learner, 30.0, trigger.entry_point)
+        completed(learner, 'completed_all_reviews',
+                  trigger.entry_point, push_grade=True)
+
 
     for idx in range(GLOBAL.num_peers-len(out)):
 
@@ -668,7 +669,7 @@ def get_line5(learner, trigger, summaries):
 
 
     if n_rebuttals_completed == GLOBAL.num_peers:
-        completed(learner, 'assessed_rebuttals	', trigger.entry_point)
+        completed(learner, 'assessed_rebuttals', trigger.entry_point)
         push_grade(learner, 90.0, trigger.entry_point)
 
 
@@ -1577,6 +1578,8 @@ def reportlab_styles():
 
 styles = reportlab_styles()
 default = styles['default']
+
+# all margins are 1.5cm on A4 paper
 default_frame = Frame(1.5*cm, 1.5*cm, A4[0]-3.0*cm, A4[1]-3.0*cm, id=None)
 
 def report_render_rubric(r_actual, flowables):
@@ -1777,10 +1780,8 @@ def create_rebuttal_PDF(r_actual):
     # Only continue to generate this report if it is the last review
     completed(learner,
               'read_and_evaluated_all_reviews',
-              r_actual.rubric_template.trigger.entry_point)
-    push_grade(learner, 50.0, r_actual.rubric_template.trigger.entry_point)
+              r_actual.rubric_template.trigger.entry_point, push_grade=True)
 
-    # all margins are 1.5cm on A4 paper
 
     fd, temp_file = tempfile.mkstemp(suffix='.pdf')
     doc = BaseDocTemplate(temp_file)
@@ -1867,12 +1868,10 @@ def create_assessment_PDF(r_actual):
 
     # This marks the point where the learner has completed their rebuttal
     completed(learner, 'completed_rebuttal',
-              r_actual.rubric_template.entry_point)
-    push_grade(learner, 70.0, r_actual.rubric_template.entry_point)
+              r_actual.rubric_template.entry_point, push_grade=True)
 
 
     fd, temp_file = tempfile.mkstemp(suffix='.pdf')
-
     doc = BaseDocTemplate(temp_file)
     doc.addPageTemplates([PageTemplate( frames=[default_frame,]),])
     doc.build(flowables)
@@ -1976,9 +1975,16 @@ def has(learner, achievement, entry_point, detailed=False):
             return possible[0].done
 
 
-def completed(learner, achievement, entry_point):
+def completed(learner, achievement, entry_point, push_grade=False,
+              score_override=0.0):
     """
-    Complete this item for the learner's achievement
+    Complete this item for the learner's achievement.
+
+    Note: grades are only pushed to the DB once, the first time the status
+          changes for field ``.done``.
+
+          However, if you use ``score_override``, it will always write the
+          value you provide in ``score_override`` to the gradebook.
     """
     possible = Achievement.objects.filter(learner=learner,
                                           achieved__name=achievement,
@@ -1989,8 +1995,19 @@ def completed(learner, achievement, entry_point):
     else:
         completed = possible[0]
 
-    completed.done = True
-    completed.save()
+    if not(completed.done):
+        # Only write to the DB if absolutely necessary.
+        completed.done = True
+        completed.save()
+
+        if push_grade:
+            if not(score_override):
+                push_to_gradebook(learner, completed.achieved.score,
+                                  trigger.entry_point)
+
+    if score_override:
+        push_to_gradebook(learner, score_override, trigger.entry_point)
+
 
 
 def reportcard(learner, entry_point, detailed=False):

@@ -133,6 +133,8 @@ def get_create_student(request, course):
         if LTI_consumer == 'edx' and 'Administrator' in role:
             role = 'Admin'
 
+        user_ID = '{}-{}'.format(user_ID, role.lower())
+
         existing_learner = Person.objects.filter(email=email,
                                                     user_ID=user_ID,
                                                     role=role)

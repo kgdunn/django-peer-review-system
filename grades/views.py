@@ -315,7 +315,6 @@ def push_grades_to_platform(sourcedid, grade_value):
 
     Will return "True" if the grade was successfully set; else it returns None.
     """
-
     try:
         grade = float(grade_value)
     except ValueError:
@@ -332,7 +331,9 @@ def push_grades_to_platform(sourcedid, grade_value):
                             shell=True,
                             stdout=subprocess.PIPE)
     script_response = proc.stdout.read()
-    logger.debug('Grades [{0}]: {1}'.format(sourcedid, script_response))
+    logger.debug('Grade pushed [{0}]{{{1}}}: {2}'.format(sourcedid,
+                                                         grade,
+                                                         script_response))
 
     if script_response.decode('utf-8').find('Grade was set') >= 0:
         return True
@@ -352,7 +353,6 @@ def push_grade(learner, grade_value, entry_point, testing=False):
 
     >>> sourcedid = request.POST.get('lis_result_sourcedid', '')
     """
-    logger.debug((learner, grade_value, entry_point, testing))
     gradeitem = GradeItem.objects.filter(entry=entry_point)
     if gradeitem:
         gitem = gradeitem[0]
