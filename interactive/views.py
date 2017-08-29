@@ -1656,14 +1656,7 @@ def create_evaluation_PDF(r_actual):
 
     fd, temp_file = tempfile.mkstemp(suffix='.pdf')
     doc = BaseDocTemplate(temp_file)
-    doc.addPageTemplates(
-        [   PageTemplate(
-                frames=[
-                    Frame(doc.leftMargin, doc.bottomMargin, doc.width,
-                          doc.height,id=None),]
-            ),
-        ]
-    )
+    doc.addPageTemplates([PageTemplate( frames=[default_frame,]),])
     doc.build(flowables)
     os.close(fd)
 
@@ -1791,7 +1784,7 @@ def create_rebuttal_PDF(r_actual):
 
     fd, temp_file = tempfile.mkstemp(suffix='.pdf')
     doc = BaseDocTemplate(temp_file)
-    doc.addPageTemplates([ PageTemplate( frames=[default_frame,]),])
+    doc.addPageTemplates([PageTemplate( frames=[default_frame,]),])
     doc.build(flowables)
     os.close(fd)
 
@@ -1880,20 +1873,8 @@ def create_assessment_PDF(r_actual):
 
     fd, temp_file = tempfile.mkstemp(suffix='.pdf')
 
-
-
-
-
     doc = BaseDocTemplate(temp_file)
-
-    doc.addPageTemplates(
-        [   PageTemplate(
-            frames=[
-                Frame(doc.leftMargin, doc.bottomMargin, doc.width,
-                          doc.height,id=None),]
-            ),
-            ]
-    )
+    doc.addPageTemplates([PageTemplate( frames=[default_frame,]),])
     doc.build(flowables)
     os.close(fd)
 
