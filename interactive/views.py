@@ -1482,6 +1482,16 @@ def assessment(request, unique_code=None):
         report.r_actual = rebut_actual
         report.save()
 
+
+    # One final step: set the rebuttal rubric from which the assessment
+    # is derived to locked.
+    rebuttal_ract = RubricActual.objects.filter(rubric_code=report.prior_code)
+    if rebuttal_ract:
+        if rebuttal_ract[0].status == 'C':
+            rebuttal_ract[0].status = 'L'
+            rebuttal_ract[0].save()
+
+    # Now pass this on to be
     return handle_review(request, report.r_actual.rubric_code)
 
 
@@ -1947,11 +1957,14 @@ def create_assessment_PDF(r_actual):
                                 peer_reviewer=peer.learner,
         )
 
-        # DO NOT assign the unique_code. Let it be automatically created.
-        # We want different codes for the different peers, so we get
-        # N_peers distinct assessments.
+        # DO NOT assign the unique_code. Let it be automatically created when
+        # the .save() function is called. We want different codes for the
+        # different peers, so we get N_peers distinct assessments.
         #prior_assess.unique_code = token
 
+        # But, we definitely want linkage back to the rebuttal rubric, so
+        # store that in the EvaluationReport
+        prior_assess.prior_code = r_actual.rubric_code
         prior_assess.submission = new_sub
         prior_assess.save()
 
