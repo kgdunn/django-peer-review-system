@@ -45,7 +45,7 @@ class Person(models.Model):
             )
 
     is_active = models.BooleanField(default=True, help_text=('NOT USED'))
-    email = models.EmailField(blank=False)
+    email = models.EmailField(blank=True, default='')
     student_number = models.CharField(max_length=15, blank=True, default='')
 
     display_name = models.CharField(max_length=400, verbose_name='Display name',
