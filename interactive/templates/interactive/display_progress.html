@@ -55,7 +55,7 @@ $(document).ready( function () {
         {% endif %}
     {% endfor %}
 </tr>
-<tr><td class="first-column">2. You completely reviewed your peers' work</td>
+<tr><td class="first-column">2. You completely reviewed all your peers' work</td>
     {% for unit in entries %}
         {% if achieved|keyvalue:unit|keyvalue:'completed_all_reviews' %}
             <td><i class="fa fa-check" aria-hidden="true"></i></td>

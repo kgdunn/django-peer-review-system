@@ -1422,10 +1422,10 @@ def rebuttal(request, unique_code=None):
     """
     reports = EvaluationReport.objects.filter(unique_code=unique_code)
     if reports.count() != 1:
-        logger.error('Incorrect Evaluation requested: {}'.format(unique_code))
+        logger.error('Incorrect Rebuttal requested: {}'.format(unique_code))
         return HttpResponse(("You've used an incorrect link. Please check the "
                              'web address to ensure there was not a typing '
-                             'error.<p>No evaluation found with that link.'))
+                             'error.<p>No rebuttal found with that link.'))
 
     report = reports[0]
 
@@ -1438,6 +1438,7 @@ def rebuttal(request, unique_code=None):
                                                 submission=report.submission,
                                                 rubric_code=report.unique_code)
         report.r_actual = rebut_actual
+        report.r_acutal.next_code = unique_code
         report.save()
 
     return handle_review(request, report.r_actual.rubric_code)
