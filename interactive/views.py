@@ -1569,7 +1569,7 @@ def reportlab_styles():
         parent=styles['default'],
         fontName='Helvetica-Bold',
         fontSize=14,
-        leading=24,
+        leading=18,
         alignment=TA_LEFT,
         textColor=black,
     )
@@ -1577,6 +1577,7 @@ def reportlab_styles():
 
 styles = reportlab_styles()
 default = styles['default']
+default_frame = Frame(1.5*cm, 1.5*cm, A4[0]-3.0*cm, A4[1]-3.0*cm, id=None)
 
 def report_render_rubric(r_actual, flowables):
     """
@@ -1607,7 +1608,7 @@ def report_render_rubric(r_actual, flowables):
 
         flowables.append(Paragraph(item.ritem_template.criterion,
                                    styles['header']))
-        flowables.append(Spacer(1, 6))
+        flowables.append(Spacer(1, 3))
 
 
         flowables.append(ListFlowable(formatted_options(item.options),
@@ -1615,7 +1616,7 @@ def report_render_rubric(r_actual, flowables):
                                       bulletFontSize=8,
                                       bulletOffsetY=0,
                                       start='circle'))
-        flowables.append(Spacer(1, 12))
+        flowables.append(Spacer(1, 6))
 
 
 
@@ -1786,17 +1787,11 @@ def create_rebuttal_PDF(r_actual):
               r_actual.rubric_template.trigger.entry_point)
     push_grade(learner, 50.0, r_actual.rubric_template.trigger.entry_point)
 
+    # all margins are 1.5cm on A4 paper
 
     fd, temp_file = tempfile.mkstemp(suffix='.pdf')
     doc = BaseDocTemplate(temp_file)
-    doc.addPageTemplates(
-        [   PageTemplate(
-            frames=[
-                    Frame(doc.leftMargin, doc.bottomMargin, doc.width,
-                          doc.height,id=None),]
-                ),
-            ]
-    )
+    doc.addPageTemplates([ PageTemplate( frames=[default_frame,]),])
     doc.build(flowables)
     os.close(fd)
 
@@ -1884,7 +1879,13 @@ def create_assessment_PDF(r_actual):
 
 
     fd, temp_file = tempfile.mkstemp(suffix='.pdf')
+
+
+
+
+
     doc = BaseDocTemplate(temp_file)
+
     doc.addPageTemplates(
         [   PageTemplate(
             frames=[
