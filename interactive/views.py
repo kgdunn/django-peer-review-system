@@ -636,7 +636,7 @@ def get_line5(learner, trigger, summaries):
         link = ('{3}<a href="/interactive/assessment/{0}" target="_blank">'
                 '{1}</a> {2}')
         out[idx] = ('', link.format(rebuttal.unique_code,
-                                    'Assess their rebuttal',
+                                    'Read and assess their rebuttal',
                                     'of your review', ''))
 
         extra = 'Assess it'
@@ -1449,7 +1449,7 @@ def rebuttal(request, unique_code=None):
                                                 submission=report.submission,
                                                 rubric_code=report.unique_code)
         report.r_actual = rebut_actual
-        report.r_acutal.next_code = unique_code
+        report.r_actual.next_code = unique_code
         report.save()
 
     return handle_review(request, report.r_actual.rubric_code)
@@ -2000,7 +2000,7 @@ def completed(learner, achievement, entry_point, push_grade=False,
         if push_grade:
             if not(score_override):
                 push_to_gradebook(learner, completed.achieved.score,
-                                  trigger.entry_point)
+                                  entry_point)
 
     if score_override:
         push_to_gradebook(learner, score_override, trigger.entry_point)
