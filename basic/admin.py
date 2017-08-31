@@ -20,8 +20,9 @@ admin.site.register(Person, PersonAdmin)
 
 
 class EntryPointAdmin(admin.ModelAdmin):
-    list_display = ("LTI_title", "course", "uses_groups", "LTI_system",
+    list_display = ("LTI_title", "course", "order", "uses_groups", "LTI_system",
                     "LTI_id")
+    ordering = ['order',]
 admin.site.register(EntryPoint, EntryPointAdmin)
 
 

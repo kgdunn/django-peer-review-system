@@ -93,7 +93,7 @@
         <h3>Read-only report</h3>
         The report from a prior review is shown below. It could be your reviw, or from a peer. It is read-only as no further changes/additions can be made at this time.
     {% else %}
-        <h3>Hello {{person.display_name}}</h3>
+        <h3>Hello {% comment %}person.display_name <-- not correct always{% endcomment%}</h3>
         <p>The work you are required to review is shown below.
         {# <span style="color: orange">You can start the review, come back later to continue editing and adding feedback. Your work is continually saved as you type and evaluate your peers.</span>#}
         If you do not see any document here then you should please <a href="/{{submission.file_upload.url}}" target="_blank">first download it</a>.
