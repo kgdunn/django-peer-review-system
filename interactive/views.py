@@ -335,6 +335,9 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
     else:
         trigger.allow_submit = True
 
+    if learner.role in ('admin',):
+        trigger.allow_submit = False  # prevent issues with instructor's upload
+
     ctx_objects['submission'] = trigger.template
 
     if trigger.submission:
