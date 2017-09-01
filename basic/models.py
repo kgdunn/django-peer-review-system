@@ -29,11 +29,6 @@ class Course(models.Model):
     def __str__(self):
         return u'%s' % self.name
 
-    #def save(self, *args, **kwargs):
-    #    super(Course, self).save(*args, **kwargs)
-
-
-
 
 class Person(models.Model):
     """
@@ -69,7 +64,6 @@ class Person(models.Model):
 
 class Group(models.Model):
     """ Used when learners work/submit in groups."""
-    #gp = models.ForeignKey(Group_Formation_Process)
     course = models.ForeignKey(Course)
     name = models.CharField(max_length=300, verbose_name="Group name")
     description = models.TextField(blank=True,

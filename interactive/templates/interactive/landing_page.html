@@ -11,6 +11,8 @@
 }
 </style>
 
+{% if learner.role == 'Learn' %}
+
 {{submission|safe}}
 
 <hr>
@@ -36,5 +38,16 @@
 <hr>
 
 {% include "interactive/summary.html" %}
+
+{% endif %}
+
+{# ------------------------------------------------------------------------#}
+{% if learner.role == 'Admin' %}
+
+<h2>Welcome administrator!</h2>
+You cannot submit, or participate in the review process, but soon there will be functionality added here for you to observe the review process.
+
+{% endif %}
+
 
 {% endblock %}

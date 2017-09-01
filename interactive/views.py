@@ -271,26 +271,25 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
             submission = submit_inst
 
 
-            # Send an email
-            """
-            The user has submitted their document:
-            * send email to thank them
-            * indicate that they can upload a new version
-            * however, we wait until a pool of reviewers are available.
-            """
-            if trigger.subject and trigger.message and \
-                                                 trigger.send_email_on_success:
-                ctx = {'LTI_title': entry_point.LTI_title,
-                       'filename': submission.submitted_file_name}
+            # Send an email here, if needed.
+            #"""
+            #The user has submitted their document:
+            #* send email to thank them
+            #* indicate that they can upload a new version
+            #* however, we wait until a pool of reviewers are available.
+            #"""
+            #if trigger.subject and trigger.message and \
+                                                 #trigger.send_email_on_success:
+                #ctx = {'LTI_title': entry_point.LTI_title,
+                       #'filename': submission.submitted_file_name}
 
-                subject = insert_evaluate_variables(trigger.subject, ctx)
-                message = insert_evaluate_variables(trigger.message, ctx)
-                send_email(learner.email,
-                           subject,
-                           messages=message,
-                           delay_secs=5)
+                #subject = insert_evaluate_variables(trigger.subject, ctx)
+                #message = insert_evaluate_variables(trigger.message, ctx)
+                #send_email(learner.email,
+                           #subject,
+                           #messages=message,
+                           #delay_secs=5)
 
-            # else: don't send a message by email.
 
             # Create a group with this learner as the submitter
             already_exists = Membership.objects.filter(learner=learner,

@@ -44,7 +44,8 @@ def entry_point_discovery(request):
     # Create the person only if they are visiting from a valid ``course``
     person = get_create_student(request, course)
     try:
-        entry_point = EntryPoint.objects.get(LTI_id=entry_ID)
+        entry_point = EntryPoint.objects.get(LTI_id=entry_ID,
+                                             course=course)
     except (EntryPoint.DoesNotExist, EntryPoint.MultipleObjectsReturned):
         message = ('No entry point; or duplicate entry points. "Live mode"?'
           ' resource_link_id={} or context_id={}').format(entry_ID, course_ID)
