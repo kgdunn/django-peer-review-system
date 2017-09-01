@@ -417,9 +417,15 @@ def get_line1(learner, trigger, summaries):
     valid_subs = Submission.objects.filter(entry_point=trigger.entry_point,
                             is_valid=True).exclude(status='A')
 
+    if valid_subs:
+        submission_trigger = valid_subs[0].trigger
+    else:
+        submission_trigger = None
+
+
     # All ReviewReport that have been Allocated for Review to this learner
-    allocated_reviews = ReviewReport.objects.filter(reviewer=learner)\
-                                 .order_by('-created') # for consistency
+    allocated_reviews = ReviewReport.objects.filter(reviewer=learner,
+        entry_point=trigger.entry_point).order_by('-created') # for consistency
 
     reviews_completed = [False, ] * GLOBAL.num_peers
     for idx, review in enumerate(allocated_reviews):
@@ -482,8 +488,8 @@ def get_line2(learner, trigger, summaries):
     Get the Summary and text display related to the evaluation being read.
     """
     out = []
-    allocated_reviews = ReviewReport.objects.filter(reviewer=learner)\
-        .order_by('-created') # for consistency
+    allocated_reviews = ReviewReport.objects.filter(reviewer=learner,
+        entry_point=trigger.entry_point).order_by('-created') # for consistency
 
     for idx in range(GLOBAL.num_peers):
         out.append(('future', 'Waiting for peer to read your review'))
@@ -515,8 +521,8 @@ def get_line3(learner, trigger, summaries):
     Get the Summary and text display related to the evaluation being evaluated.
     """
     out = []
-    allocated_reviews = ReviewReport.objects.filter(reviewer=learner)\
-        .order_by('-created') # for consistency
+    allocated_reviews = ReviewReport.objects.filter(reviewer=learner,
+        entry_point=trigger.entry_point).order_by('-created') # for consistency
 
     for idx in range(GLOBAL.num_peers):
         out.append(('future', 'Waiting for peer to evaluate your review'))
@@ -577,8 +583,8 @@ def get_line4(learner, trigger, summaries):
     if not(has(learner, 'completed_all_reviews', trigger.entry_point)):
         return out
 
-    allocated_reviews = ReviewReport.objects.filter(reviewer=learner)\
-            .order_by('-created') # for consistency
+    allocated_reviews = ReviewReport.objects.filter(reviewer=learner,
+        entry_point=trigger.entry_point).order_by('-created') # for consistency
 
 
     # We use ``allocated_reviews`` to ensure consistency of order,
@@ -611,8 +617,8 @@ def get_line5(learner, trigger, summaries):
     if not(has(learner, 'completed_all_reviews', trigger.entry_point)):
         return out
 
-    allocated_reviews = ReviewReport.objects.filter(reviewer=learner)\
-            .order_by('-created') # for consistency
+    allocated_reviews = ReviewReport.objects.filter(reviewer=learner,
+        entry_point=trigger.entry_point).order_by('-created') # for consistency
 
 
     # We use ``allocated_reviews`` to ensure consistency of order,
@@ -1012,14 +1018,14 @@ def invite_reviewers(learner, trigger):
     for learner in graph.graph.nodes():
         # These ``Persons`` have a valid submission. Invite them to review.
         # Has a reviewer been allocated this submission yet?
-        allocated = ReviewReport.objects.filter(trigger=trigger,
+        allocated = ReviewReport.objects.filter(entry_point=trigger.entry_point,
                                                 reviewer=learner)
 
         if allocated.count() == GLOBAL.num_peers:
             continue
 
         for idx in range(GLOBAL.num_peers - allocated.count()):
-            review = ReviewReport(trigger=trigger,
+            review = ReviewReport(entry_point=trigger.entry_point,
                                   reviewer=learner)
             review.save()
 

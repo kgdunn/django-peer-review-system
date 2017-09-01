@@ -4,5 +4,6 @@ from submissions.models import Submission
 class SubmissionAdmin(admin.ModelAdmin):
     list_display = ("submitted_by", "status", "is_valid", "file_upload",
                     "submitted_file_name", "group_submitted", "trigger",
-                    "datetime_submitted")
+                    "entry_point", "datetime_submitted")
+    list_filter = ['entry_point']
 admin.site.register(Submission, SubmissionAdmin)
