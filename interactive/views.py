@@ -77,10 +77,8 @@ class GLOBAL_Class(object):
     pass
 GLOBAL = GLOBAL_Class()
 GLOBAL.num_peers = 2
-GLOBAL.min_in_pool_before_grouping_starts = 3
-GLOBAL.min_extras_before_more_groups_added = 3
+GLOBAL.min_in_pool_before_grouping_starts = 6
 
-assert(GLOBAL.min_extras_before_more_groups_added >= (GLOBAL.num_peers+1))
 
 def starting_point(request, course=None, learner=None, entry_point=None):
     """

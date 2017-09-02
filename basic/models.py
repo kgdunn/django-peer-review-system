@@ -140,4 +140,4 @@ class EntryPoint(models.Model):
        help_text='Django function, with syntax: "app_name.views.function_name"')
 
     def __str__(self):
-        return self.LTI_title
+        return '[{0}]:{1}'.format(self.course, self.LTI_title)
