@@ -372,7 +372,7 @@ def your_reviews_of_your_peers(trigger, learner, entry_point=None,
             <li class="{9}">{10}</li>
         </ul>
         </span>
-        """.format(idx+1,
+        """.format(chr(idx+65),
                    peer['line1'][idx][0],
                    peer['line1'][idx][1],
                    peer['line2'][idx][0],
@@ -1623,7 +1623,7 @@ def create_evaluation_PDF(r_actual):
     report = ReviewReport.objects.get(unique_code=r_actual.rubric_code)
     # From the perspective of the submitter, which peer am I?
     rubrics = RubricActual.objects.filter(submission=report.submission).order_by('created')
-    peer_number = 0
+    peer_number = 64
     for idx, rubric in enumerate(rubrics):
         if report.reviewer == rubric.graded_by:
             peer_number = idx + 1
@@ -1640,8 +1640,8 @@ def create_evaluation_PDF(r_actual):
 
 
     flowables = []
-    flowables.append(Paragraph("Review from peer number {}".format(peer_number),
-                  styles['title']))
+    flowables.append(Paragraph("Review from peer number {}".format(\
+                chr(peer_number)), styles['title']))
     flowables.append(Spacer(1, 6))
     flowables.append(Paragraph(("The option in bold represents the one selected"
                                 " by your reviewer."), default))
@@ -1739,8 +1739,8 @@ def create_rebuttal_PDF(r_actual):
     flowables = []
     for idx, rubric in enumerate(rubrics):
         review_items, _ = rubric.report()
-        flowables.append(Paragraph("Review from peer number {}".format(idx+1),
-                                   styles['title']))
+        flowables.append(Paragraph("Review from peer number {}".format(\
+                                chr(idx+65)), styles['title']))
         flowables.append(Spacer(1, 6))
         flowables.append(Paragraph(("The option in bold represents the one "
                                     "selected by the reviewer."), default))
