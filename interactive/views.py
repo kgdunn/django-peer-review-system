@@ -108,6 +108,9 @@ def starting_point(request, course=None, learner=None, entry_point=None):
                 }
     ctx_objects.update(csrf(request)) # add the csrf; used in forms
 
+    if learner.id == 37:
+        print('asd')
+
 
     # First run through to ensure all triggers exist
     for trigger in triggers:
@@ -131,7 +134,9 @@ def starting_point(request, course=None, learner=None, entry_point=None):
         # met, and we are within the time range for it.
 
         run_trigger = True
-        if (trigger.start_dt > now_time) and (trigger.end_dt <= now_time):
+        if (trigger.start_dt > now_time):
+            run_trigger = False
+        if (trigger.end_dt) and (trigger.end_dt <= now_time):
             run_trigger = False
         if not(run_trigger):
             continue
@@ -221,7 +226,7 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
         trigger.accepted_file_types_comma_separated = 'PDF'
 
     if not(getattr(trigger, 'max_file_upload_size_MB', False)):
-        trigger.max_file_upload_size_MB = 10
+        trigger.max_file_upload_size_MB = 5
 
     if not(hasattr(trigger, 'send_email_on_success')):
         trigger.send_email_on_success = False

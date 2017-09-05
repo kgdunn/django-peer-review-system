@@ -82,19 +82,23 @@ class Trigger(models.Model):
     template = models.TextField(blank=True,
                help_text='This template will be rendered with the variables.')
 
-#admin_only = models.BooleanField
     start_dt = models.DateTimeField(default=timezone.now,
-                                verbose_name='Earliest time for this trigger',)
-    end_dt = models.DateTimeField(default=timezone.now,
-                                verbose_name='Latest time for this trigger',)
+            verbose_name='Earliest time for this trigger',
+            help_text='Trigger will not run prior to the start date/time')
+    end_dt = models.DateTimeField(default=timezone.now, blank=True, null=True,
+            verbose_name='Latest time for this trigger',
+            help_text='Trigger will not run after the start date/time')
 
-
+    deadline_dt = models.DateTimeField(default=None, blank=True, null=True,
+            verbose_name='Deadline date and time',
+            help_text=('Sometimes you want a deadline to use in your logic. '
+                       'Set it here.'))
 
     def __str__(self):
-        return '[{0};{3}] {1}: "{2}"'.format(self.order,
-                                         self.name,
-                                         self.function,
-                                         self.entry_point)
+        return '[{0};{1}] {2}: "{3}"'.format(self.order,
+                                             self.entry_point,
+                                             self.function[0:8],
+                                             self.name)
 
 
 class GroupConfig(models.Model):

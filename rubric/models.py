@@ -70,9 +70,7 @@ class RubricTemplate(models.Model):
                        'must exist in the "interactive" views.py application.'))
 
     def __str__(self):
-        return u'[{0}]{{{1}}} {2}'.format(self.trigger,
-                                                  self.entry_point,
-                                                  self.title)
+        return u'{0}. [{1}] {2}'.format(self.id, self.trigger, self.title)
 
 
 class RubricActual(models.Model):
