@@ -40,7 +40,6 @@ class AchieveConfig(models.Model):
                                            self.name,
                                          )
 
-
 class Achievement(models.Model):
     """
     """
