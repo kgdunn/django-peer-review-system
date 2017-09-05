@@ -238,15 +238,16 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
 
     submission_error_message = ''
     if kwargs['request'].FILES:
+
         submit_inst = upload_submission(kwargs['request'],
                                         learner,
-                                        entry_point,
                                         trigger)
 
         # One final check: has a reviewer been allocated to this review yet?
-        sub = Membership.objects.filter(role='Submit', learner=learner)
-        if sub.count():
-            group = sub[0].group
+        group_submitter = Membership.objects.filter(role='Submit',
+                                                    learner=learner)
+        if group_submitter.count():
+            group = group_submitter[0].group
             reviewers = Membership.objects.filter(role='Review',
                                                   group=group,
                                                   fixed=True)
@@ -275,24 +276,6 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
 
 
             # Send an email here, if needed.
-            #"""
-            #The user has submitted their document:
-            #* send email to thank them
-            #* indicate that they can upload a new version
-            #* however, we wait until a pool of reviewers are available.
-            #"""
-            #if trigger.subject and trigger.message and \
-                                                 #trigger.send_email_on_success:
-                #ctx = {'LTI_title': entry_point.LTI_title,
-                       #'filename': submission.submitted_file_name}
-
-                #subject = insert_evaluate_variables(trigger.subject, ctx)
-                #message = insert_evaluate_variables(trigger.message, ctx)
-                #send_email(learner.email,
-                           #subject,
-                           #messages=message,
-                           #delay_secs=5)
-
 
             # Create a group with this learner as the submitter
             already_exists = Membership.objects.filter(learner=learner,

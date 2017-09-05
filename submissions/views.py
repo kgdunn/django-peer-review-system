@@ -244,12 +244,13 @@ def create_thumbnail():
 
 
 
-def upload_submission(request, learner, entry_point, trigger, no_thumbnail=True):
+def upload_submission(request, learner, trigger, no_thumbnail=True):
     """
     Handles the upload of the user's submission.
     """
     base_dir_for_file_uploads = settings.MEDIA_ROOT
     thumbnail_file_name_django = ''
+    entry_point = trigger.entry_point
 
     files = request.FILES.getlist('file_upload', None)
     if files is None:
@@ -330,21 +331,20 @@ def upload_submission(request, learner, entry_point, trigger, no_thumbnail=True)
                                  trigger.accepted_file_types_comma_separated))
 
 
-
     group_members = None #get_group_information(learner, entry_point.gf_process)
     group_members = {'group_instance': None}
     if (group_members['group_instance'] is None) and (entry_point.uses_groups\
                                                       ==False):
         # Uses individual submissions:
         prior = Submission.objects.filter(status='S',
-                                            submitted_by=learner,
-                                            entry_point=entry_point,
-                                            trigger=trigger,
-                                            is_valid=True
-                                         )
+                                          submitted_by=learner,
+                                          entry_point=entry_point,
+                                          trigger=trigger,
+                                          is_valid=True
+                                        )
 
     else:
-        # Has this group submitted this before?
+        # TODO: we don't use this yet. Has this group submitted this before?
         prior = Submission.objects.filter(status='S',
                                 group_submitted=group_members['group_instance'],
                                 entry_point=entry_point,
