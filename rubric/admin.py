@@ -48,7 +48,7 @@ admin.site.register(ROptionActual, ROptionActualAdmin)
 
 
 class ROptionTemplateAdmin(admin.ModelAdmin):
-    list_display = ("rubric_item", "order", "score", )
+    list_display = ("rubric_item", "order", "score", 'criterion')
     ordering = ['rubric_item', 'order']
 
     list_filter = ['rubric_item__r_template',

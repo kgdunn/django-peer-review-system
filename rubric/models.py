@@ -70,7 +70,9 @@ class RubricTemplate(models.Model):
                        'must exist in the "interactive" views.py application.'))
 
     def __str__(self):
-        return u'%s' % self.title
+        return u'[{0}]{{{1}}} {2}'.format(self.trigger,
+                                                  self.entry_point,
+                                                  self.title)
 
 
 class RubricActual(models.Model):
@@ -212,7 +214,9 @@ class RItemTemplate(models.Model):
         super(RItemTemplate, self).save(*args, **kwargs)
 
     def __str__(self):
-        return u'%d. %s' % (self.order, self.criterion[0:50])
+        return u'[{0}] {1}. {2}'.format(self.r_template,
+                                        self.order,
+                                        self.criterion[0:50])
 
 
 class RItemActual(models.Model):

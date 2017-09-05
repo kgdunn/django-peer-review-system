@@ -23,6 +23,7 @@ class EntryPointAdmin(admin.ModelAdmin):
     list_display = ("LTI_title", "course", "order", "uses_groups", "LTI_system",
                     "LTI_id")
     ordering = ['order',]
+    list_filter = ['course']
 admin.site.register(EntryPoint, EntryPointAdmin)
 
 

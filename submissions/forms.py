@@ -6,7 +6,8 @@ class UploadFileForm_one_file(forms.Form):
     file_upload = forms.FileField(
                 widget=forms.ClearableFileInput(
                     attrs={'multiple': False,
-                           'initial_text': "Please upload your submission"}))
+                           'initial_text': "Please upload your submission"}),
+                label="Upload your submission")
 
 class UploadFileForm_multiple_file(forms.Form):
 
@@ -16,11 +17,11 @@ class UploadFileForm_multiple_file(forms.Form):
                            'initial_text': "Select 1 or more files"}))
 
 
-class UploadFF(forms.ModelForm):
+#class UploadFF(forms.ModelForm):
 
-    learner_ID = forms.TextInput(attrs=None)
-    class Meta:
-        model= Submission
-        fields = ( 'file_upload',)
+    #learner_ID = forms.TextInput(attrs=None)
+    #class Meta:
+        #model= Submission
+        #fields = ( 'file_upload',)
 
 

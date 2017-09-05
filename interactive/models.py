@@ -91,9 +91,10 @@ class Trigger(models.Model):
 
 
     def __str__(self):
-        return '[{0}] {1}: "{2}"'.format(self.order,
+        return '[{0};{3}] {1}: "{2}"'.format(self.order,
                                          self.name,
-                                         self.function)
+                                         self.function,
+                                         self.entry_point)
 
 
 class GroupConfig(models.Model):

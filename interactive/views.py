@@ -77,7 +77,7 @@ class GLOBAL_Class(object):
     pass
 GLOBAL = GLOBAL_Class()
 GLOBAL.num_peers = 2
-GLOBAL.min_in_pool_before_grouping_starts = 6
+GLOBAL.min_in_pool_before_grouping_starts = 3
 
 
 def starting_point(request, course=None, learner=None, entry_point=None):
@@ -1026,6 +1026,7 @@ def invite_reviewers(learner, trigger):
 
         for idx in range(GLOBAL.num_peers - allocated.count()):
             review = ReviewReport(entry_point=trigger.entry_point,
+                                  trigger=trigger,
                                   reviewer=learner)
             review.save()
 
@@ -1285,26 +1286,26 @@ def review(request, unique_code=None):
             return handle_review(request, unique_code)
 
 
-    graph = group_graph(report.trigger.entry_point)
+    graph = group_graph(report.entry_point)
     submitter = graph.get_submitter_for(reviewer=report.reviewer)
 
     if submitter is None:
         logger.error('NO MORE SUBMITTERS FOR {}; entry point "{}". '.format(\
                                         report.reviewer,
-                                        report.trigger.entry_point))
-        return HttpResponse(('The pool of available reviews is currently '
-                             'zero. Please wait and return later to get a '
-                             'review after one of your peer uploads. '))
+                                        report.entry_point))
+        return HttpResponse(('The number of available reviews is currently '
+                             'ZERO. Please wait and return later to get a '
+                             'review after one of your peers uploads. '))
 
 
     valid_subs = Submission.objects.filter(is_valid=True,
-                                    entry_point=report.trigger.entry_point,
+                                    entry_point=report.entry_point,
                                     trigger=report.trigger,
                                     submitted_by=submitter).exclude(status='A')
     if valid_subs.count() != 1:
         logger.error(('Found more than 1 valid Submission for {} in entry '
                       'point "{}". Or a prior error occured'.format(valid_subs,
-                                                   report.trigger.entry_point)))
+                                                   report.entry_point)))
         return HttpResponse(("You've used an incorrect link; or a problem with "
                              'the peer review system has occurred. Please '
                              'content k.g.dunn@tudelft.nl with the approximate '
@@ -1318,14 +1319,14 @@ def review(request, unique_code=None):
     # 2. Prevent the document from being re-uploaded by submitter
     completed(report.submission.submitted_by,
               'work_has_started_to_be_reviewed',
-              report.trigger.entry_point)
+              report.entry_point)
 
 
     # 3. Prevent the learner also from resubmitting
-    completed(report.reviewer, 'started_a_review', report.trigger.entry_point)
+    completed(report.reviewer, 'started_a_review', report.entry_point)
     completed(report.reviewer,
               'work_has_started_to_be_reviewed',
-              report.trigger.entry_point)
+              report.entry_point)
 
     # Update the Membership, which will update the graph.
 
@@ -1333,7 +1334,7 @@ def review(request, unique_code=None):
         submitter_member = Membership.objects.get(learner=submitter,
                                                   role='Submit',
                                                   fixed=True,
-                            group__entry_point=report.trigger.entry_point)
+                            group__entry_point=report.entry_point)
 
         new_membership, _ = Membership.objects.get_or_create(role='Review',
                                                              fixed=True,
