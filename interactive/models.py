@@ -35,7 +35,10 @@ class AchieveConfig(models.Model):
                                      )
 
     def __str__(self):
-        return '[{0}] {1}'.format(self.score, self.name)
+        return '[{0}] [{1}] "{2}"'.format(self.entry_point,
+                                           self.score,
+                                           self.name,
+                                         )
 
 
 class Achievement(models.Model):

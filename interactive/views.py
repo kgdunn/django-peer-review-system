@@ -1982,8 +1982,16 @@ def completed(learner, achievement, entry_point, push_grade=False,
                                           achieved__name=achievement,
                                           achieved__entry_point=entry_point)
     if possible.count() == 0:
+        try:
+            achieve_config = AchieveConfig.objects.get(name=achievement,
+                                                   entry_point=entry_point)
+        except AchieveConfig.DoesNotExist:
+            logger.error(('CRITICAL: create this achievement "{0}" for '
+                          'entry_point: {1}').format(achievement,
+                                                     entry_point))
+
         completed = Achievement(learner=learner,
-                        achieved=AchieveConfig.objects.get(name=achievement))
+                                achieved=achieve_config)
     else:
         completed = possible[0]
 

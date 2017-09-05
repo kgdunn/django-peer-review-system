@@ -11,8 +11,16 @@ admin.site.register(AchieveConfig, AchieveConfigAdmin)
 
 
 class AchievementAdmin(admin.ModelAdmin):
-    list_display = ("learner", "achieved", "when")
+    list_display = ("learner", "achieved", "when", "get_ep")
+
+    def get_ep(self, obj):
+        return str(obj.achieved.entry_point)
+
+    get_ep.admin_order_field = 'entry_point'
+    get_ep.short_description = 'Entry Point'
+
 admin.site.register(Achievement, AchievementAdmin)
+
 
 
 class TriggerAdmin(admin.ModelAdmin):
