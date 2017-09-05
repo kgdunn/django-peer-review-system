@@ -431,7 +431,7 @@ def get_line1(learner, trigger, summaries):
                 reviews_completed[idx] = True
                 summary = Summary(date=prior[0].completed,
                    action='You completed review number {0}; thank you!'\
-                              .format(review.order, GLOBAL.num_peers),
+                              .format(chr(review.order+64), GLOBAL.num_peers),
                    link=('<a href="/interactive/review/{0}" target="_blank">'
                          'View</a>').format(review.unique_code),
                    catg='rev')
@@ -498,8 +498,8 @@ def get_line2(learner, trigger, summaries):
                 out[idx] = ('', 'Peer has read your review')
 
                 summaries.append(Summary(date=report.r_actual.created,
-                            action='Peer {0} read your review.'.format(idx+1),
-                            link='', catg='rev')
+                            action='Peer {0} read your review.'.format(\
+                                chr(idx+65)), link='', catg='rev')
                         )
 
     return out
@@ -547,7 +547,7 @@ def get_line3(learner, trigger, summaries):
 
 
                 summary = Summary(action='Peer {0} evaluated your review.'.\
-                                                      format(idx+1),
+                                                      format(chr(idx+65)),
                                   date=report.r_actual.evaluated,
                                   link=link.format(eval_code, 'View'),
                                   catg='rev')
@@ -652,7 +652,8 @@ def get_line5(learner, trigger, summaries):
         except RubricActual.DoesNotExist:
             pass
 
-        summary = Summary(action='Rebuttal written by peer {0}.'.format(idx+1),
+        summary = Summary(action='Rebuttal written by peer {0}.'.format(\
+                          chr(idx+65)),
                           date=rebuttal.created,
                           link=link.format(rebuttal.unique_code, extra, '', ''),
                           catg='rev')
