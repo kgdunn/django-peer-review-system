@@ -243,16 +243,19 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
                                         learner,
                                         trigger)
 
-        # One final check: has a reviewer been allocated to this review yet?
+        # One final check: has a reviewer been allocated to this review
+        # from this entry_point yet?
         group_submitter = Membership.objects.filter(role='Submit',
-                                                    learner=learner)
+                                            learner=learner,
+                                            group__entry_point=entry_point)
+
         if group_submitter.count():
             group = group_submitter[0].group
             reviewers = Membership.objects.filter(role='Review',
                                                   group=group,
                                                   fixed=True)
 
-            if reviewers.count():
+            if reviewers.count() and prior_submission:
                 logger.debug(('New submission set to False: {0} as item has '
                           'just started review.'.format(submit_inst)))
                 submit_inst.is_valid = False
@@ -279,8 +282,9 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
 
             # Create a group with this learner as the submitter
             already_exists = Membership.objects.filter(learner=learner,
-                                                       role='Submit',
-                                                       fixed=True).count()
+                                            role='Submit',
+                                            group__entry_point=entry_point,
+                                            fixed=True).count()
             if not(already_exists):
                 new_group = GroupConfig(entry_point=trigger.entry_point)
                 new_group.save()
@@ -469,6 +473,14 @@ def get_line1(learner, trigger, summaries):
             out.append(('', 'Waiting for a peer to submit their work ...'))
             continue
 
+    if (allocated_reviews.count()==0) and len(out) != GLOBAL.num_peers:
+        # This code shouldn't occur, but it is a catch, in the case of
+        # inconsistencies in the database.
+        logger.warn(('Code catch around inconsistencies in the allocated '
+                     'reviews; please investigate.'))
+        for idx in range(GLOBAL.num_peers):
+            out.append(('', 'You must submit before you can review others.'))
+
     return out
 
 def get_line2(learner, trigger, summaries):
@@ -583,6 +595,7 @@ def get_line4(learner, trigger, summaries):
         if not review.submission:
             continue
         rebut_reports = EvaluationReport.objects.filter(sort_report='A',
+                                       trigger__entry_point=trigger.entry_point,
                                        evaluator=review.submission.submitted_by)
 
         if rebut_reports:
@@ -620,6 +633,7 @@ def get_line5(learner, trigger, summaries):
             continue
         rebut_reports = EvaluationReport.objects.filter(sort_report='A',
                                        evaluator=review.submission.submitted_by,
+                                       trigger__entry_point=trigger.entry_point,
                                        peer_reviewer=learner)
 
         if rebut_reports:
@@ -998,7 +1012,7 @@ def invite_reviewers(learner, trigger):
     # The number of Submissions should be equal to the nubmer of nodes in graph:
     graph = group_graph(trigger.entry_point)
     if len(valid_subs) != graph.graph.order():
-        logger.warn(('Number of valid subs [{0}]is not equal to graph '
+        logger.warn(('Number of valid subs [{0}] is not equal to graph '
                 'order [{1}]'.format(len(valid_subs), graph.graph.order())))
         # Rather return; fix it up and then come back later
 

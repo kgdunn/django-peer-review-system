@@ -23,12 +23,29 @@ $(document).ready( function () {
 </script>
 
 <style>
+
+
+#overall_progress tbody td{
+    text-align:center;
+    vertical-align:middle;
+}
 .first-column{
     padding-right: 20px;
     padding-top:   10px;
     padding-bottom: 10px;
+}
+.achieved_dt{
+    color: dodgerblue;
 
 }
+.verb{
+    font-weight: bold;
+    font-family: Lato;
+    font-size: 120%;
+}
+
+
+
 </style>
 {% endblock %}
 
@@ -40,27 +57,33 @@ $(document).ready( function () {
 <thead><tr>
 <td style="font-size:28">Achievement</td>
 {% for unit in entries %}
-    <td style="font-size:20">{{unit.LTI_title}}</td>
+    <td style="font-size:20; font-weight: bold">
+    {% if unit.full_URL%}
+        <a href="{{unit.full_URL}}" target="_blank">{{unit.LTI_title}}</a>
+    {% else %}
+        {{unit.LTI_title}}
+    {% endif %}
+    </td>
 {% endfor %}
 </tr></thead>
 <tbody>
-<tr><td class="first-column" >1. Submitted a document</td>
+<tr><td class="first-column" style="text-align:right;"><span class="verb">Submitted</span> a document</td>
 
     {% for unit in entries %}
         {% if achieved|keyvalue:unit|keyvalue:'submitted' %}
             {% with achievement=achieved|keyvalue:unit|keyvalue:'submitted' %}
-            <td><i class="fa fa-check" aria-hidden="true"></i>&nbsp;{{ achievement.when|date:"d M Y, H:i"}}</td>
+            <td><i class="fa fa-check" aria-hidden="true"></i>&nbsp;<br><span class="achieved_dt">{{ achievement.when|date:"d M Y, H:i"}}</span></td>
             {% endwith %}
         {% else %}
             <td><i class="fa fa-times" aria-hidden="true"></i></td>
         {% endif %}
     {% endfor %}
 </tr>
-<tr><td class="first-column">2. You completely reviewed all your peers' work</td>
+<tr><td class="first-column" style="text-align:right;">Completely <span class="verb">reviewed</span> all your peers' work</td>
     {% for unit in entries %}
         {% if achieved|keyvalue:unit|keyvalue:'completed_all_reviews' %}
             {% with achievement=achieved|keyvalue:unit|keyvalue:'completed_all_reviews' %}
-            <td><i class="fa fa-check" aria-hidden="true"></i>&nbsp;{{ achievement.when|date:"d M Y, H:i"}}</td>
+            <td><i class="fa fa-check" aria-hidden="true"></i>&nbsp;<br><span class="achieved_dt">{{ achievement.when|date:"d M Y, H:i"}}</span></td>
             {% endwith %}
         {% else %}
             <td><i class="fa fa-times" aria-hidden="true"></i></td>
@@ -68,11 +91,11 @@ $(document).ready( function () {
     {% endfor %}
 </tr>
 
-<tr><td class="first-column">3. Have read and evaluated reviews about your work</td>
+<tr><td class="first-column" style="text-align:right;">Have read and <span class="verb">evaluated</span> reviews about your work</td>
     {% for unit in entries %}
         {% if achieved|keyvalue:unit|keyvalue:'read_and_evaluated_all_reviews' %}
             {% with achievement=achieved|keyvalue:unit|keyvalue:'read_and_evaluated_all_reviews' %}
-            <td><i class="fa fa-check" aria-hidden="true"></i>&nbsp;{{ achievement.when|date:"d M Y, H:i"}}</td>
+            <td><i class="fa fa-check" aria-hidden="true"></i>&nbsp;<br><span class="achieved_dt">{{ achievement.when|date:"d M Y, H:i"}}</span></td>
             {% endwith %}
         {% else %}
             <td><i class="fa fa-times" aria-hidden="true"></i></td>
@@ -81,11 +104,11 @@ $(document).ready( function () {
 </tr>
 
 
-<tr><td class="first-column">4. Have completed the rebuttal</td>
+<tr><td class="first-column" style="text-align:right;">Have completed the <span class="verb">rebuttal</span></td>
     {% for unit in entries %}
         {% if achieved|keyvalue:unit|keyvalue:'completed_rebuttal' %}
             {% with achievement=achieved|keyvalue:unit|keyvalue:'completed_rebuttal' %}
-            <td><i class="fa fa-check" aria-hidden="true"></i>&nbsp;{{ achievement.when|date:"d M Y, H:i"}}</td>
+            <td><i class="fa fa-check" aria-hidden="true"></i>&nbsp;<br><span class="achieved_dt">{{ achievement.when|date:"d M Y, H:i"}}</span></td>
             {% endwith %}
         {% else %}
             <td><i class="fa fa-times" aria-hidden="true"></i></td>
@@ -93,11 +116,11 @@ $(document).ready( function () {
     {% endfor %}
 </tr>
 
-<tr><td class="first-column">5. Have assessed all rebuttals received</td>
+<tr><td class="first-column" style="text-align:right;">Have <span class="verb">assessed</span> all rebuttals received</td>
     {% for unit in entries %}
         {% if achieved|keyvalue:unit|keyvalue:'assessed_rebuttals' %}
             {% with achievement=achieved|keyvalue:unit|keyvalue:'assessed_rebuttals' %}
-            <td><i class="fa fa-check" aria-hidden="true"></i>&nbsp;{{ achievement.when|date:"d M Y, H:i"}}</td>
+            <td><i class="fa fa-check" aria-hidden="true"></i>&nbsp;<br><span class="achieved_dt">{{ achievement.when|date:"d M Y, H:i"}}</span></td>
             {% endwith %}
         {% else %}
             <td><i class="fa fa-times" aria-hidden="true"></i></td>
