@@ -55,6 +55,10 @@ class RubricTemplate(models.Model):
     show_median_words_with_complaint = models.BooleanField(default=True,
             help_text='Shows the word count and complains if below median.')
 
+    minimum_word_count = models.PositiveSmallIntegerField(default=0,
+            help_text=('If greater than zero, will require the user to fill in '
+                       'a minimum number of words.'))
+
     thankyou_template = models.TextField(default='Thank-you ...',
         help_text=('The following replacements are available: {{r_actual}}, '
                    '{{n_missing}} (number of missing items); '

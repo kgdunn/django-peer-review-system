@@ -41,8 +41,6 @@ class Person(models.Model):
 
     is_active = models.BooleanField(default=True, help_text=('NOT USED'))
     email = models.EmailField(blank=True, default='')
-    student_number = models.CharField(max_length=15, blank=True, default='')
-
     display_name = models.CharField(max_length=400, verbose_name='Display name',
                                    blank=True)
 
@@ -57,9 +55,7 @@ class Person(models.Model):
     modified = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return u'{0} [{1}]({2})'.format(self.email,
-                                        self.user_ID[0:5],
-                                        self.role)
+        return u'[{0}]({1})'.format(self.user_ID[0:8], self.role)
 
 
 class Group(models.Model):

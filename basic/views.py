@@ -116,7 +116,7 @@ def get_create_student(request, course):
 
     if LTI_consumer in ('brightspace', 'edx', 'coursera', 'profed'):
         # We can successfully determine the platform.
-        email = request.POST.get('lis_person_contact_email_primary', '')
+        #email = request.POST.get('lis_person_contact_email_primary', '')
         display_name = request.POST.get('lis_person_name_full', '')
         if LTI_consumer in ('edx', 'profed'):
             display_name = display_name or \
@@ -136,14 +136,13 @@ def get_create_student(request, course):
 
         user_ID = '{}-{}'.format(user_ID, role.lower())
 
-        existing_learner = Person.objects.filter(email=email,
-                                                    user_ID=user_ID,
-                                                    role=role)
+        existing_learner = Person.objects.filter(user_ID=user_ID, role=role)
         if existing_learner:
             newbie = False
             learner = existing_learner[0]
         else:
-            learner, newbie = Person.objects.get_or_create(email=email,
+            # Don't store user's email address: we don't need it
+            learner, newbie = Person.objects.get_or_create(#email=email,
                                                            user_ID=user_ID,
                                                            role=role,
                                                            course=course)
@@ -181,7 +180,7 @@ def get_create_student(request, course):
     if learner:
         # Augments the learner with extra fields that might not have been there
         if learner.user_ID == '':
-            logger.info('Augumented user_ID on %s' % learner.email)
+            #logger.info('Augumented user_ID on %s' % learner.email)
             learner.user_ID = user_ID
             learner.display_name = display_name
             learner.save()

@@ -167,7 +167,7 @@ def starting_point(request, course=None, learner=None, entry_point=None):
 
     ctx_objects['summary_list'] = summaries
     if settings.DEBUG:
-        ctx_objects['header'] = '<h2>{}</h2>'.format(learner.email)
+        ctx_objects['header'] = '<h2>{}</h2>'.format(learner.display_name)
 
     html = loader.render_to_string('interactive/landing_page.html',
                                     ctx_objects)
@@ -1006,8 +1006,8 @@ def invite_reviewers(learner, trigger):
     if not(valid_subs.count() >= GLOBAL.min_in_pool_before_grouping_starts):
         return
 
-    # We have enough Submissions instances for the current trigger to send
-    # emails to all potential reviewers: it is time to start reviewing
+    # We have enough Submissions instances for the current trigger:
+    # it is time to start reviewing
     #
     # The number of Submissions should be equal to the nubmer of nodes in graph:
     graph = group_graph(trigger.entry_point)
@@ -1042,7 +1042,7 @@ class group_graph(object):
     Creates the group graph.
 
     Rules:
-    1. Nodes are ``Person`` instances. We get the email address from the node.
+    1. Nodes are ``Person`` instances.
     2. A node is added to the graph if, and only if, the person has submitted.
     3. Edges are directed. From a submitter, to a reviewer.
     4. An edge is only created if the reviewer has opened (therefore seen) the
@@ -1259,9 +1259,9 @@ class group_graph(object):
 def review(request, unique_code=None):
     """
     A review link (with ``unique_code``) is created the moment we have enough
-    submitters to pool up. The link is created, and shown in the user-interface
-    and (perhaps) they are emailed. When they visit that link, the review
-    process starts:
+    submitters to pool up. The link is created, and shown in the user-interface.
+    When they visit that link, the review process starts:
+
     1/ Select a submission to attach this to, if not already attached.
     2/ prevent the document from being re-uploaded by submitter
     3/ prevent the document from being re-uploaded by submitter - another time

@@ -13,8 +13,7 @@ admin.site.register(Course, CourseAdmin)
 
 
 class PersonAdmin(admin.ModelAdmin):
-    list_display = ("email", "display_name", "is_active", "user_ID", "last_lis",
-                    "role")
+    list_display = ("display_name", "is_active", "user_ID", "last_lis", "role")
 admin.site.register(Person, PersonAdmin)
 
 
