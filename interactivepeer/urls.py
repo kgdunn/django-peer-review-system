@@ -45,10 +45,11 @@ urlpatterns = [
 
 
     # The rest of the entry points:
-    url(r'(?P<course_code>.+)/(?P<entry_code>.+)/',
+    url(r'course/(?P<course_code>.+)/(?P<entry_code>.+)/',
         include('basic.urls'),
         name='basic'),
 
+    url(r'', include('basic.urls'), name='basic'),
 
 ]
 

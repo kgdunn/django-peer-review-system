@@ -41,10 +41,20 @@ def entry_point_discovery(request, course_code=None, entry_code=None):
     entry_ID = request.POST.get('resource_link_id', None)or(settings.DEBUG and \
                                     request.GET.get('resource_link_id', None))
 
+
+    info = get_course_ep_info(request)
+    if (course_code is None) and isinstance(info['course'], Course):
+        course_ID = info['course'].label
+
+    if (entry_code is None) and isinstance(info['entry_point'], EntryPoint):
+        if info['entry_point']:
+            entry_ID = info['entry_point'].LTI_id
+
     if course_ID or entry_ID:
         logger.debug('POST entry: {0} || {1}'.format(course_ID, entry_ID))
     else:
         logger.debug('GET  entry: {0} || {1}'.format(course_code, entry_code))
+
 
     # Required for web-based access
     course_ID = course_ID or course_code
@@ -53,20 +63,22 @@ def entry_point_discovery(request, course_code=None, entry_code=None):
     if not(course_ID) or not(entry_ID):
         return HttpResponse(("Homepage of the interactive peer review tool."))
 
+
     course = None
     try:
         if ' ' in course_ID:
             course_ID = course_ID.replace(' ', '+') # For edX course ID's
 
         course = Course.objects.get(label=course_ID)
+        request.session['course'] = course.id
     except Course.DoesNotExist:
         return HttpResponse('Configuration error. Try context_id={}\n'.format(\
                             course_ID))
 
     entry_point = None
     try:
-        entry_point = EntryPoint.objects.get(LTI_id=entry_ID,
-                                             course=course)
+        entry_point = EntryPoint.objects.get(LTI_id=entry_ID, course=course)
+        request.session['entry_point'] = entry_point.id
     except (EntryPoint.DoesNotExist, EntryPoint.MultipleObjectsReturned):
         message = ('No entry point; or duplicate entry points. "Live mode"?'
           ' resource_link_id={} or context_id={}').format(entry_ID, course_ID)
@@ -84,6 +96,11 @@ def entry_point_discovery(request, course_code=None, entry_code=None):
 
     if (message):
         return HttpResponse(message)
+
+    # Finally, send the user back for another round, now that we have
+    # used the session to store the information.
+    if  (course_code is not None) or (entry_code is not None):
+        return HttpResponseRedirect('/')
 
     if request.POST.get('lis_result_sourcedid', ''):
         # Update only if needed.
@@ -184,8 +201,7 @@ def get_create_student(request, course, entry_point):
         if LTI_consumer in ('website',):
             learner.user_ID = 'Stu-{}'.format(learner.pk)
             learner.save()
-            message = handle_website_sign_in(learner, newbie, course,
-                                             entry_point)
+            message = handle_website_sign_in(learner, newbie, request)
 
 
     elif request.POST.get('learner_ID', '') or (settings.DEBUG and \
@@ -206,21 +222,40 @@ def get_create_student(request, course, entry_point):
             # Find the learner in this course
             # TODO still. This is the case where the same email address is used
             #             in more than 1 platform (e.g. Brightspace and edX)
-            return learner[0], message
+            learner = learner[0]
         else:
             learner = None
+        #end
+
+    elif request.session.get('person_id', ''):
+        learner = Person.objects.filter(id=request.session.get('person_id'),
+                                        course=course)
+        if learner.count() == 1:
+            learner = learner[0]
+        elif learner.count() > 1:
+            logger.error(('Website version: multiple enrollments [{0}]. '
+                          'This should not occur.').format(learner))
+            # TODO still. This is the case where the same email address is used
+            #             in more than 1 platform (e.g. Brightspace and edX)
+            learner = learner[0]
+        else:
+            learner = None
+        #end
+        if not(learner.is_validated):
+            learner = None
+
     else:
         return None, message
 
     if newbie:
         learner.display_name = display_name
         learner.save()
-        logger.info('Created/saved new learner: %s' % learner.display_name)
+        logger.info('Created/saved new learner: {}'.format(learner.email))
 
     if learner:
         # Augments the learner with extra fields that might not have been there
         if learner.user_ID == '':
-            #logger.info('Augumented user_ID on %s' % learner.email)
+            logger.info('Augumented user_ID on {}'.format(learner.email))
             learner.user_ID = user_ID
             learner.display_name = display_name
             learner.save()
@@ -232,7 +267,7 @@ def get_create_student(request, course, entry_point):
     return learner, message
 
 
-def handle_website_sign_in(learner, is_newbie, course, entry_point):
+def handle_website_sign_in(learner, is_newbie, request):
 
     if is_newbie:
 
@@ -240,9 +275,7 @@ def handle_website_sign_in(learner, is_newbie, course, entry_point):
         #          has never been validated on our site before.
         #          But the email address they provided might still be faulty.
 
-        token = create_token_send_email_check_success(learner,
-                                                      course,
-                                                      entry_point)
+        token = create_token_send_email_check_success(learner, request)
         token.save()
         return ("An account has been created for you, but must "
                 "be actived. Please check your email and "
@@ -250,15 +283,13 @@ def handle_website_sign_in(learner, is_newbie, course, entry_point):
 
     else:
         # Not a newbie
-        token = create_token_send_email_check_success(learner,
-                                                      course,
-                                                      entry_point)
+        token = create_token_send_email_check_success(learner, request)
         token.save()
         return ("<i>Welcome back!</i> Please check your email, "
                 "and click on the link that we emailed you.")
 
 
-def create_token_send_email_check_success(person, course, entry_point):
+def create_token_send_email_check_success(person, request):
     """ Used during signing in a new user, or an existing user. A token to
     is created, and an email is sent.
     If the email succeeds, then we return with success, else, we indicate
@@ -271,9 +302,13 @@ def create_token_send_email_check_success(person, course, entry_point):
 
     # Send them an email
     send_suitable_email(person, hash_value)
+    info = get_course_ep_info(request)
     token = Token(person=person,
-                  hash_value=hash_value,)
-                  #next_uri = ....)
+                  hash_value=hash_value,
+                  next_uri = '{}/{}/{}/'.format(DJANGO_SETTINGS.BASE_URL,
+                                                info['course'].label,
+                                                info['entry_point'].LTI_id)
+                )
 
     # All finished; return what we have (unsaved ``token`` instance)
     return token
@@ -326,10 +361,13 @@ def validate_user(request, hashvalue):
         message = ('That validation key has been already used. Please request '
                    'another .')
         logger.warn('REUSE of token: {}'.format(hashvalue))
+    token.person.is_validated = True
+    token.person.save()
 
-    return sign_in_user(request, hashvalue, renderit=False)
+    return sign_in_user(request, hashvalue)
 
-def sign_in_user(request, hashvalue, renderit=True):
+
+def sign_in_user(request, hashvalue):
     """ User is sign-in with the unique hashcode sent to them,
         These steps are used once the user has successfully been validated,
         or if sign-in is successful.
@@ -342,9 +380,41 @@ def sign_in_user(request, hashvalue, renderit=True):
     token = get_object_or_404(Token, hash_value=hashvalue)
     token.was_used = True
     token.save()
+
+    # The key technology that enables website-based operation of the Peer
+    # Review system; set the person id in the session (stored on the server DB)
     request.session['person_id'] = token.person.id
     logger.info('RETURNING USER: {0}'.format(token.person))
-
-    next_uri = reverse('basic:entry_point_discovery')
-
     return HttpResponseRedirect('/')
+
+
+def get_course_ep_info(request):
+    """
+    Returns a dictionary of information about the current person.
+    """
+    person = None
+    if request.session.get('person_id', False):
+        try:
+            person = Person.objects.get(id=request.session['person_id'])
+            if not(person.is_validated == True):
+                person = None
+        except Person.DoesNotExist:
+            pass
+
+    courses = Course.objects.filter(id=request.session.get('course', 0))
+    if courses.count() == 1:
+        course = courses[0]
+    else:
+        course = None
+
+    entry_points = EntryPoint.objects.filter(\
+                                       id=request.session.get('entry_point', 0))
+    if entry_points.count() == 1:
+        entry_point = entry_points[0]
+    else:
+        entry_point = None
+
+    return {'learner': person,
+            'course': course,
+            'entry_point': entry_point,
+            }

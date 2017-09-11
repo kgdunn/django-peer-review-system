@@ -2,8 +2,7 @@ from django.contrib import admin
 
 from .models import Course, Person
 from .models import EntryPoint
-from .models import Group, GroupEnrolled
-
+from .models import Group, GroupEnrolled, Token
 
 
 class CourseAdmin(admin.ModelAdmin):
@@ -39,3 +38,8 @@ class GroupEnrolledAdmin(admin.ModelAdmin):
 admin.site.register(GroupEnrolled, GroupEnrolledAdmin)
 
 
+
+
+class TokenAdmin(admin.ModelAdmin):
+    list_display = ("person", "was_used", "hash_value", "time_used", "next_uri")
+admin.site.register(Token, TokenAdmin)
