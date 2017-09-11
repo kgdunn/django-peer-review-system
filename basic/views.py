@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 @csrf_exempt
 @xframe_options_exempt
-def entry_point_discovery(request):
+def entry_point_discovery(request, course_code=None, entry_code=None):
     """
     All entries from the 3rd party LTI page start here. Bootstrap code to run
     on every request.

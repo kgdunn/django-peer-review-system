@@ -19,12 +19,6 @@ Including another URLconf
 """
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
-    url(r'', include('basic.urls')),
-
-
-    # If you extend the LTI tool, add a URLs file.
-    url(r'grades/', include('grades.urls')),
-
 
     # The interactive (main page)
     url(r'interactive/', include('interactive.urls')),
@@ -32,9 +26,24 @@ urlpatterns = [
     # The review/rubric filling part, (re)submitting, XHR events
     url(r'review/', include('rubric.urls')),
 
+    # The rest of the entry points:
+    url(r'(?P<course_code>.+)/(?P<entry_code>.+)/', include('basic.urls')),
+
+    #url(r'^review/(?P<ractual_code>.+)/$',
+
 
 
 ]
+
+#urlpatterns = [
+    #url(r'^(?P<course_code>[\w-]+)-(?P<entry_code>\w+)/', include([
+        #url(r'^history/$', views.history),
+        #url(r'^edit/$', views.edit),
+        #url(r'^discuss/$', views.discuss),
+        #url(r'^permissions/$', views.permissions),
+    #])),
+#]
+
 
 if settings.DEBUG:
     from django.conf.urls.static import static
