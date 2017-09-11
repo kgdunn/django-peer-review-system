@@ -3,51 +3,7 @@
 {% load template_extras %}
 
 
-{% block header %}
-<script type="text/javascript">
-    var closePopup = function(event){
-        $("#popup-message-back").text('');
-        $('#popup-submit-button').parents('.ui-btn').show();
-        $('#popup-OK-span').hide();
-        $('#sign-in-popup').popup("close");
-        event.preventDefault();
-        };
-    $(function() {
-    $('#popup-OK-span').hide();
-    $('#sign-in-popup-form').submit(function(event) {
-        var form = $(this);
-
-        $.ajax({
-          type: form.attr('method'),
-          url:  form.attr('action'),
-          cache: false,
-          data: form.serialize(),
-          dataType: "html",
-          beforeSend: function( xhr ) {
-                $("#popup-message-back").text('Please wait ... (can take a few seconds)');
-                $("#popup-message-back").css('color','green');
-                $("#popup-submit-button").prop('disabled', true);
-            }
-        }).done(function(data) {
-            $("#popup-message-back").css('color','blue');
-            $("#popup-message-back").html(data);
-            $('#popup-OK-span').show();
-            $('#popup-submit-button').parents('.ui-btn').hide();
-            $('#popup-OK-span').click(closePopup);
-        }).fail(function(data) {
-            $("#popup-message-back").css('color','red');
-            $("#popup-message-back").text(data.responseText)
-        }).always(function(data){
-            $("#popup-submit-button").prop('disabled', false);
-            $("#popup-message-back").show();
-        });
-        event.preventDefault(); // Prevent the form from submitting via the browser.
-      });
-    });
-</script>
-
-<style></style>
-{% endblock %}
+{% block header %}{% endblock %}
 
 
 {% block content %}
