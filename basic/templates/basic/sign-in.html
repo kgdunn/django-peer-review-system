@@ -52,32 +52,22 @@
 
 {% block content %}
 
-<div data-role="rsm-header">
-    <div class="rsm-sign-in-button">
-        <div data-role="main" class="ui-content">
-            <a href="#sign-in-popup" id="sign-in-popup-link" data-rel="popup" class="ui-btn ui-icon ui-btn-inline ui-corner-all {% if enabled %}ui-icon-check blue{% else %}ui-icon-gear red{% endif %} ui-btn-icon-left" name="sign-in-popup-link">
-            {% if enabled %}{{ person.display_name }}{% else %}Sign-in{% endif %}
-            </a>
-            <div data-role="popup" id="sign-in-popup" class="ui-content" data-transition="pop" style="min-width:250px;">
-                <form method="post" id="sign-in-popup-form" action="{% url 'rsmapp:popup_sign_in' %}" name="sign-in-popup-form">
-                    {% csrf_token %}
-                    <div>
-                        <h3>Sign in with your email address</h3>
-                        <em>New user</em>? We send a confirmation email.<br>
-                        <em>Returning user</em>? We send a unique link, by email.
-                        <label for="usrnm" class="ui-hidden-accessible">Email address:</label>
-                        <input type="email" name="emailaddress" id="usrnm" placeholder="Your email address">
-                        <span id="popup-message-back"></span>
-                        <br>
-                        <input id="popup-submit-button" type="submit" data-rel="back" data-inline="true" value="Email me a code to get started!">
-                        <span id="popup-OK-span"><input id="popup-OK-button" type="button" data-inline="true" value="OK"></span>
-                        <br>
-                        <em>Note</em>: we do not use passwords on this website.
-                    </div>
-                </form>
-            </div>
-        </div>
+<h2>Sign-in</h2>
+<form method="post" id="sign-in-popup-form" action="#" name="sign-in-popup-form">
+    {% csrf_token %}
+    <div>
+        <em>New user</em>? We send a confirmation email.<br>
+        <em>Returning user</em>? We send a unique link, by email.
+        <br>
+        <label for="usrnm" class="ui-hidden-accessible">Email address:</label>
+        <input type="email" name="emailaddress" id="usrnm" placeholder="Your email address">
+        <span id="popup-message-back"></span>
+        <br>
+        <input id="popup-submit-button" type="submit" data-rel="back" data-inline="true" value="Email me a code to get started!">
+        <span id="popup-OK-span"><input id="popup-OK-button" type="button" data-inline="true" value="OK"></span>
+        <br>
+        <em>Note</em>: we do not use passwords on this website.
     </div>
-</div>
+</form>
 
 {% endblock %}

@@ -21,13 +21,19 @@ urlpatterns = [
     url(r'^admin/', admin.site.urls),
 
     # The interactive (main page)
-    url(r'interactive/', include('interactive.urls')),
+    url(r'interactive/',
+        include('interactive.urls'),
+        name='interactive'),
 
     # The review/rubric filling part, (re)submitting, XHR events
-    url(r'review/', include('rubric.urls')),
+    url(r'review/',
+        include('rubric.urls'),
+        name='rubric'),
 
     # The rest of the entry points:
-    url(r'(?P<course_code>.+)/(?P<entry_code>.+)/', include('basic.urls')),
+    url(r'(?P<course_code>.+)/(?P<entry_code>.+)/',
+        include('basic.urls'),
+        name='basic'),
 
     #url(r'^review/(?P<ractual_code>.+)/$',
 
