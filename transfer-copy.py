@@ -3,10 +3,8 @@
 
 from rubric.models import RubricTemplate, RItemTemplate
 from basic.models import Course, EntryPoint
-#from interactive.models import AchieveConfig
 
-
-
+#--------------------
 # AIM: Create a new set of triggers for all courses, and all entry points.
 # Specify the course, and the entry_point manually, via the LTI_ID
 # (which is assumed to have been created already)
@@ -49,21 +47,20 @@ for target in target_entries:
 #--------------------
 
 
-
 # Now you have the triggers. The next step is to create rubric templates.
 
 # These have the added complexity that you have a .trigger, .next_trigger and
 # item templates and option templates that depend on them.
 orig_course = Course.objects.get(name='SEN2321')
 orig_ep = EntryPoint.objects.get(course=orig_course,
-                                 LTI_id='1931107264')
+                                 LTI_id='1475539468')
 
-targ_course = Course.objects.get(name='SEN2321')
+targ_course = Course.objects.get(name='Prep MSc')
 targ_ep = EntryPoint.objects.get(course=targ_course,
-                                 LTI_id='1371427444')
+                                 LTI_id='1475539468')
 
-src_template_name = 'LD1 assessment'
-new_title = 'LD5 assessment'
+src_template_name = 'LD2 peer review'
+new_title = src_template_name  # <-- because we are copying course-to-course
 
 template = RubricTemplate.objects.get(entry_point=orig_ep,
                                          title=src_template_name)

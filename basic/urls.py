@@ -14,7 +14,7 @@ urlpatterns = [
     #        name='sign_in_user'),
 
     # Example: /web-sign-in/
-       url(r'^popup-sign-in$', views.popup_sign_in, name='popup_sign_in'),
+    #   url(r'^popup-sign-in$', views.popup_sign_in, name='popup_sign_in'),
 
 
 ]

@@ -11,16 +11,19 @@
 <h2>Sign-in</h2>
 <form method="post" id="sign-in-popup-form" action="#" name="sign-in-popup-form">
     {% csrf_token %}
+    <input type="hidden" name="context_id" value="{{course.label}}">
+    <input type="hidden" name="resource_link_id" value="{{entry_point.LTI_id}}">
+    <input type="hidden" name="lis_person_name_full" value="">
+    <input type="hidden" name="user_id" value="anonymous">
     <div>
-        <em>New user</em>? We send a confirmation email.<br>
-        <em>Returning user</em>? We send a unique link, by email.
-        <br>
+        <em>New user</em>? We will send a confirmation email to create your accout. Please read it carefully.<br>
+        <em>Returning user</em>? We send a unique link, by email, for you to log in.
+        <br><br>
         <label for="usrnm" class="ui-hidden-accessible">Email address:</label>
         <input type="email" name="emailaddress" id="usrnm" placeholder="Your email address">
         <span id="popup-message-back"></span>
-        <br>
+
         <input id="popup-submit-button" type="submit" data-rel="back" data-inline="true" value="Email me a code to get started!">
-        <span id="popup-OK-span"><input id="popup-OK-button" type="button" data-inline="true" value="OK"></span>
         <br>
         <em>Note</em>: we do not use passwords on this website.
     </div>

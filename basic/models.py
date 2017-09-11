@@ -39,7 +39,7 @@ class Person(models.Model):
              ('TA', 'Teaching Assistant')
             )
 
-    is_active = models.BooleanField(default=True, help_text=('NOT USED'))
+    is_validated = models.BooleanField(default=False)
     email = models.EmailField(blank=True, default='')
     display_name = models.CharField(max_length=400, verbose_name='Display name',
                                    blank=True)
@@ -57,6 +57,13 @@ class Person(models.Model):
     def __str__(self):
         return u'[{0}]({1})'.format(self.user_ID[0:8], self.role)
 
+class Token(models.Model):
+    """ Tokens capture time/date and permissions of a user to access.
+    """
+    person = models.ForeignKey('Person', null=True, blank=True)
+    hash_value = models.CharField(max_length=32, editable=False, default='-'*32)
+    was_used = models.BooleanField(default=False)
+    time_used = models.DateTimeField(auto_now=True, auto_now_add=False)
 
 class Group(models.Model):
     """ Used when learners work/submit in groups."""
