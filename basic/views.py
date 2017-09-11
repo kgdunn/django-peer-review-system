@@ -1,8 +1,9 @@
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.conf import settings
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
-from django.shortcuts import render
+from django.core.urlresolvers import reverse
+from django.shortcuts import render, get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.template.context_processors import csrf
 from django.template import loader
@@ -62,9 +63,6 @@ def entry_point_discovery(request, course_code=None, entry_code=None):
         return HttpResponse('Configuration error. Try context_id={}\n'.format(\
                             course_ID))
 
-
-    # Create the person only if they are visiting from a valid ``course``
-    person, message = get_create_student(request, course)
     entry_point = None
     try:
         entry_point = EntryPoint.objects.get(LTI_id=entry_ID,
@@ -72,6 +70,10 @@ def entry_point_discovery(request, course_code=None, entry_code=None):
     except (EntryPoint.DoesNotExist, EntryPoint.MultipleObjectsReturned):
         message = ('No entry point; or duplicate entry points. "Live mode"?'
           ' resource_link_id={} or context_id={}').format(entry_ID, course_ID)
+
+    # Create the person only if they are visiting from a valid ``course`` and
+    # valid ``entry_point``
+    person, message = get_create_student(request, course, entry_point)
 
     if not(person):
         #message = "You are not registered in this course."
@@ -130,7 +132,7 @@ def recognise_LTI_LMS(request):
         return None
 
 
-def get_create_student(request, course):
+def get_create_student(request, course, entry_point):
     """
     Gets or creates the learner from the POST request.
     Also send the ``course``, for the case where the same user email is enrolled
@@ -167,7 +169,9 @@ def get_create_student(request, course):
 
         user_ID = '{}-{}'.format(user_ID, role.lower())
 
-        existing_learner = Person.objects.filter(user_ID=user_ID, role=role)
+        # Previously got learners by their user_ID (that works well for LTI),
+        # but not on a website. So now we have filtered here on email instead.
+        existing_learner = Person.objects.filter(email=email, role=role)
         if existing_learner:
             newbie = False
             learner = existing_learner[0]
@@ -180,7 +184,8 @@ def get_create_student(request, course):
         if LTI_consumer in ('website',):
             learner.user_ID = 'Stu-{}'.format(learner.pk)
             learner.save()
-            message = handle_website_sign_in(learner, newbie)
+            message = handle_website_sign_in(learner, newbie, course,
+                                             entry_point)
 
 
     elif request.POST.get('learner_ID', '') or (settings.DEBUG and \
@@ -227,7 +232,7 @@ def get_create_student(request, course):
     return learner, message
 
 
-def handle_website_sign_in(learner, is_newbie):
+def handle_website_sign_in(learner, is_newbie, course, entry_point):
 
     if is_newbie:
 
@@ -235,7 +240,9 @@ def handle_website_sign_in(learner, is_newbie):
         #          has never been validated on our site before.
         #          But the email address they provided might still be faulty.
 
-        token = create_token_send_email_check_success(learner)
+        token = create_token_send_email_check_success(learner,
+                                                      course,
+                                                      entry_point)
         token.save()
         return ("An account has been created for you, but must "
                 "be actived. Please check your email and "
@@ -243,13 +250,15 @@ def handle_website_sign_in(learner, is_newbie):
 
     else:
         # Not a newbie
-        token = create_token_send_email_check_success(learner)
+        token = create_token_send_email_check_success(learner,
+                                                      course,
+                                                      entry_point)
         token.save()
         return ("<i>Welcome back!</i> Please check your email, "
-                "and click on the link that we emailed you."))
+                "and click on the link that we emailed you.")
 
 
-def create_token_send_email_check_success(person):
+def create_token_send_email_check_success(person, course, entry_point):
     """ Used during signing in a new user, or an existing user. A token to
     is created, and an email is sent.
     If the email succeeds, then we return with success, else, we indicate
@@ -262,7 +271,9 @@ def create_token_send_email_check_success(person):
 
     # Send them an email
     send_suitable_email(person, hash_value)
-    token = Token(person=person, hash_value=hash_value)
+    token = Token(person=person,
+                  hash_value=hash_value,)
+                  #next_uri = ....)
 
     # All finished; return what we have (unsaved ``token`` instance)
     return token
@@ -298,3 +309,42 @@ def send_suitable_email(person, hash_val):
                                               message))
     return send_email(to_address_list, subject, message)
 
+
+
+def validate_user(request, hashvalue):
+    """ The new/returning user has been sent an email to sign in.
+    Recall their token, mark them as validated, sign them in, run the experiment
+    they had intended, and redirect them to the next URL associated with their
+    token.
+
+    If it is a new user, make them select a Leaderboard name first.
+    """
+    logger.info('Locating validation token {0}'.format(hashvalue))
+    token = get_object_or_404(Token, hash_value=hashvalue)
+    if token.was_used:
+        # Prevents a token from being re-used.
+        message = ('That validation key has been already used. Please request '
+                   'another .')
+        logger.warn('REUSE of token: {}'.format(hashvalue))
+
+    return sign_in_user(request, hashvalue, renderit=False)
+
+def sign_in_user(request, hashvalue, renderit=True):
+    """ User is sign-in with the unique hashcode sent to them,
+        These steps are used once the user has successfully been validated,
+        or if sign-in is successful.
+
+        A user is considered signed-in if "request.session['person_id']" returns
+        a valid ``person.id`` (used to look up their object in the DB)
+        """
+
+    logger.debug('Attempting sign-in with token {0}'.format(hashvalue))
+    token = get_object_or_404(Token, hash_value=hashvalue)
+    token.was_used = True
+    token.save()
+    request.session['person_id'] = token.person.id
+    logger.info('RETURNING USER: {0}'.format(token.person))
+
+    next_uri = reverse('basic:entry_point_discovery')
+
+    return HttpResponseRedirect('/')

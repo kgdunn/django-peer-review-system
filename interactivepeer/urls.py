@@ -17,6 +17,9 @@ Including another URLconf
     1. Import the include() function: from django.conf.urls import url, include
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
+
+from basic import views
+
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
 
@@ -30,13 +33,21 @@ urlpatterns = [
         include('rubric.urls'),
         name='rubric'),
 
+    # Example: /validate/HGSAT    <--- not the nicest way, but it works
+    url(r'^validate/(?P<hashvalue>[-\w]+)/$',
+        views.validate_user,
+        name='validate_user'),
+
+    # Example: /sign-in/QURAA     <--- not the nicest way, but it works
+    url(r'^sign-in/(?P<hashvalue>[-\w]+)/$',
+        views.sign_in_user,
+        name='sign_in_user'),
+
+
     # The rest of the entry points:
     url(r'(?P<course_code>.+)/(?P<entry_code>.+)/',
         include('basic.urls'),
         name='basic'),
-
-    #url(r'^review/(?P<ractual_code>.+)/$',
-
 
 
 ]

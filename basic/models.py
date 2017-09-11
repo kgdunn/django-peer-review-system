@@ -64,6 +64,7 @@ class Token(models.Model):
     hash_value = models.CharField(max_length=32, editable=False, default='-'*32)
     was_used = models.BooleanField(default=False)
     time_used = models.DateTimeField(auto_now=True, auto_now_add=False)
+    next_uri = models.CharField(max_length=254, default='')
 
 class Group(models.Model):
     """ Used when learners work/submit in groups."""
