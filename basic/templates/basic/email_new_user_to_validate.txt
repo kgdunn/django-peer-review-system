@@ -8,6 +8,6 @@ There are some important points to note about the electronic peer review tool us
 
 To use this system you are agreeing to sharing the above information with the website that electronically handles the process. Please click on the link here to consent to this, and active your account: <a href="{{validation_URI}}"<tt>{{validation_URI}}</tt></a>
 
-If you prefer not to use the system as described, please contact the instructor in your course.
+If you prefer not to use the system as described, please contact the module manager in your course.
 
 We hope you enjoy using the peer review system!
