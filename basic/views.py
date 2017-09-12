@@ -7,11 +7,10 @@ from django.shortcuts import render, get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.template.context_processors import csrf
 from django.template import loader
+from django.utils import timezone
 from django.views.decorators.clickjacking import xframe_options_exempt
 from django.conf import settings as DJANGO_SETTINGS
 
-# Python and 3rd party imports
-import datetime
 
 # Our imports
 from .models import Person, Course, EntryPoint, Token
@@ -93,7 +92,7 @@ def entry_point_discovery(request, course_code=None, entry_code=None):
         ctx = {'course': course,
                'entry_point': entry_point}
         ctx.update(csrf(request))
-        return render(request, 'basic/sign-in.html')
+        return render(request, 'basic/sign-in.html', ctx)
 
     if (message):
         return HttpResponse(message)
@@ -145,7 +144,16 @@ def recognise_LTI_LMS(request):
     elif request.POST.get('tool_consumer_instance_guid', '').find('coursera')>1:
         return 'coursera'
     elif request.POST.get('emailaddress', ''):
-        return 'website'
+        # You can put all sorts of filters on the email addresses here
+        try:
+            validate_email(request.POST.get('emailaddress', ''))
+        except ValidationError:
+            return None
+
+        if request.POST.get('emailaddress', '').endswith('tudelft.nl'):
+            return 'website'
+        else:
+            return None
     else:
         return None
 
@@ -269,7 +277,7 @@ def get_create_student(request, course, entry_point):
 
 
 def handle_website_sign_in(learner, is_newbie, request):
-    datetime =
+    now_time = timezone.now().strftime("%Y-%m-%d at %H:%M:%S")
     if is_newbie:
 
         # Create totally new user. At this point we are sure the user
@@ -280,14 +288,13 @@ def handle_website_sign_in(learner, is_newbie, request):
         token.save()
         return ("An account has been created for you, but must "
                 "be actived. Please check your email and "
-                "click on the link that we emailed you.")
-
+                "click on the link that we emailed you.<br>".format(now_time))
     else:
         # Not a newbie
         token = create_token_send_email_check_success(learner, request)
         token.save()
         return ("<i>Welcome back!</i> Please check your email, "
-                "and click on the link that we emailed you.")
+                "and click on the link that we emailed you.<br>{}".format(now_time))
 
 
 def create_token_send_email_check_success(person, request):

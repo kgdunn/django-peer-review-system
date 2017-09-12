@@ -1,13 +1,13 @@
-Hi there,
+Hi there, and thank you for signing up to use the interactive peer review tool.
 
-There are some important points to note about the electronic peer review tool used in this course.
+There are some important points to note about the electronic peer review tool that will be used in this course.
 
-1. You will upload documents to be reviewed by other students in this course.
-2. You will also review peers, supplying ratings and comments in the reviews, evaluations, rebuttals and assessments.
-3. You will receive email reminders at your TU Delft email address to let you know there is an evaluation due, or an assessment due. We also use that email address for you to sign into the system; <b>we don't use any passwords</b>.
+1. You will upload PDF documents to be reviewed by other students that are also taking this course.
+2. You will also review your peers, supplying ratings and comments in your reviews, evaluations, rebuttals and assessments.
+3. You will receive email reminders, at your TU Delft email address, to let you know there is an evaluation due, or an assessment due. We also use that email address for you to sign into the system because <b>we don't use any passwords</b>.
 
-To use this system you are agreeing to sharing the above information with the website that electronically handles the process. Please click on the link here to consent to this, and activate your account: {{validation_URI}}
+To use this system you are agreeing to sharing the above information from points 1, 2 and 3 with the website that electronically handles the process. Please click on the link here to consent to this, and activate your account: {{validation_URI}}
 
-If you prefer not to use the system as described, <em>please contact the module manager in your course</em>.
+If you prefer not to use the system as described, <em>please contact the module manager in your course</em>. The system has been described to you in the Brightspace course, and you can also watch a short video about it: https://www.youtube.com/watch?v=EDTe5CxJiJE
 
 We hope you enjoy using the peer review system!
