@@ -3,7 +3,7 @@ Hi there,
 Glad to have you back in the Peer Review system.
 
 To sign in, please follow these steps:
-1. Click on this link: <a href="{{sign_in_URI}}"><tt>{{sign_in_URI}}</tt></a>
+1. Click on this link: {{sign_in_URI}}
 2. Get started with your submission, review, evaluation, rebuttal and/or assessment!
 
 <b>Remember: we don't use passwords on this website</b>; we only send an email.

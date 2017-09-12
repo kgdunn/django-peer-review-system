@@ -10,7 +10,8 @@ from django.template import loader
 from django.views.decorators.clickjacking import xframe_options_exempt
 from django.conf import settings as DJANGO_SETTINGS
 
-
+# Python and 3rd party imports
+import datetime
 
 # Our imports
 from .models import Person, Course, EntryPoint, Token
@@ -228,20 +229,20 @@ def get_create_student(request, course, entry_point):
         #end
 
     elif request.session.get('person_id', ''):
-        learner = Person.objects.filter(id=request.session.get('person_id'),
+        learners = Person.objects.filter(id=request.session.get('person_id'),
                                         course=course)
-        if learner.count() == 1:
-            learner = learner[0]
-        elif learner.count() > 1:
+        learner = None
+        if learners.count() == 1:
+            learner = learners[0]
+        elif learners.count() > 1:
             logger.error(('Website version: multiple enrollments [{0}]. '
                           'This should not occur.').format(learner))
             # TODO still. This is the case where the same email address is used
             #             in more than 1 platform (e.g. Brightspace and edX)
-            learner = learner[0]
-        else:
-            learner = None
-        #end
-        if not(learner.is_validated):
+            learner = learners[0]
+
+        if learner and not(learner.is_validated):
+            # Even if we have a learner, return None if they are not validated
             learner = None
 
     else:
@@ -268,7 +269,7 @@ def get_create_student(request, course, entry_point):
 
 
 def handle_website_sign_in(learner, is_newbie, request):
-
+    datetime =
     if is_newbie:
 
         # Create totally new user. At this point we are sure the user
@@ -338,7 +339,7 @@ def send_suitable_email(person, hash_val):
 
 
     # Use regular Python code to send the email in HTML format.
-    message = message.replace('\n','\n<br>')
+    #message = message.replace('\n','\n<br>')
     logger.debug('EMAIL {}:: {} :: {}'.format(to_address_list,
                                               subject,
                                               message))

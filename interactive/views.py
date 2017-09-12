@@ -237,7 +237,8 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
         file_upload_form = UploadFileForm_one_file()
 
     submission_error_message = ''
-    if kwargs['request'].FILES:
+    if kwargs['request'].FILES and \
+                          not(has(learner, 'started_a_review', entry_point)):
 
         submit_inst = upload_submission(kwargs['request'],
                                         learner,
@@ -255,7 +256,8 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
                                                   group=group,
                                                   fixed=True)
 
-            if reviewers.count() and prior_submission:
+            if (reviewers.count() and prior_submission):
+
                 logger.debug(('New submission set to False: {0} as item has '
                           'just started review.'.format(submit_inst)))
                 submit_inst.is_valid = False
