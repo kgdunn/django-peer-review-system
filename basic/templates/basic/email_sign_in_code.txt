@@ -6,7 +6,7 @@ To sign in, please follow these steps:
 1. Click on this link: {{sign_in_URI}}
 2. Get started with your submission, review, evaluation, rebuttal and/or assessment!
 
-<b>Remember: we don't use passwords on this website</b>; we only send an email.
+Remember: we don't use passwords on this website; we only send an email.
 Once you are logged in, you will be remain signed in for as long as you don't clear out your cookies.
 
 Enjoy.

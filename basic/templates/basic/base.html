@@ -263,7 +263,7 @@ $( function() {
 
 {% block header %}{% endblock %}
 
-<h1>{{course.name}}</h1>
+<h1>{{entry_point.LTI_title}} {%if course%}&nbsp;&nbsp;&nbsp;&nbsp;({{course.name}}){% endif %}</h1>
 <br>
 {% block content %}
 
