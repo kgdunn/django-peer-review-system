@@ -43,3 +43,12 @@ admin.site.register(GroupEnrolled, GroupEnrolledAdmin)
 class TokenAdmin(admin.ModelAdmin):
     list_display = ("person", "was_used", "hash_value", "time_used", "next_uri")
 admin.site.register(Token, TokenAdmin)
+
+
+# =======
+from django.contrib.sessions.models import Session
+class SessionAdmin(admin.ModelAdmin):
+    def _session_data(self, obj):
+        return obj.get_decoded()
+    list_display = ['session_key', '_session_data', 'expire_date']
+admin.site.register(Session, SessionAdmin)

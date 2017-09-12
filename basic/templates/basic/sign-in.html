@@ -9,6 +9,18 @@
 {% block content %}
 
 <h2>Sign-in</h2>
+
+<p>There are some important points to note about the peer review tool used in this course.
+
+<ol>
+<li> You will upload documents to be reviewed by other students in this course.
+<li> You will also review peers, supplying ratings and comments in the reviews, evaluations, rebuttals and assessments.
+<li> You will receive email reminders to let you know there is an evaluation due, or an assessment due. We also use an email to your TU Delft address for you to sign into the system; <b>we don't use any passwords</b>.
+</ol>
+<p>To use this system you are agreeing to sharing the above information with the website that electronically handles the process. If you prefer not to use the system as described, please contact the instructor in your course.
+
+
+
 <form method="post" id="sign-in-popup-form" action="#" name="sign-in-popup-form">
     {% csrf_token %}
     <input type="hidden" name="context_id" value="{{course.label}}">
@@ -16,16 +28,15 @@
     <input type="hidden" name="lis_person_name_full" value="">
     <input type="hidden" name="user_id" value="anonymous">
     <div>
-        <em>New user</em>? We will send a confirmation email to create your accout. Please read it carefully.<br>
-        <em>Returning user</em>? We send a unique link, by email, for you to log in.
+        <em>New user</em>? We will send you a confirmation email to create your accout. Please read it carefully.<br>
+        <span style="color:darkorange">Returning user?</span> We send a unique link, by email, for you to log in with.
         <br><br>
         <label for="usrnm" class="ui-hidden-accessible">Email address:</label>
-        <input type="email" name="emailaddress" id="usrnm" placeholder="Your email address">
+        <input type="email" name="emailaddress" id="usrnm" placeholder="@student.tudelft.nl">
         <span id="popup-message-back"></span>
 
         <input id="popup-submit-button" type="submit" data-rel="back" data-inline="true" value="Email me a code to get started!">
         <br>
-        <em>Note</em>: we do not use passwords on this website.
     </div>
 </form>
 
