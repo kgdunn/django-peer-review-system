@@ -66,9 +66,23 @@ class Token(models.Model):
     time_used = models.DateTimeField(auto_now=True, auto_now_add=False)
     next_uri = models.CharField(max_length=254, default='')
 
-class Group(models.Model):
-    """ Used when learners work/submit in groups."""
+
+class Group_Formation_Process(models.Model):
+    """Umbrella to hold all the groups for a given course."""
+    class Meta:
+        verbose_name = 'Group formation process'
+        verbose_name_plural = 'Group formation processes'
+
+    name = models.CharField(max_length=200)
     course = models.ForeignKey(Course)
+
+    def __str__(self):
+        return u'{0}'.format(self.name)
+
+class Group(models.Model):
+    """ Used when learners work/submit/restricted to groups."""
+    gfp = models.ForeignKey(Group_Formation_Process, blank=True, default=None,
+                            verbose_name='Group formation process')
     name = models.CharField(max_length=300, verbose_name="Group name")
     description = models.TextField(blank=True,
                                    verbose_name="Detailed group description")
@@ -91,6 +105,10 @@ class GroupEnrolled(models.Model):
     is_enrolled = models.BooleanField(default=False)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return u'{0}: "{1}" is enrolled'.format(self.group, self.person)
+
 
 
 class EntryPoint(models.Model):
@@ -118,7 +136,6 @@ class EntryPoint(models.Model):
     # edX:         HTML-POST: resource_link_id contains "edX"
 
     LTI_system = models.CharField(max_length=50, choices=CHOICES,)
-    #title = models.CharField(max_length=300, verbose_name="Your peer review title")
     LTI_id = models.CharField(max_length=50, verbose_name="LTI ID",
         help_text=('In Brightspace LTI post: "resource_link_id"'))
     LTI_title = models.CharField(max_length=300, verbose_name="LTI Title",
@@ -128,10 +145,14 @@ class EntryPoint(models.Model):
     course = models.ForeignKey(Course)
 
     uses_groups = models.BooleanField(default=False,
-                            help_text='Are groups used to SUBMIT a document?')
-    #gf_process = models.ForeignKey('groups.Group_Formation_Process',blank=True,
-    #                               default=None, null=True,
-    #    help_text=('Must be specified if groups are being used.'))
+        help_text='Are groups used to restrict reviews?')
+
+    only_review_within_group = models.BooleanField(default=False,
+        help_text=('If checked: then students only review within; If unchecked:'
+                   ' then students review outside their group.'))
+    gf_process = models.ForeignKey('Group_Formation_Process', blank=True,
+                                   default=None, null=True,
+        help_text=('Must be specified if groups are being used.'))
 
     #instructions = models.TextField(help_text='May contain HTML instructions',
     #            verbose_name='Overall instructions to learners', )

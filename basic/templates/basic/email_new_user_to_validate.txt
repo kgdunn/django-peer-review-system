@@ -4,7 +4,7 @@ There are some important points to note about the electronic peer review tool th
 
 1. You will upload PDF documents to be reviewed by other students that are also taking this course.
 2. You will also review your peers, supplying ratings and comments in your reviews, evaluations, rebuttals and assessments.
-3. You will receive email reminders, at your TU Delft email address, to let you know there is an evaluation due, or an assessment due. We also use that email address for you to sign into the system because <b>we don't use any passwords</b>.
+3. You will receive email reminders, at your TU Delft email address, to let you know there is an evaluation due, or an assessment due. We also use that email address for you to sign into the system because we don't use any passwords.
 
 To use this system you are agreeing to sharing the above information from points 1, 2 and 3 with the website that electronically handles the process. Please click on the link here to consent to this, and activate your account: {{validation_URI}}
 

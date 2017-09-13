@@ -176,6 +176,10 @@ def get_create_student(request, course, entry_point):
 
         email = request.POST.get('lis_person_contact_email_primary', '')
         email = email or request.POST.get('emailaddress', '') # for 'website'
+
+        # Force it to lower case, since we store and use this almost as a
+        # primary key
+        email = email.lower()
         display_name = request.POST.get('lis_person_name_full', '')
         if LTI_consumer in ('edx', 'profed'):
             display_name = display_name or \
@@ -350,7 +354,7 @@ def send_suitable_email(person, hash_val):
     logger.debug('EMAIL {}:: {} :: {}'.format(to_address_list,
                                               subject,
                                               message))
-    return send_email(to_address_list, subject, message)
+    return send_email(to_address_list, subject, message, delay_secs=1)
 
 
 
@@ -426,3 +430,8 @@ def get_course_ep_info(request):
             'course': course,
             'entry_point': entry_point,
             }
+
+
+def import_groups(request):
+    """Imports the exported CSV file"""
+    return HttpResponse('Imported.')

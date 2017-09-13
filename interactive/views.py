@@ -167,7 +167,7 @@ def starting_point(request, course=None, learner=None, entry_point=None):
 
     ctx_objects['summary_list'] = summaries
     if settings.DEBUG:
-        ctx_objects['header'] = '<h2>{}</h2>'.format(learner.display_name)
+        ctx_objects['header'] = '<h2>DEBUG ONLY: {}</h2><br>'.format(learner.display_name)
 
     html = loader.render_to_string('interactive/landing_page.html',
                                     ctx_objects)
@@ -1051,23 +1051,6 @@ class group_graph(object):
        allocated review.
        A review is allocated in real time, when the reviewer wants to start.o
     5. The edge contains a ``Submission`` instance.
-
-    ## How many Submissions are currently in groups?
-    ## Is it below the minimum to start?
-    ## Do we have extra that have come by?
-    #max_iter = 20
-    #itern = 0
-    #while (GroupConfig.Lock.locked) and (itern < max_iter):
-        #logger.debug('GroupConfig locked: sleeping {0}'.format(itern))
-        #itern += 1
-        #time.sleep(0.25)
-    #if itern == max_iter:
-        #logger.error(('Maximum sleep experienced; something hanging? [{0}] '
-                      #'[{1}] [{2}]'.format(learner, trigger, submission)))
-
-
-    ## Do the group formation / regrouping here
-    #GroupConfig.Lock.locked = True
     """
     def __init__(self, entry_point):
 
@@ -1224,10 +1207,44 @@ class group_graph(object):
         Experiments show that we get the higher chance of a balanced digraph
         when purely random assignments are made, without hindering the reviewer.
         """
+
+        # Assume we don't use groups
         potential = self.graph.nodes()
+
+        # At this point we also want to ensure the ``reviewer`` only sees
+        # reports from their own ``group``
+        gfp = self.entry_point.gf_process
+        reviewer_groups = reviewer.groupenrolled_set.filter(group__gfp=gfp)
+        if reviewer_groups:
+            reviewer_group = reviewer_groups[0].group
+        if self.entry_point.uses_groups:
+            all_groups = gfp.group_set.all()
+            potential = []
+
+            # Exclude all other groups
+            if self.entry_point.only_review_within_group:
+
+                for enrollment in reviewer_group.groupenrolled_set.all():
+                    potential.append(enrollment.person)
+
+            # Or, exclude only people in the person's group, and make up the
+            # potential set from the other groups
+            else:
+                for group in all_groups:
+                    if group == reviewer_group:
+                        continue
+                    for enrollment in group.groupenrolled_set.all():
+                        potential.append(enrollment.person)
+
+                # End: going through all groups in this ``gfp``
+        # End: if reducing the pool of potential reviewers due to grouping.
+
         if reviewer:
-            index = potential.index(reviewer)
-            potential.pop(index)
+            try:
+                index = potential.index(reviewer)
+                potential.pop(index)
+            except ValueError:
+                pass
 
         # Shuffle here, so the indices are randomized
         shuffle(potential)
@@ -1241,15 +1258,16 @@ class group_graph(object):
                 # 2: already a connection.
                 continue
 
-            # Adding in the fact that edges cannot be reversed increases the failure
-            # rate. TODO: avoid mirrored edges rather (it is too extreme to prevent
-            # mirrored edges)
+            # Adding in the fact that edges cannot be reversed increases the
+            # failure rate. TODO: avoid mirrored edges rather (it is too extreme
+            #  to prevent mirrored edges)
             #elif self.graph.has_edge(reviewer, node):
             #    a=2
 
             elif self.graph.out_degree(node) >= GLOBAL.num_peers:
-                # 3: We cannot over-review a node, so ensure its out degree is not
-                # too high. Keep working through the scores till you find one.
+                # 3: We cannot over-review a node, so ensure its out degree is
+                #    not too high. Keep working through the scores till you find
+                #    one.
                 continue
 
             else:

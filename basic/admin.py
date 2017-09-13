@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from .models import Course, Person
 from .models import EntryPoint
-from .models import Group, GroupEnrolled, Token
+from .models import Group_Formation_Process, Group, GroupEnrolled, Token
 
 
 class CourseAdmin(admin.ModelAdmin):
@@ -27,8 +27,14 @@ admin.site.register(EntryPoint, EntryPointAdmin)
 
 
 
+class GroupFormationProcessAdmin(admin.ModelAdmin):
+    list_display = ("name", "course",)
+admin.site.register(Group_Formation_Process, GroupFormationProcessAdmin)
+
+
+
 class GroupAdmin(admin.ModelAdmin):
-    list_display = ("name", "course", "description", "capacity", )
+    list_display = ("name", "gfp", "description", "capacity", )
 admin.site.register(Group, GroupAdmin)
 
 
