@@ -127,7 +127,7 @@ def starting_point(request, course=None, learner=None, entry_point=None):
                                      .format(err, kwargs)))
 
 
-    create_hit(request, item=course, event='sign-in',
+    create_hit(request, item=course, event='login',
                user=learner, other_info=entry_point)
     summaries = []
     for trigger in triggers:
