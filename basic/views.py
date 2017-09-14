@@ -102,6 +102,8 @@ def entry_point_discovery(request, course_code=None, entry_code=None):
     if  (course_code is not None) or (entry_code is not None):
         return HttpResponseRedirect('/')
 
+    logger.debug('Person is {}'.format(person))
+
     if request.POST.get('lis_result_sourcedid', ''):
         # Update only if needed.
         person.last_lis = request.POST.get('lis_result_sourcedid', '')
