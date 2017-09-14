@@ -436,4 +436,19 @@ def get_course_ep_info(request):
 
 def import_groups(request):
     """Imports the exported CSV file"""
+
+    from basic.models import Person, Course
+
+    course = Course.objects.get(name='')
+
+
+    _, _, last, first, email, _, group = row.split(',')
+    display_name = '{} {}'.format(first, last)
+    email = email.lower()
+    role = 'Learn'
+    learner, newbie = Person.objects.get_or_create(email=email,
+                                                   role=role,
+                                                   course=course)
+
+
     return HttpResponse('Imported.')

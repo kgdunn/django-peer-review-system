@@ -300,13 +300,16 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
             # Learner has completed this step:
             completed(learner, 'submitted', entry_point, push_grade=True)
 
-            # Finished creating a new group. Now check if we have enough
-            # reviewers to invite.
-            invite_reviewers(learner, trigger)
+            # Finished creating a new group.
+
 
 
     else:
         submission = prior_submission
+
+
+    # Whether a new submission or not, create the reviews
+    invite_reviewers(trigger)
 
     # Store some fields on the ``trigger`` for rendering in the template
     trigger.submission = submission
@@ -999,7 +1002,7 @@ def peers_summarize(trigger, learner, entry_point=None,
                                                              ctx_objects)
 
 
-def invite_reviewers(learner, trigger):
+def invite_reviewers(trigger):
     """
     Invites reviewers to start the review process
     """
