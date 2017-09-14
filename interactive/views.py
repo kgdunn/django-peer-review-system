@@ -189,7 +189,6 @@ def render_template(trigger, ctx_objects):
 # ------------------------------
 # The various trigger functions
 # ------------------------------
-
 def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
                    ctx_objects=dict(), **kwargs):
     """
@@ -1040,7 +1039,7 @@ def invite_reviewers(trigger):
             review.save()
 
 
-
+# -------------------------------------------
 # Functions related to the graph and grouping
 # -------------------------------------------
 class group_graph(object):
@@ -1553,10 +1552,10 @@ def see_assessment(request, unique_code=None):
     return handle_review(request, rubric.rubric_code)
 
 
+# -------------------------------------------
 # Utility function: to handle the generation of a ``Submission`` for a
 # report evaluation.
 # -------------------------------------------
-
 def reportlab_styles():
     """
     Format the review with these styles.
@@ -1609,7 +1608,6 @@ def reportlab_styles():
 
 styles = reportlab_styles()
 default = styles['default']
-
 # all margins are 1.5cm on A4 paper
 default_frame = Frame(1.5*cm, 1.5*cm, A4[0]-3.0*cm, A4[1]-3.0*cm, id=None)
 
@@ -1990,7 +1988,6 @@ def create_assessment_PDF(r_actual):
 #---------
 # Functions related to the learner's progress
 #---------
-
 def has(learner, achievement, entry_point, detailed=False):
     """
     See if a user has completed a certain achievement.
