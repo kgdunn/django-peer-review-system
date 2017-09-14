@@ -43,6 +43,7 @@ from rubric.views import (handle_review, get_create_actual_rubric,
 from rubric.models import RubricTemplate, RubricActual
 from grades.models import GradeItem, LearnerGrade
 from grades.views import push_grade as push_to_gradebook
+from stats.views import create_hit
 from submissions.views import get_submission, upload_submission
 from submissions.models import Submission
 from submissions.forms import (UploadFileForm_one_file,
@@ -108,9 +109,6 @@ def starting_point(request, course=None, learner=None, entry_point=None):
                 }
     ctx_objects.update(csrf(request)) # add the csrf; used in forms
 
-    if learner.id == 37:
-        print('asd')
-
 
     # First run through to ensure all triggers exist
     for trigger in triggers:
@@ -128,6 +126,9 @@ def starting_point(request, course=None, learner=None, entry_point=None):
                 return HttpResponse(('Error parsing the kwargs: {0} [{1}]'
                                      .format(err, kwargs)))
 
+
+    create_hit(request, item=course, event='sign-in',
+               user=learner, other_info=entry_point)
     summaries = []
     for trigger in triggers:
         # Then actually run each trigger, but only if the requirements are
