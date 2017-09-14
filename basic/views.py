@@ -284,7 +284,7 @@ def get_create_student(request, course, entry_point):
 
 def handle_website_sign_in(learner, is_newbie, request):
     now_time = timezone.now().strftime("%Y-%m-%d at %H:%M:%S")
-    if is_newbie:
+    if is_newbie or not(learner.is_validated):
 
         # Create totally new user. At this point we are sure the user
         #          has never been validated on our site before.
@@ -292,7 +292,7 @@ def handle_website_sign_in(learner, is_newbie, request):
 
         token = create_token_send_email_check_success(learner, request)
         token.save()
-        return ("An account has been created for you, but must "
+        return ("An account has been created for you, but must still "
                 "be actived. Please check your email and "
                 "click on the link that we emailed you.<br>".format(now_time))
     else:
@@ -437,18 +437,82 @@ def get_course_ep_info(request):
 def import_groups(request):
     """Imports the exported CSV file"""
 
-    from basic.models import Person, Course
+    from basic.models import (Person, Course, Group_Formation_Process,
+                              GroupEnrolled)
+    course = Course.objects.get(name='Preparation MSc thesis for students studying abroad')
 
-    course = Course.objects.get(name='')
+    gfp = Group_Formation_Process.objects.get(course=course)
+    all_groups = gfp.group_set.all()
+
+    mapper = {'CoSEM/SEPAM': all_groups.get(name='SEPAM'),
+              'Management of Technology (MOT)': all_groups.get(name='MOT'),
+              'EPA': all_groups.get(name='EPA'),
+             }
 
 
-    _, _, last, first, email, _, group = row.split(',')
-    display_name = '{} {}'.format(first, last)
-    email = email.lower()
-    role = 'Learn'
-    learner, newbie = Person.objects.get_or_create(email=email,
-                                                   role=role,
-                                                   course=course)
+    import csv
+    filename = '/Users/kevindunn/group-information.csv'
+    with open(filename, 'rt', encoding="utf-8") as csvfile:
+        reader = csv.reader(csvfile, delimiter=',')
+        for row in reader:
+            if reader.line_num == 1:
+                continue
 
+            # else ...
+            _, _, last, first, email, _, group = row
+            display_name = '{} {}'.format(first, last)
+            email = email.lower()
+            role = 'Learn'
+            print(display_name)
+            learner, newbie = Person.objects.get_or_create(email=email,
+                                                    role=role,
+                                                    course=course,
+                                                    is_validated=False,
+                                                    display_name=display_name)
+
+            if newbie:
+                logger.debug('Created student: {}'.format(learner))
+
+            enrol = GroupEnrolled(person=learner, group=mapper[group],
+                                  is_enrolled=True)
+            enrol.save()
+            logger.debug('Enrolled student [{}] in {}'.format(learner,
+                                                            mapper[group]))
+
+        # End of a row
+
+
+    # End of processing
 
     return HttpResponse('Imported.')
+
+
+def clean_PDF():
+    """
+    Strips out any personal information in the PDF.
+    """
+    import os
+    import shutil
+    import tempfile
+    from submissions.models import Submission
+    from PyPDF2 import PdfFileMerger, PdfFileReader
+
+    submissions = Submission.objects.filter(is_valid=True)
+    for submission in submissions:
+        src = submission.file_upload.file.name
+        pdf1 = PdfFileReader(src)
+        merger = PdfFileMerger(strict=False, )
+        merger.append(pdf1, import_bookmarks=False)
+
+        merger.addMetadata({'/Title': '',
+                            '/Author': '',
+                            '/Creator': '',
+                            '/Producer': ''})
+        fd, temp_file = tempfile.mkstemp(suffix='.pdf')
+        merger.write(temp_file)
+        merger.close()
+        os.close(fd)
+        shutil.move(temp_file, src)
+
+
+
