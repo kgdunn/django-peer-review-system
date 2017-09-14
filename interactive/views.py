@@ -1661,11 +1661,12 @@ def create_evaluation_PDF(r_actual):
     """
     report = ReviewReport.objects.get(unique_code=r_actual.rubric_code)
     # From the perspective of the submitter, which peer am I?
-    rubrics = RubricActual.objects.filter(submission=report.submission).order_by('created')
+    rubrics = RubricActual.objects.filter(submission=report.submission)\
+                                                            .order_by('created')
     peer_number = 64
     for idx, rubric in enumerate(rubrics):
         if report.reviewer == rubric.graded_by:
-            peer_number = idx + 1
+            peer_number += 1
             break
 
     base_dir_for_file_uploads = settings.MEDIA_ROOT
