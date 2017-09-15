@@ -1697,7 +1697,6 @@ def create_evaluation_PDF(r_actual):
     pdf1 = PdfFileReader(src)
     pdf2 = PdfFileReader(temp_file)
     merger = PdfFileMerger(strict=False, )
-
     merger.append(pdf1, import_bookmarks=False)
     merger.append(pdf2, import_bookmarks=False)
     merger.addMetadata({'/Title': '',

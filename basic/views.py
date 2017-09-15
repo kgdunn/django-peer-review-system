@@ -483,28 +483,6 @@ def import_groups(request):
     return HttpResponse('Imported.')
 
 
-def clean_PDF():
-    """
-    Strips out any personal information in the PDF.
-    """
-    import os
-    import shutil
-    import tempfile
-    from submissions.models import Submission
-    from PyPDF2 import PdfFileMerger, PdfFileReader
-
-    submissions = Submission.objects.filter(is_valid=True)
-    for submission in submissions:
-        src = submission.file_upload.file.name
-        pdf1 = PdfFileReader(src)
-        merger = PdfFileMerger(strict=False, )
-        merger.append(pdf1, import_bookmarks=False)
-        merger.addMetadata({'/Title': '', '/Author': '', '/Creator': '', '/Producer': ''})
-        fd, temp_file = tempfile.mkstemp(suffix='.pdf')
-        merger.write(temp_file)
-        merger.close()
-        os.close(fd)
-        shutil.move(temp_file, src)
 
 
 

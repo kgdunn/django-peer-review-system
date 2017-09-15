@@ -4,7 +4,9 @@ from django.conf import settings
 # Python and 3rd party tool imports
 import os
 import magic
-from PyPDF2 import PdfFileReader
+import shutil
+import tempfile
+from PyPDF2 import PdfFileReader, PdfFileMerger
 
 # Import from our other apps
 from utils import get_IP_address, generate_random_token
@@ -166,3 +168,22 @@ def upload_submission(request, learner, trigger, no_thumbnail=True):
     sub.save()
 
     return sub
+
+
+def clean_PDF(submission):
+    """
+    Strips out any personal information in the PDF.
+    """
+    src = submission.file_upload.file.name
+    pdf1 = PdfFileReader(src)
+    merger = PdfFileMerger(strict=False, )
+    merger.append(pdf1, import_bookmarks=False)
+    merger.addMetadata({'/Title': '',
+                        '/Author': '',
+                        '/Creator': '',
+                        '/Producer': ''})
+    fd, temp_file = tempfile.mkstemp(suffix='.pdf')
+    merger.write(temp_file)
+    merger.close()
+    os.close(fd)
+    shutil.move(temp_file, src) # replace the original PDF on the server
