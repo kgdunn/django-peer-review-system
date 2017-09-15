@@ -449,7 +449,6 @@ def import_groups(request):
               'EPA': all_groups.get(name='EPA'),
              }
 
-
     import csv
     filename = 'group-information.csv'
     with open(filename, 'rt', encoding="utf-8") as csvfile:
@@ -480,10 +479,7 @@ def import_groups(request):
                                                             mapper[group]))
 
         # End of a row
-
-
     # End of processing
-
     return HttpResponse('Imported.')
 
 

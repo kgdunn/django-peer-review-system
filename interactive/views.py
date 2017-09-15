@@ -1700,6 +1700,10 @@ def create_evaluation_PDF(r_actual):
 
     merger.append(pdf1, import_bookmarks=False)
     merger.append(pdf2, import_bookmarks=False)
+    merger.addMetadata({'/Title': '',
+                        '/Author': '',
+                        '/Creator': '',
+                        '/Producer': ''})
     merger.write(dst)
     merger.close()
 
@@ -1824,10 +1828,12 @@ def create_rebuttal_PDF(r_actual):
     pdf1 = PdfFileReader(src)
     pdf2 = PdfFileReader(temp_file)
     merger = PdfFileMerger(strict=False, )
-
     merger.append(pdf1, import_bookmarks=False)
     merger.append(pdf2, import_bookmarks=False)
-
+    merger.addMetadata({'/Title': '',
+                        '/Author': '',
+                        '/Creator': '',
+                        '/Producer': ''})
     fd, dst_file = tempfile.mkstemp(suffix='.pdf')
 
     merger.write(dst_file)
@@ -1915,7 +1921,10 @@ def create_assessment_PDF(r_actual):
     # NOTE: we want the rebuttal on the top, the document afterwards.
     merger.append(pdf2, import_bookmarks=False)
     merger.append(pdf1, import_bookmarks=False)
-
+    merger.addMetadata({'/Title': '',
+                        '/Author': '',
+                        '/Creator': '',
+                        '/Producer': ''})
     fd, dst_file = tempfile.mkstemp(suffix='.pdf')
 
     merger.write(dst_file)
