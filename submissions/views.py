@@ -18,6 +18,8 @@ from submissions.models import Submission
 import logging
 logger = logging.getLogger(__name__)
 
+# Debugging
+import wingdbstub
 
 def get_submission(learner, trigger, entry_point=None):
 
@@ -166,6 +168,7 @@ def upload_submission(request, learner, trigger, no_thumbnail=True):
                      ip_address=get_IP_address(request),
                      )
     sub.save()
+    clean_PDF(sub)
 
     return sub
 
