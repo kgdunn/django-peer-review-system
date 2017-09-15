@@ -451,7 +451,7 @@ def import_groups(request):
 
 
     import csv
-    filename = '/Users/kevindunn/group-information.csv'
+    filename = 'group-information.csv'
     with open(filename, 'rt', encoding="utf-8") as csvfile:
         reader = csv.reader(csvfile, delimiter=',')
         for row in reader:
@@ -503,11 +503,7 @@ def clean_PDF():
         pdf1 = PdfFileReader(src)
         merger = PdfFileMerger(strict=False, )
         merger.append(pdf1, import_bookmarks=False)
-
-        merger.addMetadata({'/Title': '',
-                            '/Author': '',
-                            '/Creator': '',
-                            '/Producer': ''})
+        merger.addMetadata({'/Title': '', '/Author': '', '/Creator': '', '/Producer': ''})
         fd, temp_file = tempfile.mkstemp(suffix='.pdf')
         merger.write(temp_file)
         merger.close()
