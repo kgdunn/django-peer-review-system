@@ -5,6 +5,15 @@ register = template.Library()
 
 @register.filter(name='keyvalue')
 def keyvalue(dictn, key):
+    """
+    Use as follows in the template:
+
+
+       {% load template_extras %}   <--- the name of this Python file
+       dictvar|keyvalue:key_name
+
+    will fetch the value of the ``key_name`` from dictionary ``dictvar``
+    """
     try:
         return dictn[key]
     except KeyError:

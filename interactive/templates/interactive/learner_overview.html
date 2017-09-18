@@ -1,0 +1,54 @@
+{% load template_extras %}
+
+<h2 style="display:inline; clear:none;">Learner overview</h2>
+
+
+{% if achieved|keyvalue:unit|keyvalue:'submitted' %}
+            {% with achievement=achieved|keyvalue:unit|keyvalue:'submitted' %}
+            <td><i class="fa fa-check" aria-hidden="true"></i>&nbsp;<br><span class="achieved_dt">{{ achievement.when|date:"d M Y, H:i"}}</span></td>
+            {% endwith %}
+        {% else %}
+            <td><i class="fa fa-times" aria-hidden="true"></i></td>
+        {% endif %}
+
+
+<script>
+$(document).ready( function () {
+
+  $('#class_overview').DataTable( {
+    paging: false,
+    searching: true,
+    fixedHeader: {
+        header: true,
+        footer: true
+    },
+    bInfo: false,
+    bAutoWidth: false,
+  } );
+} );
+</script>
+
+<table class="summaries pr-admin" id="class_overview">
+<thead>
+<tr>
+  <th>Learner</th>
+</tr>
+</thead>
+<tbody>
+{% for learner in learners %}
+<tr>
+  <td>{{learner.display_name}}<br>{{learner.email|slice:"@student.tudelft.nl"}}</td>
+  {% with report=reports|keyvalue:learner %}
+      <td>{{report.values}}</td>
+  {% endwith %}
+
+
+
+
+
+
+
+  <td></td>
+</tr>
+{% endfor %}
+</tbody></table>

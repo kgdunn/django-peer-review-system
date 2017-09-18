@@ -37,7 +37,7 @@ from .models import AchieveConfig, Achievement
 from .models import EvaluationReport
 
 # Our other apps
-from basic.models import EntryPoint
+from basic.models import EntryPoint, Person
 from rubric.views import (handle_review, get_create_actual_rubric,
                           get_learner_details)
 from rubric.models import RubricTemplate, RubricActual
@@ -169,6 +169,9 @@ def starting_point(request, course=None, learner=None, entry_point=None):
     ctx_objects['summary_list'] = summaries
     if settings.DEBUG:
         ctx_objects['header'] = '<h2>DEBUG ONLY: {}</h2><br>'.format(learner.display_name)
+
+    if learner.role in ('Admin',):
+        ctx_objects['overview_learners'] = overview_learners(entry_point)
 
     html = loader.render_to_string('interactive/landing_page.html',
                                     ctx_objects)
@@ -2073,13 +2076,8 @@ def overview(request, course=None, learner=None, entry_point=None):
     We use all ``entry_points`` related to a course, except this entry point.
     """
 
-
     entries = EntryPoint.objects.filter(course=course).order_by('order')
-
     achieved = {}
-
-    # achieved[entry_point][achievement_config]
-
     entry_display = []
     graphs = []
     for entry in entries:
@@ -2100,3 +2098,22 @@ def overview(request, course=None, learner=None, entry_point=None):
 
     html = loader.render_to_string('interactive/display_progress.html', ctx)
     return HttpResponse(html)
+
+def overview_learners(entry_point):
+    """
+    Provides an overview to the instructor of what is going on"""
+    ctx = {}
+
+    # Not the most robust way to group students; will fall apart if a student
+    # uses this system in more than 1 course
+    learners = entry_point.course.person_set.filter(role='Learn')
+    reports = {}
+    for learner in learners:
+        reports[learner] = reportcard(learner, entry_point, detailed=True)
+
+
+    ctx['learners'] = learners
+    ctx['reports'] = reports
+
+
+    return loader.render_to_string('interactive/learner_overview.html', ctx)

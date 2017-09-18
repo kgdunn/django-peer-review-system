@@ -319,7 +319,7 @@ def create_token_send_email_check_success(person, request):
     info = get_course_ep_info(request)
     token = Token(person=person,
                   hash_value=hash_value,
-                  next_uri = '{}/{}/{}/'.format(DJANGO_SETTINGS.BASE_URL,
+                  next_uri = '{}/course/{}/{}/'.format(DJANGO_SETTINGS.BASE_URL,
                                                 info['course'].label,
                                                 info['entry_point'].LTI_id)
                 )

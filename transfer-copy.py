@@ -3,17 +3,16 @@
 
 from rubric.models import RubricTemplate, RItemTemplate
 from basic.models import Course, EntryPoint
+from interactive.models import Trigger
 
 #--------------------
 # AIM: Create a new set of triggers for all courses, and all entry points.
 # Specify the course, and the entry_point manually, via the LTI_ID
 # (which is assumed to have been created already)
-orig_course = Course.objects.get(name='SEN2321')
-orig_ep = EntryPoint.objects.get(course=orig_course,
-                                     LTI_id='1475539468')
-targ_course = Course.objects.get(name='Prep MSc')
-targ_ep = EntryPoint.objects.get(course=targ_course,
-                                     LTI_id='1371427444')
+orig_course = Course.objects.get(label='36957')
+orig_ep = EntryPoint.objects.get(course=orig_course, LTI_id='1931107264')
+targ_course = Course.objects.get(label='43639')
+targ_ep = EntryPoint.objects.get(course=targ_course, LTI_id='1931107264')
 
 assert(orig_ep.trigger_set.all().count() == 0)
 assert(targ_ep.trigger_set.all().count() == 0)
@@ -51,30 +50,23 @@ for target in target_entries:
 
 # These have the added complexity that you have a .trigger, .next_trigger and
 # item templates and option templates that depend on them.
-orig_course = Course.objects.get(name='SEN2321')
-orig_ep = EntryPoint.objects.get(course=orig_course,
-                                 LTI_id='1475539468')
+orig_course = Course.objects.get(label='36957')
+orig_ep = EntryPoint.objects.get(course=orig_course, LTI_id='1931107264')
+targ_course = Course.objects.get(label='43639')
+targ_ep = EntryPoint.objects.get(course=targ_course, LTI_id='1931107264')
 
-targ_course = Course.objects.get(name='Prep MSc')
-targ_ep = EntryPoint.objects.get(course=targ_course,
-                                 LTI_id='1475539468')
+src_template_name = 'LD1 assessment'
+new_title = src_template_name  # <-- because we are copying course-to-course; else it would a different text here
 
-src_template_name = 'LD2 peer review'
-new_title = src_template_name  # <-- because we are copying course-to-course
-
-template = RubricTemplate.objects.get(entry_point=orig_ep,
-                                         title=src_template_name)
+template = RubricTemplate.objects.get(entry_point=orig_ep, title=src_template_name)
 
 current_trigger_name = template.trigger.name
-targ_trigger = Trigger.objects.get(entry_point=targ_ep,
-                                      name=template.trigger.name)
+targ_trigger = Trigger.objects.get(entry_point=targ_ep, name=template.trigger.name)
 targ_next_trigger = None
 if template.next_trigger:
-    targ_next_trigger = Trigger.objects.get(entry_point=targ_ep,
-                                               name=template.next_trigger.name)
+    targ_next_trigger = Trigger.objects.get(entry_point=targ_ep, name=template.next_trigger.name)
 
-copy_template = RubricTemplate.objects.get(entry_point=orig_ep,
-                                           title=src_template_name)
+copy_template = RubricTemplate.objects.get(entry_point=orig_ep, title=src_template_name)
 
 
 # Now create a new template
@@ -89,18 +81,15 @@ src_items = RItemTemplate.objects.filter(r_template=copy_template)
 for item in src_items:
     # First get the associated options
     options = item.roptiontemplate_set.all()
-
     # Then copy the parent template to the new one
     item.pk = None
     item.r_template = template
     item.save()
-
     # Then re-parent the options to the newly created/saved item
     for opt in options:
         opt.pk = None
         opt.rubric_item = item
         opt.save()
-
     # All done with options
 
 # Done with all items
