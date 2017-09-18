@@ -12,8 +12,8 @@ admin.site.register(Course, CourseAdmin)
 
 
 class PersonAdmin(admin.ModelAdmin):
-    list_display = ("user_ID", "display_name", "is_validated", "last_lis",
-                    "role", "email", "created", "modified")
+    list_display = ("user_ID", "display_name", "initials", "is_validated",
+                    "last_lis", "role", "email", "created", "modified")
 admin.site.register(Person, PersonAdmin)
 
 

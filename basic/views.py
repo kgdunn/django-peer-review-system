@@ -187,6 +187,7 @@ def get_create_student(request, course, entry_point):
             display_name = display_name or \
                                  request.POST.get('lis_person_sourcedid', '')
 
+
         user_ID = request.POST.get('user_id', '')
         role = request.POST.get('roles', 'Learn') # Default: as student
         # You can also use: request.POST['ext_d2l_role'] in Brightspace
@@ -203,7 +204,13 @@ def get_create_student(request, course, entry_point):
 
         # Previously got learners by their user_ID (that works well for LTI),
         # but not on a website. So now we have filtered here on email instead.
-        existing_learner = Person.objects.filter(email=email, role=role)
+        # Use the ``display_name`` as a way to detect LTI
+        if display_name == '':
+            existing_learner = Person.objects.filter(email=email)
+                            #, role=role) <-- keep for LTI, but not for web
+        else:
+            existing_learner = Person.objects.filter(email=email, role=role)
+
         if existing_learner:
             newbie = False
             learner = existing_learner[0]
@@ -227,8 +234,8 @@ def get_create_student(request, course, entry_point):
         learner_ID = request.POST.get('learner_ID', '') or \
                      request.GET.get('learner_ID','')
 
-        learner = Person.objects.filter(user_ID=learner_ID,
-                                        course=course)
+        learner = Person.objects.filter(user_ID=learner_ID,)
+                                        #course=course) <-- not needed if using user_ID
         if learner.count() == 1:
             learner = learner[0]
         elif learner.count() > 1:

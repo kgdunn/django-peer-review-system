@@ -54,6 +54,30 @@ class Person(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
 
+    initials = models.CharField(max_length=5, default='', blank=True,
+                                help_text='Initials of the user (for display)')
+
+    def save(self, *args, **kwargs):
+        if self.initials == '' and self.display_name:
+            initials = ''
+            for word in self.display_name.split(' '):
+                if word[0].lower() != word[0]:
+                    initials += word[0]
+
+            others = Person.objects.filter(initials=initials).order_by('created')
+            if others:
+                initials += '{}{}'.format(initials, others.count())
+
+            self.initials = initials
+
+        super(Person, self).save(*args, **kwargs)
+
+    def get_initials(self):
+        if self.initials == '':
+            self.save()
+        return self.initials
+
+
     def __str__(self):
         return u'[{0}]({1})'.format(self.user_ID[0:8], self.role)
 

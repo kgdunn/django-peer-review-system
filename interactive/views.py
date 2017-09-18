@@ -2140,10 +2140,26 @@ def overview_learners(entry_point):
 
     # Not the most robust way to group students; will fall apart if a student
     # uses this system in more than 1 course
-    learners = entry_point.course.person_set.filter(role='Learn')
+    learners = entry_point.course.person_set.filter(role='Learn',
+                                    is_validated=True).order_by('-created')
     reports = {}
     for learner in learners:
-        reports[learner] = reportcard(learner, entry_point, detailed=True)
+        reports[learner] = filtered_overview(learner, entry_point,)
+        reviewer_for = Membership.objects.filter(learner=learner, role='Review')
+        temp = ''
+        for item in reviewer_for:
+            temp += item.group.membership_set.get(role='Submit').learner.get_initials() + '|'
+        reports[learner]['_reviewer_for'] = '<tt>{}</tt>'.format(temp[0:-1])
+
+
+        temp = ''
+        learner_group = Membership.objects.filter(learner=learner, role='Submit')
+        if learner_group:
+            reviewers = learner_group[0].group.membership_set.filter(role='Review')
+            for item in reviewers:
+                temp += item.learner.get_initials() + '|'
+
+        reports[learner]['_reviewed_by'] = '<tt>{}</tt>'.format(temp[0:-1])
 
 
     ctx['learners'] = learners
@@ -2151,4 +2167,26 @@ def overview_learners(entry_point):
 
 
     return loader.render_to_string('interactive/learner_overview.html', ctx)
+
+
+def filtered_overview(learner, entry_point):
+    """
+    Takes the report card and adds supplement
+    """
+    filters = ('submitted',
+               'completed_all_reviews',
+               'read_and_evaluated_all_reviews',
+               'completed_rebuttal',
+               'assessed_rebuttals')
+    report = OrderedDict()
+    for name in filters:
+        item = AchieveConfig.objects.get(entry_point=entry_point, name=name)
+        report[item.name] = has(learner, item.name, entry_point, detailed=True)
+
+
+
+
+    return report
+
+
 

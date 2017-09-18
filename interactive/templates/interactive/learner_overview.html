@@ -31,19 +31,41 @@ $(document).ready( function () {
 <table class="summaries pr-admin" id="class_overview">
 <thead>
 <tr>
+  <th>Initials</th>
   <th>Learner</th>
+  <th>Submit</th>
+  <th>Review (x2)</th>
+  <th>Evaluate</th>
+  <th>Rebut</th>
+  <th>Assess</th>
+  <th>Reviewer of</th>
+  <th>Reviewed by</th>
 </tr>
+
 </thead>
 <tbody>
 {% for learner in learners %}
 <tr>
-  <td>{{learner.display_name}}<br>{{learner.email|slice:"@student.tudelft.nl"}}</td>
-  {% with report=reports|keyvalue:learner %}
-      <td>{{report.values}}</td>
-  {% endwith %}
+  <td>{{learner.get_initials}}</td>
+  <td>{{learner.display_name}}<br>
+    <span style="color:#999">{{learner.email|slice:"@student.tudelft.nl"}}</span>
+  </td>
+    {% with report=reports|keyvalue:learner %}
+      {% for key in report.keys %}
+        {% with item=report|keyvalue:key%}
+          <td data-order="{{item.when.timestamp}}">
+            {% if item.when %}
+                {{item.when|date:"d M"}},{{item.when|date:"H:i"}}
+            {% else %}
+                {{item|safe}}
+            {%endif%}
+          </td>
+        {% endwith %}
+      {% endfor %} {#  keys in ``report`` #}
+    {% endwith %}
 
 
-  <td></td>
+
 </tr>
 {% endfor %}
 </tbody></table>
