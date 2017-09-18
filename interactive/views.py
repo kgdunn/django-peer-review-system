@@ -652,7 +652,7 @@ def get_line5(learner, trigger, summaries):
         link = ('{3}<a href="/interactive/assessment/{0}" target="_blank">'
                 '{1}</a> {2}')
         out[idx] = ('', link.format(rebuttal.unique_code,
-                                    'Read and assess their rebuttal',
+                                    '<span class="still-to-do">Read and assess</span> their rebuttal',
                                     'of your review', ''))
 
         extra = 'Assess it'
@@ -738,8 +738,7 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
         # intended reviews.
         reports[idx] = report
         try:
-            rubric = RubricActual.objects.get(\
-                rubric_code=reports[idx].unique_code)
+            rubric = RubricActual.objects.get(rubric_code=reports[idx].unique_code)
         except RubricActual.DoesNotExist:
             continue
         if rubric.submitted:
@@ -829,7 +828,7 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
                                      "Please wait."))
             return
 
-        extra = ' (still to do)'
+        extra = ' <span class="still-to-do">(still to do)</span>'
         if hasattr(report.r_actual, 'status'):
             if report.r_actual.status in ('C', 'L'):
                 extra = ' (completed)'
