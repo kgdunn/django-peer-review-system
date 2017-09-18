@@ -54,7 +54,7 @@ $(document).ready( function () {
       {% for key in report.keys %}
         {% with item=report|keyvalue:key%}
           <td data-order="{{item.when.timestamp}}">
-            {% if item.when %}
+            {% if item.has %}
                 {{item.when|date:"d M"}},{{item.when|date:"H:i"}}
             {% else %}
                 {{item|safe}}
