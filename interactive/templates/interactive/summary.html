@@ -17,6 +17,9 @@ $(document).ready( function () {
   } );
 } );
 </script>
+{% if global_summary_link %}
+<a style="float: right" target="_blank" href="{{global_summary_link}}">Global summary of your progress</a>
+{% endif %}
 
 <table class="summaries pr-admin" id="interactive_summary">
 <thead>
@@ -37,6 +40,7 @@ $(document).ready( function () {
 </tr>
 {% endfor %}
 </tbody></table>
+
 <hr>
 
 {% endif %} {# if summary_list #}

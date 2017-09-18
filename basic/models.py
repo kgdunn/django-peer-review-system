@@ -165,7 +165,8 @@ class EntryPoint(models.Model):
        help_text='Django function, with syntax: "app_name.views.function_name"')
 
     full_URL = models.CharField(max_length=255, default='', blank=True,
-        help_text='Full URL to the entry point in the given platform.')
+        help_text=('Full URL to the entry point in the given platform, starting'
+                   'with "/"; eg: /course/12345/98765432'))
 
     def __str__(self):
         return '[{0}]:{1}'.format(self.course, self.LTI_title[0:7])

@@ -173,6 +173,13 @@ def starting_point(request, course=None, learner=None, entry_point=None):
     if learner.role in ('Admin',):
         ctx_objects['overview_learners'] = overview_learners(entry_point)
 
+
+
+    global_summary = entry_point.course.entrypoint_set.filter(order=0)
+    if global_summary:
+        ctx_objects['global_summary_link'] = global_summary[0].full_URL
+
+
     html = loader.render_to_string('interactive/landing_page.html',
                                     ctx_objects)
     return HttpResponse(html)
@@ -652,8 +659,8 @@ def get_line5(learner, trigger, summaries):
         link = ('{3}<a href="/interactive/assessment/{0}" target="_blank">'
                 '{1}</a> {2}')
         out[idx] = ('', link.format(rebuttal.unique_code,
-                                    '<span class="still-to-do">Read and assess</span> their rebuttal',
-                                    'of your review', ''))
+            '<span class="still-to-do">Read and assess</span> their rebuttal',
+            'of your review', ''))
 
         extra = 'Assess it'
         try:
@@ -884,8 +891,8 @@ def peers_provide_rebuttal(trigger, learner, entry_point=None,
                               catg='sub')
             summaries.append(summary)
             ctx_objects['lineB'] = ('', link.format(evaluation.unique_code,
-                                            'Provide a rebuttal',
-                                            'back to your peers (completed)'))
+                                        'Provide a rebuttal',
+                                        'back to your peers (completed)'))
         else:
             summary = Summary(date=evaluation.created,
                               action=('You evaluated all reviews. Please '
@@ -895,8 +902,8 @@ def peers_provide_rebuttal(trigger, learner, entry_point=None,
                                       catg='sub')
             summaries.append(summary)
             ctx_objects['lineB'] = ('', link.format(evaluation.unique_code,
-                                                    'Provide a rebuttal',
-                                                    'back to your peers'))
+                '<span class="still-to-do">Provide</span> a rebuttal',
+                'back to your peers'))
 
 
 def peers_rebuttal_assessment(trigger, learner, entry_point=None,
@@ -1279,6 +1286,34 @@ class group_graph(object):
                 return node
 
         return None
+
+    def plot_graph(self):
+        """
+        Plots the graph for this entry point.
+        """
+        import matplotlib.pyplot as plt
+        plt.figure(1,figsize=(8,8))
+        plt.clf()
+        pos = nx.circular_layout(self.graph)
+        nx.draw(self.graph,
+                pos = pos,
+                with_labels=True,
+                node_size=800,
+                node_color = 'lightgrey',
+                node_shape = 's',            #so^>v<dph8'.
+                edge_color = 'b',
+                style = 'solid',             # solid|dashed|dotted,dashdot
+                font_size = 16,
+                font_color= 'black',
+                )
+
+        plt.savefig("graph-circular.png", dpi=300)
+
+        from networkx.readwrite import json_graph
+        serialized = json_graph.node_link_data(self.graph)
+        json.dump(serialized, open('graph.json', 'w'))
+
+
 
 
 def review(request, unique_code=None):
@@ -2116,3 +2151,4 @@ def overview_learners(entry_point):
 
 
     return loader.render_to_string('interactive/learner_overview.html', ctx)
+
