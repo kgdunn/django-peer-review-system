@@ -243,8 +243,8 @@ def get_create_student(request, course, entry_point):
         #end
 
     elif request.session.get('person_id', ''):
-        learners = Person.objects.filter(id=request.session.get('person_id'),
-                                        course=course)
+        learners = Person.objects.filter(id=request.session.get('person_id'),)
+                                        #course=course) <- is this needed?
         learner = None
         if learners.count() == 1:
             learner = learners[0]
