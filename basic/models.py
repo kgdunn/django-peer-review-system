@@ -68,7 +68,7 @@ class Person(models.Model):
             if others:
                 initials += '{}{}'.format(initials, others.count())
 
-            self.initials = initials
+            self.initials = initials[0:5]
 
         super(Person, self).save(*args, **kwargs)
 
