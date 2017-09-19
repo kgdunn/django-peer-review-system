@@ -58,6 +58,10 @@ class Person(models.Model):
                                 help_text='Initials of the user (for display)')
 
     def save(self, *args, **kwargs):
+        """
+        Modifications when a ``Person`` instance is saved.
+        """
+        self.email = self.email.lower()
         if self.initials == '' and self.display_name:
             initials = ''
             for word in self.display_name.split(' '):
