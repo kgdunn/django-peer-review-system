@@ -1,16 +1,15 @@
-from django.contrib import admin
-
-from .models import Course, Person
-from .models import EntryPoint
-from .models import Group_Formation_Process, Group, GroupEnrolled, Token
-
-
-# Tasks imported here
+# To run the scheduled tasks
 from django_q.tasks import schedule, Schedule
 if not(Schedule.objects.filter(func='basic.tasks.send_emails__evaluation')):
     schedule('basic.tasks.send_emails__evaluation',
              schedule_type='I',
-             minutes=1)
+             minutes=10)
+# ----- End task scheduling
+
+from django.contrib import admin
+from .models import Course, Person
+from .models import EntryPoint
+from .models import Group_Formation_Process, Group, GroupEnrolled, Token
 
 
 class CourseAdmin(admin.ModelAdmin):
