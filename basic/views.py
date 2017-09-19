@@ -477,9 +477,10 @@ def import_groups(request):
                 learner.course = course
                 learner.is_validated = False
                 learner.display_name = display_name
-                learner.save()
                 logger.debug('Created student: {}'.format(learner))
 
+            # Save the learner, even if already there; will add initials.
+            learner.save()
             enrol, _ = GroupEnrolled.objects.get_or_create(person=learner,
                                                            group=mapper[group],
                                                            is_enrolled=True)
