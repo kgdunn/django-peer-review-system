@@ -5,6 +5,14 @@ from .models import EntryPoint
 from .models import Group_Formation_Process, Group, GroupEnrolled, Token
 
 
+# Tasks imported here
+from django_q.tasks import schedule, Schedule
+if not(Schedule.objects.filter(func='basic.tasks.send_emails__evaluation')):
+    schedule('basic.tasks.send_emails__evaluation',
+             schedule_type='I',
+             minutes=1)
+
+
 class CourseAdmin(admin.ModelAdmin):
     list_display = ("name", "label", "base_url")
 admin.site.register(Course, CourseAdmin)

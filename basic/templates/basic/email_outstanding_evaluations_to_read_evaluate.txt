@@ -1,0 +1,14 @@
+Hi there,
+
+Just a note about some outstanding work you have to complete in {{course}}.
+
+You have submitted a document, and it has been reviewed by peers. The next
+step is that you read and evaluate their reviews.
+
+You can click on this link to go ahead with that: {{platform_link}}
+
+Remember: we don't use passwords, so you might first have to sign-in with your
+valid email address for that link to work.
+
+Best regards,
+The Interactive Peer Review System

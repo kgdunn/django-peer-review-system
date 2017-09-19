@@ -3,6 +3,8 @@ from .models import Trigger, GroupConfig, Membership, ReviewReport
 from .models import EvaluationReport, AchieveConfig, Achievement
 
 
+# To run the scheduled tasks
+from tasks import *
 
 class AchieveConfigAdmin(admin.ModelAdmin):
     list_display = ("name", "description", "score", "entry_point")

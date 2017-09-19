@@ -37,7 +37,7 @@ from .models import AchieveConfig, Achievement
 from .models import EvaluationReport
 
 # Our other apps
-from basic.models import EntryPoint, Person
+from basic.models import EntryPoint
 from rubric.views import (handle_review, get_create_actual_rubric,
                           get_learner_details)
 from rubric.models import RubricTemplate, RubricActual
@@ -773,7 +773,7 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
 
     # From the perspective of the learner, we should always order the peers
     # is the same way. Use the ``created`` field for that.
-    rubrics = RubricActual.objects.filter(submission=my_submission)\
+    rubrics = RubricActual.objects.filter(submission=submission)\
                                                             .order_by('created')
     for idx, ractual in enumerate(rubrics):
         summary = Summary(date=ractual.created, link='', catg='sub',
@@ -2036,6 +2036,37 @@ def create_assessment_PDF(r_actual):
 def has(learner, achievement, entry_point, detailed=False):
     """
     See if a user has completed a certain achievement.
+
+    submitted	                      Has submitted a document
+
+	work_has_started_to_be_reviewed	  This submitter's work has already
+                                      started to be reviewed. No further
+                                      changes can be accepted.
+
+	all_reviews_from_peers_completed  All the reviews from the learner's peers
+                                      are completed now.
+
+	started_a_review	              The learner has started with a review
+                                      (at least one).
+
+	completed_all_reviews	          Completed all required reviews of peers.
+
+	read_and_evaluated_all_reviews	  Learner has evaluated all the reviews he
+                                      has received.
+
+	viewed_all_evaluations	          Learner has seen his N evaluations
+
+	completed_rebuttal	              Learner has completed the rebuttal back
+                                      to his peers.
+
+	read_all_rebuttals	              Learner has read all the rebuttals
+                                      received back.
+
+	assessed_rebuttals	              Learner has assessed all the rebuttals.
+
+	seen_all_assessments	          Has seen all assessments of the rebuttals.
+
+	completed	                      Completed the entire process.
     """
     possible = Achievement.objects.filter(learner=learner,
                                           achieved__name=achievement,

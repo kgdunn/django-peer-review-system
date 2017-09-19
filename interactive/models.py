@@ -51,6 +51,7 @@ class Achievement(models.Model):
     # Has the learner achieved this goal, or not?
     done = models.BooleanField(default=False)
 
+
     def __str__(self):
         return '[{0}] achieved {1}'.format(self.learner,
                                            self.achieved)
