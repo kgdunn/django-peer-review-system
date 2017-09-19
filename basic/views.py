@@ -457,7 +457,7 @@ def import_groups(request):
              }
 
     import csv
-    filename = 'group-information.csv'
+    filename = '/tmp/group-information.csv'
     with open(filename, 'rt', encoding="utf-8") as csvfile:
         reader = csv.reader(csvfile, delimiter=',')
         for row in reader:
