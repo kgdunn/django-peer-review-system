@@ -2145,17 +2145,23 @@ def overview_learners(entry_point):
     reports = {}
     for learner in learners:
         reports[learner] = filtered_overview(learner, entry_point,)
-        reviewer_for = Membership.objects.filter(learner=learner, role='Review')
+        reviewer_for = Membership.objects.filter(learner=learner,
+                                                 role='Review',
+                                                 group__entry_point=entry_point)
         temp = ''
         for item in reviewer_for:
-            temp += item.group.membership_set.get(role='Submit').learner.get_initials() + '|'
+            temp += item.group.membership_set.get(role='Submit')\
+                                                  .learner.get_initials() + '|'
         reports[learner]['_reviewer_for'] = '<tt>{}</tt>'.format(temp[0:-1])
 
 
         temp = ''
-        learner_group = Membership.objects.filter(learner=learner, role='Submit')
+        learner_group = Membership.objects.filter(learner=learner,
+                                            role='Submit',
+                                            group__entry_point=entry_point)
         if learner_group:
-            reviewers = learner_group[0].group.membership_set.filter(role='Review')
+            reviewers = learner_group[0].group.membership_set.filter\
+                                                                 (role='Review')
             for item in reviewers:
                 temp += item.learner.get_initials() + '|'
 
