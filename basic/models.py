@@ -50,7 +50,7 @@ class Person(models.Model):
 
     last_lis = models.CharField(max_length=100, blank=True,
                                 verbose_name='Last known: lis_result_sourcedid')
-    course = models.ForeignKey(Course, blank=True)
+    course = models.ForeignKey(Course, blank=True, null=True, default=None)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
 
@@ -64,9 +64,9 @@ class Person(models.Model):
                 if word[0].lower() != word[0]:
                     initials += word[0]
 
-            others = Person.objects.filter(initials=initials).order_by('created')
+            others = Person.objects.filter(initials=initials)
             if others:
-                initials += '{}{}'.format(initials, others.count())
+                initials = '{}{}'.format(initials, others.count())
 
             self.initials = initials[0:5]
 
@@ -79,7 +79,7 @@ class Person(models.Model):
 
 
     def __str__(self):
-        return u'[{0}]({1})'.format(self.user_ID[0:8], self.role)
+        return u'[{0}]({1})'.format(self.initials or self.id, self.role)
 
 class Token(models.Model):
     """ Tokens capture time/date and permissions of a user to access.

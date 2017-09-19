@@ -471,16 +471,18 @@ def import_groups(request):
             role = 'Learn'
             print(display_name)
             learner, newbie = Person.objects.get_or_create(email=email,
-                                                    role=role,
-                                                    course=course,
-                                                    is_validated=False,
-                                                    display_name=display_name)
+                                                           role=role)
 
             if newbie:
+                learner.course = course
+                learner.is_validated = False
+                learner.display_name = display_name
+                learner.save()
                 logger.debug('Created student: {}'.format(learner))
 
-            enrol = GroupEnrolled(person=learner, group=mapper[group],
-                                  is_enrolled=True)
+            enrol, _ = GroupEnrolled.objects.get_or_create(person=learner,
+                                                           group=mapper[group],
+                                                           is_enrolled=True)
             enrol.save()
             logger.debug('Enrolled student [{}] in {}'.format(learner,
                                                             mapper[group]))
