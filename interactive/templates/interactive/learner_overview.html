@@ -2,16 +2,6 @@
 
 <h2 style="display:inline; clear:none;">Learner overview</h2><br>
 
-
-{% if achieved|keyvalue:unit|keyvalue:'submitted' %}
-            {% with achievement=achieved|keyvalue:unit|keyvalue:'submitted' %}
-            <td><i class="fa fa-check" aria-hidden="true"></i>&nbsp;<br><span class="achieved_dt">{{ achievement.when|date:"d M Y, H:i"}}</span></td>
-            {% endwith %}
-        {% else %}
-            <td><i class="fa fa-times" aria-hidden="true"></i></td>
-        {% endif %}
-
-
 <script>
 $(document).ready( function () {
 
