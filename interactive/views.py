@@ -2183,14 +2183,27 @@ def overview_learners(entry_point):
                 reports[learner]['submitted'].hyperlink = '/{}'.format(\
                                                         sub[0].file_upload.url)
 
-        reviewer_for = Membership.objects.filter(learner=learner,
-                                                 role='Review',
-                                                 group__entry_point=entry_point)
+        #reviewer_of = Membership.objects.filter(learner=learner,
+        #                                        role='Review',
+        #                                        group__entry_point=entry_point)
+
+        reviewer_of = ReviewReport.objects.filter(reviewer=learner,
+                                                       entry_point=entry_point)
+
         temp = ''
-        for item in reviewer_for:
-            temp += item.group.membership_set.get(role='Submit')\
-                                                  .learner.get_initials() + '|'
-        reports[learner]['_reviewer_for'] = '<tt>{}</tt>'.format(temp[0:-1])
+        for review in reviewer_of:
+
+            code = review.unique_code
+            ractual = RubricActual.objects.get(rubric_code=code)
+            initials = ractual.submission.submitted_by.get_initials()
+            hlink = (' <a href="/interactive/review/{0}" target="_blank">'
+                         '{1}</a> [{2:.0f}] {3:4d} words<br>').format(code,
+                                        initials,
+                                        ractual.score,
+                                        int(ractual.word_count))
+            temp += hlink
+
+        reports[learner]['_reviewer_of'] = '<tt>{}</tt>'.format(temp[0:-1])
 
 
         temp = ''
@@ -2204,20 +2217,26 @@ def overview_learners(entry_point):
                 report = ReviewReport.objects.filter(reviewer=member.learner,
                                                      entry_point=entry_point,
                                             submission__submitted_by=learner)
+
                 code = ''
                 if report:
+                    rubric = RubricActual.objects.get(\
+                                            rubric_code=report[0].unique_code)
                     code = report[0].unique_code
 
                 initials = member.learner.get_initials()
                 if code:
-                    hlink = (' <a href="/interactive/review/{1}" '
-                             'target="_blank">{0}</a> |').format(initials, code)
+                    hlink = (' <a href="/interactive/review/{0}" target="_blank">'
+                             '{1}</a> [{2:.0f}] {3:4d} words<br>').format(code,
+                                                            initials,
+                                                            rubric.score,
+                                                            rubric.word_count,)
                 else:
-                    hlink = ' {}|'.format(initials)
+                    hlink = ' {}<br>'.format(initials)
 
                 temp += hlink
 
-        reports[learner]['_reviewed_by'] = '<tt>{}</tt>'.format(temp[0:-1])
+        reports[learner]['_reviewed_by'] = '<tt>{}</tt>'.format(temp[0:-4])
 
 
     ctx['learners'] = learners
