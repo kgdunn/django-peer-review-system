@@ -2198,10 +2198,24 @@ def overview_learners(entry_point):
                                             role='Submit',
                                             group__entry_point=entry_point)
         if learner_group:
-            reviewers = learner_group[0].group.membership_set.filter\
+            members = learner_group[0].group.membership_set.filter\
                                                                  (role='Review')
-            for item in reviewers:
-                temp += item.learner.get_initials() + '|'
+            for member in members:
+                report = ReviewReport.objects.filter(reviewer=member.learner,
+                                                     entry_point=entry_point,
+                                            submission__submitted_by=learner)
+                code = ''
+                if report:
+                    code = report[0].unique_code
+
+                initials = member.learner.get_initials()
+                if code:
+                    hlink = (' <a href="/interactive/review/{1}" '
+                             'target="_blank">{0}</a> |').format(initials, code)
+                else:
+                    hlink = ' {}|'.format(initials)
+
+                temp += hlink
 
         reports[learner]['_reviewed_by'] = '<tt>{}</tt>'.format(temp[0:-1])
 

@@ -214,7 +214,6 @@ class ReviewReport(models.Model):
     grpconf = models.ForeignKey(GroupConfig, null=True, blank=True,
             help_text='Not known, until the reviewer visits the page')
 
-
     order = models.PositiveSmallIntegerField(help_text='Used to order reviews',
                                              default=0, editable=False)
 
@@ -222,13 +221,6 @@ class ReviewReport(models.Model):
     # This field is the linking key between ``ReviewReport`` and ``RubricActual``
     # We could have merged both models, but they do belong logically separate.
     unique_code = models.CharField(max_length=16, editable=False, blank=True)
-
-    # This code is filled in only when the submitter of the original submission
-    # can come read the review. Prior to that the review is editable for the
-    # reviewer.
-    # NOT USED
-    #submitter_code = models.CharField(max_length=16, editable=False, blank=True)
-
 
     created = models.DateTimeField(auto_now_add=True)
     last_viewed = models.DateTimeField(auto_now=True)
