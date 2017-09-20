@@ -2247,7 +2247,9 @@ def overview_learners(entry_point):
 
     ctx['learners'] = learners
     ctx['reports'] = reports
-
+    global_summary = entry_point.course.entrypoint_set.filter(order=0)
+    if global_summary:
+        ctx['global_summary_link'] = global_summary[0].full_URL
 
     return loader.render_to_string('interactive/learner_overview.html', ctx)
 

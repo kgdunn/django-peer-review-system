@@ -52,14 +52,14 @@ $(document).ready( function () {
 
 {% block content %}
 
-
+<span style="float:left">Note: <em>the links at the top of each column are clickable</em></span>
 <table class="summaries pr-admin" id="overall_progress">
 <thead><tr>
 <td style="font-size:28">Achievement</td>
 {% for unit in entries %}
     <td style="font-size:20; font-weight: bold">
     {% if unit.full_URL%}
-        <a href="{{unit.full_URL}}" target="_blank">{{unit.LTI_title}}</a>
+        <a href="{{unit.full_URL}}">{{unit.LTI_title}}</a>
     {% else %}
         {{unit.LTI_title}}
     {% endif %}
@@ -129,6 +129,6 @@ $(document).ready( function () {
 </tr>
 </tbody>
 </table>
-Note: <em>the links at the top of each column are clickable</em>
+
 
 {% endblock %}

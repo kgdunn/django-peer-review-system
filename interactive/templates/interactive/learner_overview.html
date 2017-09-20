@@ -29,6 +29,11 @@ $(document).ready( function () {
 } );
 </script>
 
+
+{% if global_summary_link %}
+<a style="float: right" href="{{global_summary_link}}">Links to all deliverables</a>
+{% endif %}
+
 <table class="summaries pr-admin" id="class_overview">
 <thead>
 <tr>
