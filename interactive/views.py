@@ -2176,6 +2176,13 @@ def overview_learners(entry_point):
     reports = {}
     for learner in learners:
         reports[learner] = filtered_overview(learner, entry_point,)
+        if isinstance(reports[learner]['submitted'], Achievement):
+            sub = learner.submission_set.filter(is_valid=True,
+                                entry_point=entry_point).exclude(status='A')
+            if sub:
+                reports[learner]['submitted'].hyperlink = '/{}'.format(\
+                                                        sub[0].file_upload.url)
+
         reviewer_for = Membership.objects.filter(learner=learner,
                                                  role='Review',
                                                  group__entry_point=entry_point)

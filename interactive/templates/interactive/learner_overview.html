@@ -17,6 +17,7 @@ $(document).ready( function () {
 
   $('#class_overview').DataTable( {
     paging: false,
+    order: [[ 6, "asc" ], [ 5, "asc" ], [ 4, "asc" ], [ 3, "asc" ], [ 2, "asc" ]],
     searching: true,
     fixedHeader: {
         header: true,
@@ -55,7 +56,11 @@ $(document).ready( function () {
         {% with item=report|keyvalue:key%}
           <td data-order="{{item.when.timestamp}}">
             {% if item.when %}
-                {{item.when|date:"d M"}},{{item.when|date:"H:i"}}
+                {% if item.hyperlink %}
+                  <a target="_blank" href="{{item.hyperlink}}">{{item.when|date:"d M"}},{{item.when|date:"H:i"}}</a>
+                {% else %}
+                  {{item.when|date:"d M"}},{{item.when|date:"H:i"}}
+                {% endif %}
             {% else %}
                 {% if item %}
                   {{item|safe}}

@@ -1,9 +1,15 @@
 # To run the scheduled tasks
 from django_q.tasks import schedule, Schedule
-if not(Schedule.objects.filter(func='basic.tasks.send_emails__evaluation')):
-    schedule('basic.tasks.send_emails__evaluation',
-             schedule_type='I',
-             minutes=10)
+try:
+    if not(Schedule.objects.filter(func='basic.tasks.send_emails__evaluation')):
+        schedule('basic.tasks.send_emails__evaluation',
+                 schedule_type='I',
+                 minutes=10)
+except:
+    # This is needed to catch errors when running manage.py migrate on a fresh
+    # database install.
+    print('WARNING: could not create scheduled tasks')
+    pass
 # ----- End task scheduling
 
 from django.contrib import admin
