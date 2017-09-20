@@ -2197,7 +2197,7 @@ def overview_learners(entry_point):
             ractual = RubricActual.objects.filter(rubric_code=code)
             if ractual.count() == 0:
                 logger.error('MISSING REVIEW: {}'.format(code))
-                continue
+                break
             initials = ractual.submission.submitted_by.get_initials()
             hlink = (' <a href="/interactive/review/{0}" target="_blank">'
                          '{1}</a> [{2:.0f}] {3:4d} words<br>').format(code,
