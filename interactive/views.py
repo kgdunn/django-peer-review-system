@@ -2203,10 +2203,10 @@ def overview_learners(entry_point):
 
             initials = ractual.submission.submitted_by.get_initials()
             hlink = (' <a href="/interactive/review/{0}" target="_blank">'
-                         '{1}</a> [{2:.0f}] {3:4d} words<br>').format(code,
-                                        initials,
-                                        ractual.score,
-                                        int(ractual.word_count))
+                     '{1}</a> [{2:3.1f}] {3:4d} words<br>').format(code,
+                        initials,
+                        ractual.score/ractual.rubric_template.maximum_score*10,
+                        ractual.word_count)
             temp += hlink
 
         reports[learner]['_reviewer_of'] = '<tt>{}</tt>'.format(temp[0:-1])
@@ -2233,10 +2233,10 @@ def overview_learners(entry_point):
                 initials = member.learner.get_initials()
                 if code:
                     hlink = (' <a href="/interactive/review/{0}" target="_blank">'
-                             '{1}</a> [{2:.0f}] {3:4d} words<br>').format(code,
-                                                            initials,
-                                                            rubric.score,
-                                                            rubric.word_count,)
+                             '{1}</a> [{2:3.1f}] {3:4d} words<br>').format(code,
+                        initials,
+                        ractual.score/ractual.rubric_template.maximum_score*10,
+                        rubric.word_count,)
                 else:
                     hlink = ' {}<br>'.format(initials)
 
