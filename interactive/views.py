@@ -2235,7 +2235,7 @@ def overview_learners(entry_point):
                     hlink = (' <a href="/interactive/review/{0}" target="_blank">'
                              '{1}</a> [{2:3.1f}] {3:4d} words<br>').format(code,
                         initials,
-                        ractual.score/ractual.rubric_template.maximum_score*10,
+                        rubric.score/rubric.rubric_template.maximum_score*10,
                         rubric.word_count,)
                 else:
                     hlink = ' {}<br>'.format(initials)
