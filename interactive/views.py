@@ -78,7 +78,7 @@ class GLOBAL_Class(object):
     pass
 GLOBAL = GLOBAL_Class()
 GLOBAL.num_peers = 2
-GLOBAL.min_in_pool_before_grouping_starts = 10
+GLOBAL.min_in_pool_before_grouping_starts = 6
 
 
 def starting_point(request, course=None, learner=None, entry_point=None):
@@ -1231,13 +1231,14 @@ class group_graph(object):
             reviewer_group = reviewer_groups[0].group
         if self.entry_point.uses_groups:
             all_groups = gfp.group_set.all()
-            potential = []
+            superset = []
 
             # Exclude all other groups
             if self.entry_point.only_review_within_group:
 
                 for enrollment in reviewer_group.groupenrolled_set.all():
-                    potential.append(enrollment.person)
+                    superset.append(enrollment.person)
+
 
             # Or, exclude only people in the person's group, and make up the
             # potential set from the other groups
@@ -1246,9 +1247,16 @@ class group_graph(object):
                     if group == reviewer_group:
                         continue
                     for enrollment in group.groupenrolled_set.all():
-                        potential.append(enrollment.person)
+                        superset.append(enrollment.person)
 
                 # End: going through all groups in this ``gfp``
+
+
+            # Now we have a superset of potential reviewers. Find the
+            # intersection of ``potential`` and ``superset`` (i.e. exclude from
+            # ``superset`` the entries not in ``potential``):
+            potential  = list(set(superset).intersection(potential))
+
         # End: if reducing the pool of potential reviewers due to grouping.
 
         if reviewer:
@@ -1290,28 +1298,41 @@ class group_graph(object):
     def plot_graph(self):
         """
         Plots the graph for this entry point.
-        """
-        import matplotlib.pyplot as plt
-        plt.figure(1,figsize=(8,8))
-        plt.clf()
-        pos = nx.circular_layout(self.graph)
-        nx.draw(self.graph,
-                pos = pos,
-                with_labels=True,
-                node_size=800,
-                node_color = 'lightgrey',
-                node_shape = 's',            #so^>v<dph8'.
-                edge_color = 'b',
-                style = 'solid',             # solid|dashed|dotted,dashdot
-                font_size = 16,
-                font_color= 'black',
-                )
 
-        plt.savefig("graph-circular.png", dpi=300)
+        43639/1931107264
+        from basic.models import Course, EntryPoint
+        orig_course = Course.objects.get(label='36957')
+        orig_ep = EntryPoint.objects.get(course=orig_course, LTI_id='1475539468')
+        from interactive.views import group_graph
+        graph = group_graph(orig_ep)
+        graph.plot_graph()
+
+        """
+        #import matplotlib.pyplot as plt
+        #plt.figure(1,figsize=(8,8))
+        #plt.clf()
+        #pos = nx.circular_layout(self.graph)
+        #nx.draw(self.graph,
+                #pos = pos,
+                #with_labels=True,
+                #node_size=800,
+                #node_color = 'lightgrey',
+                #node_shape = 's',            #so^>v<dph8'.
+                #edge_color = 'b',
+                #style = 'solid',             # solid|dashed|dotted,dashdot
+                #font_size = 16,
+                #font_color= 'black',
+                #)
+
+        #plt.savefig("graph-circular.png", dpi=300)
 
         from networkx.readwrite import json_graph
-        serialized = json_graph.node_link_data(self.graph)
-        json.dump(serialized, open('graph.json', 'w'))
+        serialized = json_graph.node_link_data(self.graph,
+            attrs=dict(id='id', source='source', target='target', key='key'))
+        for idx, node in enumerate(serialized['nodes']):
+            node['title'] = node['id'].get_initials()
+            node['id'] = idx
+        json.dump(serialized, open('/Users/kevindunn/TU-Delft/CLE/peer/SEN2321/graph.json', 'w'))
 
 
 
