@@ -2,14 +2,15 @@
 from django_q.tasks import schedule, Schedule
 try:
     import tasks
-    if not(Schedule.objects.filter(func='basic.tasks.send_emails__evaluation')):
 
+    task = 'send_emails__evaluation_and_rebuttal'
+    if not(Schedule.objects.filter(func='basic.tasks.' + task)):
+        schedule('basic.tasks.' + task, schedule_type=Schedule.HOURLY)
 
-        schedule('basic.tasks.send_emails__evaluation_and_rebuttal',
-                 schedule_type=Schedule.HOURLY)
+    task = 'email__no_reviews_after_submission'
+    if not(Schedule.objects.filter(func='basic.tasks.' + task)):
+        schedule('basic.tasks.' + task, schedule_type=Schedule.HOURLY)
 
-        schedule('basic.tasks.email__no_reviews_after_submission',
-                 schedule_type=Schedule.HOURLY)
 except:
     # This is needed to catch errors when running manage.py migrate on a fresh
     # database install.
