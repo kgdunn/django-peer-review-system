@@ -45,6 +45,7 @@ def send_emails__evaluation_and_rebuttal():
     Send emails for the Evaluation step: i.e. when two reviews are returned,
     are ready to be evaluated.
     """
+    import time
     from basic.models import EntryPoint
     from interactive.models import EvaluationReport
     from interactive.views import has
@@ -111,4 +112,9 @@ def send_emails__evaluation_and_rebuttal():
                                     subject = subject
                                     )
             email_task.save()
+
+            # Let's wait some time before each email is sent out
+            time.sleep(13)
+
+
     logger.info('Success: send_emails__evaluation_and_rebuttal')
