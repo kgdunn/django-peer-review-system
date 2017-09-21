@@ -3,13 +3,15 @@ from django_q.tasks import schedule, Schedule
 try:
     import tasks
 
-    task = 'send_emails__evaluation_and_rebuttal'
-    if not(Schedule.objects.filter(func='basic.tasks.' + task)):
-        schedule('basic.tasks.' + task, schedule_type=Schedule.HOURLY)
+    task = 'basic.tasks.send_emails__evaluation_and_rebuttal'
+    if not(Schedule.objects.filter(func=task)):
+        schedule(func=task, schedule_type=Schedule.HOURLY)
 
-    task = 'email__no_reviews_after_submission'
-    if not(Schedule.objects.filter(func='basic.tasks.' + task)):
-        schedule('basic.tasks.' + task, schedule_type=Schedule.HOURLY)
+    task = 'basic.tasks.email__no_reviews_after_submission'
+    if not(Schedule.objects.filter(func=task)):
+        schedule(func=task, schedule_type=Schedule.HOURLY)
+
+    from basic.tasks import email__no_reviews_after_submission
 
 except:
     # This is needed to catch errors when running manage.py migrate on a fresh
