@@ -198,3 +198,14 @@ class EntryPoint(models.Model):
 
     def __str__(self):
         return '[{0}]:{1}'.format(self.course, self.LTI_title[0:7])
+
+
+class Email_Task(models.Model):
+    """
+    Used to track emails to students, and to avoid duplicate mailings.
+    """
+    learner = models.ForeignKey(Person)
+    entry_point = models.ForeignKey(EntryPoint)
+    message = models.TextField(blank=True, default='')
+    subject = models.CharField(max_length=500)
+    sent_datetime = models.DateTimeField(auto_now=True)

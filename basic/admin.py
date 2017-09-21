@@ -1,20 +1,25 @@
 # To run the scheduled tasks
 from django_q.tasks import schedule, Schedule
 try:
+    import tasks
     if not(Schedule.objects.filter(func='basic.tasks.send_emails__evaluation')):
-        schedule('basic.tasks.send_emails__evaluation',
-                 schedule_type='I',
-                 minutes=10)
+
+
+        schedule('basic.tasks.send_emails__evaluation_and_rebuttal',
+                 schedule_type=Schedule.HOURLY)
+
+        schedule('basic.tasks.email__no_reviews_after_submission',
+                 schedule_type=Schedule.HOURLY)
 except:
     # This is needed to catch errors when running manage.py migrate on a fresh
     # database install.
-    print('WARNING: could not create scheduled tasks')
+    print('WARNING: could not create the scheduled tasks')
     pass
 # ----- End task scheduling
 
 from django.contrib import admin
 from .models import Course, Person
-from .models import EntryPoint
+from .models import EntryPoint, Email_Task
 from .models import Group_Formation_Process, Group, GroupEnrolled, Token
 
 
@@ -63,6 +68,10 @@ class TokenAdmin(admin.ModelAdmin):
     list_display = ("person", "was_used", "hash_value", "time_used", "next_uri")
 admin.site.register(Token, TokenAdmin)
 
+
+class Email_Task_Admin(admin.ModelAdmin):
+    list_display = ("learner", "entry_point", "subject", "sent_datetime")
+admin.site.register(Email_Task, Email_Task_Admin)
 
 # =======
 from django.contrib.sessions.models import Session
