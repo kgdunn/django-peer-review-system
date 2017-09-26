@@ -193,7 +193,7 @@ def submit_peer_review_feedback(request, ractual_code):
     words = np.array(words)
     median_words = np.round(np.median(words[words!=0]))  # to avoid 160.5 words
     if np.isnan(median_words):
-        median_words = 0
+        median_words = 242
 
     if request.POST:
         request.POST._mutable = True
