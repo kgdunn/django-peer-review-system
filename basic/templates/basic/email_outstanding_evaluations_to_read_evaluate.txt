@@ -11,7 +11,7 @@ You have submitted a document, and it has been reviewed by {{N_peers}} peer{{N_p
 
 Your peers need your rebuttal so they can continue onto their next steps also. Please don't hold each other up.
 
-You can click on this link to get started: {{platform_link}}
+You should use on this link {{platform_link}} (you may have to copy and paste it manually in the case your email software blocks it)
 
 Remember: we don't use passwords, so you might first have to sign-in with a
 valid email address for that link to work.
