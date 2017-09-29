@@ -43,7 +43,7 @@ $(document).ready( function () {
 {% for learner in learners %}
 <tr>
   <td>{{learner.get_initials}}</td>
-  <td>{{learner.display_name}}<br>
+  <td>{{learner.show_group}} {{learner.display_name}}<br>
     <span style="color:#999">{{learner.email|slice:"@student.tudelft.nl"}}</span>
   </td>
     {% with report=reports|keyvalue:learner %}

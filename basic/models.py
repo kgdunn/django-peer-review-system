@@ -81,6 +81,13 @@ class Person(models.Model):
             self.save()
         return self.initials
 
+    def show_group(self):
+        groups = self.groupenrolled_set.all()
+        if groups.count() == 1:
+            return '[{}]'.format(groups[0].group.name)
+        else:
+            return ''
+
 
     def __str__(self):
         return u'[{0}]({1})'.format(self.initials or self.id, self.role)
