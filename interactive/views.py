@@ -35,6 +35,7 @@ from PyPDF2 import PdfFileReader, PdfFileMerger
 from .models import Trigger, GroupConfig, Membership, ReviewReport
 from .models import AchieveConfig, Achievement
 from .models import EvaluationReport
+from .models import ReleaseConditionConfig
 
 # Our other apps
 from basic.models import EntryPoint
@@ -84,10 +85,63 @@ GLOBAL.min_in_pool_before_grouping_starts = 6
 def starting_point(request, course=None, learner=None, entry_point=None):
     """
     Start the interactive tool here:
+    0. Can we even run this entry_point?
     1. push a grade of zero to their gradebook, if the first time visiting.
     2. Call the triggers to process sequentially.
     3. Render the page.
     """
+    #from basic.models import Course, EntryPoint
+    #orig_course = Course.objects.get(label='43639')
+    #orig_ep = EntryPoint.objects.get(course=orig_course, LTI_id='1931107264')
+    #from interactive.views import group_graph
+    #graph = group_graph(orig_ep)
+    #graph.plot_graph()
+
+
+    # Check if all/any release conditions are passed. If not, return immediately
+    # with a display that shows which conditions are not passed yet.
+    rc_configs = ReleaseConditionConfig.objects.filter(entry_point=entry_point)
+    conditions = namedtuple('conditions', ['achieved', 'when', 'description',
+                                           'entry_point'])
+    if rc_configs:
+        ctx_rc = {'entry_point': entry_point}
+        rc_config = rc_configs[0]
+        condition_set = rc_config.releasecondition_set.all().order_by('order')
+        conditions_met = [False, ] * condition_set.count()
+        ctx_rc['condition_set'] = [None, ] * condition_set.count()
+        for idx, condition in enumerate(condition_set):
+            conditions_met[idx] = has(learner,
+                                condition.achieveconfig,
+                                entry_point=condition.achieveconfig.entry_point,
+                                detailed=True)
+            if conditions_met[idx]:
+                ctx_rc['condition_set'][idx] = conditions(achieved=True,
+                            when=conditions_met[idx].when,
+                            description=condition.achieveconfig.description,
+                            entry_point=condition.achieveconfig.entry_point)
+            else:
+                ctx_rc['condition_set'][idx] = conditions(achieved=False,
+                            when=False,
+                            description=condition.achieveconfig.description,
+                            entry_point=condition.achieveconfig.entry_point)
+
+
+
+        next_step = False
+        if rc_config.any_apply and any(conditions_met):
+            next_step = True
+        if rc_config.all_apply and all(conditions_met):
+            next_step = True
+
+        if not(next_step):
+            html = loader.render_to_string('interactive/releasecondition_display.html',
+                                           ctx_rc)
+            return HttpResponse(html)
+
+
+
+
+
     # Step 1:
     if not push_to_gradebook(learner, 0.0, entry_point, testing=True):
         return HttpResponse('Please create a GradeItem attached to this Entry')
@@ -2056,8 +2110,14 @@ def create_assessment_PDF(r_actual):
 #---------
 def has(learner, achievement, entry_point, detailed=False):
     """
-    See if a user has completed a certain achievement.
+    See if a user has completed a certain ``achievement``.
 
+    If ``achievement`` is an AchieveConfig instance, it will extract the
+    achievement text, and use that.
+
+
+    Achievement                       Description
+    -----------                       -----------
     submitted	                      Has submitted a document
 
 	work_has_started_to_be_reviewed	  This submitter's work has already
@@ -2089,6 +2149,8 @@ def has(learner, achievement, entry_point, detailed=False):
 
 	completed	                      Completed the entire process.
     """
+    if isinstance(achievement, AchieveConfig):
+        achievement = achievement.name
     possible = Achievement.objects.filter(learner=learner,
                                           achieved__name=achievement,
                                           achieved__entry_point=entry_point)

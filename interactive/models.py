@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from utils import generate_random_token
+from django.core.exceptions import ValidationError
 """
 
 Key assumptions:
@@ -55,6 +56,43 @@ class Achievement(models.Model):
     def __str__(self):
         return '[{0}] achieved {1}'.format(self.learner,
                                            self.achieved)
+
+
+class ReleaseConditionConfig(models.Model):
+    """
+
+    """
+    name = models.CharField(max_length=200)
+    entry_point = models.ForeignKey('basic.EntryPoint')
+    all_apply = models.BooleanField(default=False,
+                    verbose_name='All rules must apply',
+                    help_text='All rules must pass before it is valid')
+    any_apply = models.BooleanField(default=False,
+                    help_text='Any or more rules must pass before it is valid',
+                    verbose_name='Any rule applies')
+
+
+    def __str__(self):
+        if self.all_apply:
+            return '[{0}]: ALL apply'.format(self.name )
+        elif self.all_apply:
+            return '[{0}]: ALL apply'.format(self.name )
+
+
+    def clean(self):
+        if self.all_apply  and self.any_apply:
+            raise ValidationError('Specify either ALL or ANY apply; not both.')
+
+
+class ReleaseCondition(models.Model):
+    """
+    Specifies a single release condition
+    """
+    rc_config = models.ForeignKey(ReleaseConditionConfig,
+                                  verbose_name='Release condition set',)
+    achieveconfig = models.ForeignKey(AchieveConfig)
+    order = models.PositiveSmallIntegerField(default=0,
+                    help_text='To order the display for students.')
 
 
 class Trigger(models.Model):
