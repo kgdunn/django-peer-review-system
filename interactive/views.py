@@ -127,7 +127,6 @@ def starting_point(request, course=None, learner=None, entry_point=None):
                             entry_point=condition.achieveconfig.entry_point)
 
 
-
         next_step = False
         if rc_config.any_apply and any(conditions_met):
             next_step = True
@@ -142,9 +141,6 @@ def starting_point(request, course=None, learner=None, entry_point=None):
             html_releaseconditions = loader.render_to_string(('interactive/'
                                     'releasecondition_display.html'), ctx_rc)
             return HttpResponse(html_releaseconditions)
-
-
-
 
 
     # Step 1:

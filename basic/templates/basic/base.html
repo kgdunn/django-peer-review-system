@@ -278,7 +278,9 @@ $( function() {
 
 {% block header %}{% endblock %}
 
-<h1>{{entry_point.LTI_title}} {%if course%}&nbsp;&nbsp;&nbsp;&nbsp;({{course.name}}){% endif %}</h1>
+<h1 style="display:inline; clear:none;">{{entry_point.LTI_title}} </h1>
+<span style="font-weight:bold">{%if course%}&nbsp;&nbsp;&nbsp;&nbsp;({{course.name}}){% endif %}</span>
+<span style="float:right; padding-right: 0.5em"><a href="{{entry_point.full_URL}}">Link to this page</a></span>
 <br>
 {% block content %}
 
