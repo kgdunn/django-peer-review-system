@@ -103,6 +103,7 @@ def starting_point(request, course=None, learner=None, entry_point=None):
     rc_configs = ReleaseConditionConfig.objects.filter(entry_point=entry_point)
     conditions = namedtuple('conditions', ['achieved', 'when', 'description',
                                            'entry_point'])
+    html_releaseconditions = ''
     if rc_configs:
         ctx_rc = {'entry_point': entry_point}
         rc_config = rc_configs[0]
@@ -133,10 +134,14 @@ def starting_point(request, course=None, learner=None, entry_point=None):
         if rc_config.all_apply and all(conditions_met):
             next_step = True
 
+        # Non-learners are always allowed through
+        if learner.role not in ('Learn',):
+            next_step = True
+
         if not(next_step):
-            html = loader.render_to_string('interactive/releasecondition_display.html',
-                                           ctx_rc)
-            return HttpResponse(html)
+            html_releaseconditions = loader.render_to_string(('interactive/'
+                                    'releasecondition_display.html'), ctx_rc)
+            return HttpResponse(html_releaseconditions)
 
 
 
