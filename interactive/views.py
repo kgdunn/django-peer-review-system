@@ -687,6 +687,10 @@ def get_line5(learner, trigger, summaries):
     if not(has(learner, 'completed_all_reviews', trigger.entry_point)):
         return out
 
+    # Added this to avoid assessment happening before rebuttal
+    if not(has(learner, 'completed_rebuttal', trigger.entry_point)):
+        return out
+
     allocated_reviews = ReviewReport.objects.filter(reviewer=learner,
         entry_point=trigger.entry_point).order_by('-created') # for consistency
 

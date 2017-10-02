@@ -89,8 +89,9 @@ class ReleaseCondition(models.Model):
     Specifies a single release condition
     """
     rc_config = models.ForeignKey(ReleaseConditionConfig,
-                                  verbose_name='Release condition set',)
-    achieveconfig = models.ForeignKey(AchieveConfig)
+                            verbose_name='Release condition set',)
+    achieveconfig = models.ForeignKey(AchieveConfig,
+                            verbose_name='Achievement config to be completed')
     order = models.PositiveSmallIntegerField(default=0,
                     help_text='To order the display for students.')
 
