@@ -51,12 +51,13 @@ for target in target_entries:
 # These have the added complexity that you have a .trigger, .next_trigger and
 # item templates and option templates that depend on them.
 orig_course = Course.objects.get(label='36957')
-orig_ep = EntryPoint.objects.get(course=orig_course, LTI_id='1931107264')
+orig_ep = EntryPoint.objects.get(course=orig_course, LTI_id='1962399638')
 targ_course = Course.objects.get(label='43639')
-targ_ep = EntryPoint.objects.get(course=targ_course, LTI_id='1931107264')
+targ_ep = EntryPoint.objects.get(course=targ_course, LTI_id='1499960701')
 
-src_template_name = 'LD1 assessment'
-new_title = src_template_name  # <-- because we are copying course-to-course; else it would a different text here
+src_template_name = 'LD3 assessment'
+new_title = src_template_name  # <-- because we are copying course-to-course; it
+                               # would a different text here if we are copying within a course.
 
 template = RubricTemplate.objects.get(entry_point=orig_ep, title=src_template_name)
 
