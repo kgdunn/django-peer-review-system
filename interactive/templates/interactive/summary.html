@@ -1,7 +1,10 @@
-{% if summary_list %}
+
 
 <h2 style="display:inline; clear:none;">Summary</h2>
 <span class="h2explain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(reload page to refresh the table)</span>
+{% if global_summary_link %}
+<span style="float: right; padding-right: 0.5em"><a target="_blank" href="{{global_summary_link}}">Global summary of your progress</a></span>
+{% endif %}
 <script>
 $(document).ready( function () {
 
@@ -17,10 +20,9 @@ $(document).ready( function () {
   } );
 } );
 </script>
-{% if global_summary_link %}
-<span style="float: right; padding-right: 0.5em"><a target="_blank" href="{{global_summary_link}}">Global summary of your progress</a></span>
-{% endif %}
 
+
+{% if summary_list %}
 <table class="summaries pr-admin" id="interactive_summary">
 <thead>
 <tr>
@@ -41,6 +43,10 @@ $(document).ready( function () {
 {% endfor %}
 </tbody></table>
 
-<hr>
 
+{% else %}
+<p>No summary information to display.
 {% endif %} {# if summary_list #}
+
+<br>
+<hr>
