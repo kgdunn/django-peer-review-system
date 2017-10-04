@@ -397,6 +397,9 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
     if learner.role in ('admin',):
         trigger.allow_submit = False  # prevent issues with instructor's upload
 
+    if trigger.deadline_dt < timezone.now():
+        trigger.allow_submit = False  # prevent late submissions
+
     ctx_objects['submission'] = trigger.template
 
     if trigger.submission:
