@@ -28,7 +28,7 @@ text {
 }
 
 </style>
-<p>Double-click on a learner node to see their connections. Double-click again to undo.
+<p><em>Double-click on a learner node to see their connections. Double-click again to undo.</em>
 <script src="//d3js.org/d3.v3.min.js"></script>
 <script>
 
@@ -116,7 +116,7 @@ var node = svg.selectAll(".node")
     .on("mouseover", mouseover)
     .on("mouseout", mouseout)
     .call(force.drag)
-     .on('dblclick', connectedNodes); // code for double clicking
+    .on('dblclick', connectedNodes); // code for double clicking
 
 node.append("circle")
     .attr("r", circle_radius)
@@ -165,7 +165,6 @@ node.append("title")
         }
     }
 
-
 function tick() {
   link
       .attr("x1", function(d) { return d.source.x; })
@@ -176,8 +175,6 @@ function tick() {
   node
       .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
 }
-
-
 
 
 function mouseover() {
@@ -262,9 +259,6 @@ $(document).ready( function () {
         {% endif %}
       {% endfor %} {#  keys in ``report`` #}
     {% endwith %}
-
-
-
 </tr>
 {% endfor %}
 </tbody></table>
