@@ -2,10 +2,198 @@
 
 <h2 style="display:inline; clear:none;">Learner overview</h2><br>
 
+<style>
+
+.link {
+  fill: none;
+  stroke: #aaa;
+  stroke-width: 1.5px;
+  stroke-opacity: 0.6;
+}
+
+.marker {
+    fill: #AAA;
+    stroke: #aaa;
+    stroke-width: 1.5px;
+    stroke-opacity: 0.6;
+}
+.node circle {
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+
+text {
+  font: 10px sans-serif;
+  pointer-events: none;
+}
+
+</style>
+<p>Double-click on a learner node to see their connections. Double-click again to undo.
+<script src="//d3js.org/d3.v3.min.js"></script>
+<script>
+
+
+    // TODO:
+    // Curved nodes: https://bl.ocks.org/mbostock/4600693
+    // Curves?https://stackoverflow.com/questions/16568313/arrows-on-links-in-d3js-force-layout`
+    // legend
+
+    // General: http://www.d3noob.org/2013/03/d3js-force-directed-graph-example-basic.html
+
+    // Initialize the layout consistently:  https://github.com/d3/d3-3.x-api-reference/blob/master/Force-Layout.md
+//var n = nodes.length;
+//nodes.forEach(function(d, i) {
+//  d.x = d.y = width / n * i;
+//});
+
+
+var links = {{graph.links|safe}};
+
+var nodes = {{graph.nodes|safe}};
+
+// {"title": "Rebutted", "id": 9999999, "achieved": "rebut"},
+// {"title": "Evaluated", "id": 9999998, "achieved": "evaluate"},
+// {"title": "Reviewed", "id": 9999997, "achieved": "review"},
+// {"title": "Submitted", "id": 9999996, "achieved": "submit"},
+
+
+var width = 1000, height = 600;
+var circle_radius = 8;
+var linkDistance = 30;		// target distance between linked nodes; optimized during simulation
+var linkStrength = 0.5;
+var charge = -200;
+
+
+var mapper = {"submitted": "#fdae6b",
+              "completed_all_reviews": "#cedb9c",
+              "read_and_evaluated_all_reviews": "#e7cb94",
+              'completed_rebuttal': "#e7969c",
+              'assessed_rebuttals':"#74c476"};
+var force = d3.layout.force()
+    .nodes(d3.values(nodes))
+    .links(links)
+    .size([width, height])
+    .linkDistance(linkDistance)
+    .linkStrength(linkStrength)
+    .charge(charge)
+    .friction(0.9)
+    .gravity(0.1)
+    .theta(0.8)
+    .alpha(0.5)
+    .on("tick", tick)  // runs the animation of the force layout one 'step'; give the force layout diagram it's fluid movement
+    .start();
+
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+// build the arrow.
+svg.append("svg:defs").selectAll("marker")
+    .data(["end"])      // Different link/path types can be defined here
+  .enter().append("svg:marker")    // This section adds in the arrows
+    .attr("id", String)
+    .attr("class", "marker")
+    .attr("viewBox", "0 -5 10 10")
+    .attr("refX", 20)
+    .attr("refY", 0)
+    .attr("markerWidth", 6)
+    .attr("markerHeight", 6)
+    .attr("orient", "auto")
+  .append("svg:path")
+    .attr("d", "M0,-5L10,0L0,5");
+
+var link = svg.selectAll(".link")
+    .data(force.links())
+  .enter().append("line")
+    .attr("class", "link")
+    .attr("marker-end", "url(#end)");
+
+var node = svg.selectAll(".node")
+    .data(force.nodes())
+  .enter().append("g")
+    .attr("class", "node")
+    .on("mouseover", mouseover)
+    .on("mouseout", mouseout)
+    .call(force.drag)
+     .on('dblclick', connectedNodes); // code for double clicking
+
+node.append("circle")
+    .attr("r", circle_radius)
+    .attr("fill", function(d) { return mapper[d.achieved]; });
+
+node.append("text")
+    .attr("x", -circle_radius/2)
+    .attr("dy", "0.5em")
+    .text(function(d) { return d.title; });
+
+node.append("title")
+    .text(function(d) { return "Node: " + d.name + "\n" + "Grade: " + d.grade + "\n" + "Achieved: " + d.achieved;});
+
+
+    //Toggle stores whether the highlighting is on
+    var toggle = 0;
+    //Create an array logging what is connected to what
+    var linkedByIndex = {};
+    for (i = 0; i < force.nodes.length; i++) {
+        linkedByIndex[i + "," + i] = 1;
+    };
+    links.forEach(function (d) {
+        linkedByIndex[d.source.index + "," + d.target.index] = 1;
+    });
+    //This function looks up whether a pair are neighbours
+    function neighboring(a, b) {
+        return linkedByIndex[a.index + "," + b.index];
+    }
+    function connectedNodes() {
+        if (toggle == 0) {
+            //Reduce the opacity of all but the neighbouring nodes
+            d = d3.select(this).node().__data__;
+            node.style("opacity", function (o) {
+                return neighboring(d, o) | neighboring(o, d) ? 1 : 0.2;
+            });
+            link.style("opacity", function (o) {
+                return d.index==o.source.index | d.index==o.target.index ? 1 : 0.2;
+            });
+            //Reduce the op
+            toggle = 1;
+        } else {
+            //Put them back to opacity=1
+            node.style("opacity", 1);
+            link.style("opacity", 1);
+            toggle = 0;
+        }
+    }
+
+
+function tick() {
+  link
+      .attr("x1", function(d) { return d.source.x; })
+      .attr("y1", function(d) { return d.source.y; })
+      .attr("x2", function(d) { return d.target.x; })
+      .attr("y2", function(d) { return d.target.y; });
+
+  node
+      .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+}
 
 
 
 
+function mouseover() {
+  d3.select(this).select("circle").transition()
+      .duration(750)
+      .attr("r", circle_radius*2);
+}
+
+function mouseout() {
+  d3.select(this).select("circle").transition()
+      .duration(750)
+      .attr("r", circle_radius);
+}
+
+</script>
+<!-- ---------------------- -->
 
 <script>
 $(document).ready( function () {
@@ -28,6 +216,8 @@ $(document).ready( function () {
 {% if global_summary_link %}
 <span style="float: right; padding-right: 0.5em"><a href="{{global_summary_link}}">Links to all deliverables</a></span>
 {% endif %}
+
+<div id="pr_graph"></div>
 
 <table class="summaries pr-admin" id="class_overview">
 <thead>
@@ -53,21 +243,23 @@ $(document).ready( function () {
   </td>
     {% with report=reports|keyvalue:learner %}
       {% for key in report.keys %}
-        {% with item=report|keyvalue:key%}
-          <td data-order="{{item.when.timestamp}}">
-            {% if item.when %}
-                {% if item.hyperlink %}
-                  <a target="_blank" href="{{item.hyperlink}}">{{item.when|date:"d M"}},{{item.when|date:"H:i"}}</a>
+        {% if not key|startswith:'_' %}
+            {% with item=report|keyvalue:key%}
+              <td data-order="{{item.when.timestamp}}">
+                {% if item.when %}
+                    {% if item.hyperlink %}
+                      <a target="_blank" href="{{item.hyperlink}}">{{item.when|date:"d M"}},{{item.when|date:"H:i"}}</a>
+                    {% else %}
+                      {{item.when|date:"d M"}},{{item.when|date:"H:i"}}
+                    {% endif %}
                 {% else %}
-                  {{item.when|date:"d M"}},{{item.when|date:"H:i"}}
-                {% endif %}
-            {% else %}
-                {% if item %}
-                  {{item|safe}}
+                    {% if item %}
+                      {{item|safe}}
+                    {%endif%}
                 {%endif%}
-            {%endif%}
-          </td>
-        {% endwith %}
+              </td>
+            {% endwith %}
+        {% endif %}
       {% endfor %} {#  keys in ``report`` #}
     {% endwith %}
 

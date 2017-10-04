@@ -1384,14 +1384,20 @@ class group_graph(object):
                 #)
 
         #plt.savefig("graph-circular.png", dpi=300)
+        pass
+
+    def graph_json(self, reports):
 
         from networkx.readwrite import json_graph
         serialized = json_graph.node_link_data(self.graph,
             attrs=dict(id='id', source='source', target='target', key='key'))
         for idx, node in enumerate(serialized['nodes']):
             node['title'] = node['id'].get_initials()
+            node['achieved'] = reports[node['id']]['_highest_achievement']
             node['id'] = idx
-        json.dump(serialized, open('/Users/kevindunn/TU-Delft/CLE/peer/SEN2321/graph.json', 'w'))
+
+        return serialized
+        #json.dump(serialized, open('/full_file_name/graph.json', 'w'))
 
 
 
@@ -2263,7 +2269,8 @@ def overview_learners(entry_point):
                                     is_validated=True).order_by('-created')
     reports = {}
     for learner in learners:
-        reports[learner] = filtered_overview(learner, entry_point,)
+        reports[learner], highest_achievement = filtered_overview(learner,
+                                                                  entry_point)
 
         # ---- Submissions
         if isinstance(reports[learner]['submitted'], Achievement):
@@ -2308,7 +2315,7 @@ def overview_learners(entry_point):
                         ractual.word_count)
             temp += hlink
 
-        reports[learner]['_reviewer_of'] = '<tt>{}</tt>'.format(temp[0:-1])
+        reports[learner]['reviewer_of'] = '<tt>{}</tt>'.format(temp[0:-1])
 
         # ---- Reviewed by ...
         temp = ''
@@ -2341,10 +2348,12 @@ def overview_learners(entry_point):
 
                 temp += hlink
 
-        reports[learner]['_reviewed_by'] = '<tt>{}</tt>'.format(temp[0:-4])
+        reports[learner]['reviewed_by'] = '<tt>{}</tt>'.format(temp[0:-4])
+        reports[learner]['_highest_achievement'] = highest_achievement
 
 
     ctx['learners'] = learners
+    ctx['graph'] = group_graph(entry_point).graph_json(reports)
     ctx['reports'] = reports
     global_summary = entry_point.course.entrypoint_set.filter(order=0)
     if global_summary:
@@ -2363,14 +2372,16 @@ def filtered_overview(learner, entry_point):
                'completed_rebuttal',
                'assessed_rebuttals')
     report = OrderedDict()
+    highest_achievement = ''
     for name in filters:
         item = AchieveConfig.objects.get(entry_point=entry_point, name=name)
         report[item.name] = has(learner, item.name, entry_point, detailed=True)
+        if report[item.name]:
+            highest_achievement = name
 
 
-
-
-    return report
+    #report['highest_achievement'] = highest_achievement
+    return report, highest_achievement
 
 
 

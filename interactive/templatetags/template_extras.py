@@ -23,3 +23,11 @@ def keyvalue(dictn, key):
 @register.filter(name='getfield')
 def getfield(obj, field):
     return getattr(obj, field, default='')
+
+
+
+@register.filter('startswith')
+def startswith(text, starts):
+    if isinstance(text, str):
+        return text.startswith(starts)
+    return False
