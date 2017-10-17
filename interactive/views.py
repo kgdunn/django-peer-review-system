@@ -827,7 +827,12 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
                                               sum(reviews)}
                                      )
 
-    if sum(reviews) == GLOBAL.num_peers:
+
+    # This strange if statement allows for learners to slip past this gate,
+    # in the exceptional cases when they do not have sufficient number of peers.
+    if (sum(reviews) == GLOBAL.num_peers) or has(learner,
+                                            'all_reviews_from_peers_completed',
+                                            entry_point=entry_point):
         completed(learner, 'all_reviews_from_peers_completed', entry_point)
         header = "All peers have completely reviewed your work."
 
@@ -1932,9 +1937,18 @@ def create_rebuttal_PDF(r_actual):
     n_evaluations = RubricActual.objects.filter(graded_by=r_actual.graded_by,
                             rubric_template=r_actual.rubric_template).count()
 
-
-    if n_evaluations < GLOBAL.num_peers:
+    # This strange construction is to allow manual overrides:
+    # 1. Prior to this the admin has likely set the Achievement of the learner
+    #    for 'all_reviews_from_peers_completed' to True
+    # 2. Then the admin has set 'read_and_evaluated_all_reviews' to True.
+    # Once both those are in place, and the admin visits this link for the
+    # Evaluation, the system will continue here and generate the PDF document
+    # for the rebuttal step.
+    if (n_evaluations < GLOBAL.num_peers) and \
+            not(has(learner, 'read_and_evaluated_all_reviews',
+                    r_actual.rubric_template.trigger.entry_point)):
         return
+
 
     # Only continue to generate this report if it is the last review
     completed(learner,
