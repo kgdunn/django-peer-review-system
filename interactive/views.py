@@ -2285,7 +2285,7 @@ def overview_learners(entry_point):
     Provides an overview to the instructor of what is going on
     """
     def format_text(r_actual, text, total):
-        if not(r_actual):
+        if r_actual is None:
             return text+'NA', total
         else:
             if r_actual.status in ('C', 'L'):
@@ -2335,6 +2335,7 @@ def overview_learners(entry_point):
         total = 0.0
         for report in given:
             text2, total = format_text(report.r_actual, text2, total)
+
         if text2 == '<tt>Gave: ':
             text2 = ''
         else:
