@@ -943,7 +943,12 @@ def peers_provide_rebuttal(trigger, learner, entry_point=None,
         evaluations = EvaluationReport.objects.filter(trigger=trigger,
                                                       sort_report='R',
                                                     evaluator=learner)
-        evaluation = evaluations[0]
+        if evaluations.count() == 0:
+            logger.warn('No evaluations found: likely a student in override?')
+            return
+        else:
+            evaluation = evaluations[0]
+
         link = '<a href="/interactive/rebuttal/{}" target="_blank">{}</a> {}'
 
         if has(learner, 'completed_rebuttal', entry_point):
