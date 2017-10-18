@@ -2282,7 +2282,21 @@ def overview(request, course=None, learner=None, entry_point=None):
 
 def overview_learners(entry_point):
     """
-    Provides an overview to the instructor of what is going on"""
+    Provides an overview to the instructor of what is going on
+    """
+    def format_text(r_actual, text, total):
+        if not(r_actual):
+            return text+'NA', total
+        else:
+            if r_actual.status in ('C', 'L'):
+                score = int(report.r_actual.score)
+                if score >= 0:
+                    return text+'+{0:d}'.format(score), total+score
+                else:
+                    return text+'{0:d}'.format(score), total+score
+
+
+
     ctx = {}
 
     # Not the most robust way to group students; will fall apart if a student
@@ -2302,6 +2316,31 @@ def overview_learners(entry_point):
                 reports[learner]['submitted'].hyperlink = '/{}'.format(\
                                                         sub[0].file_upload.url)
 
+
+        # ---- Evaluations: earned and given
+        earned = learner.peer_reviewer.filter(trigger__entry_point=entry_point,
+                                              sort_report='E')
+        text1 = '<tt>Earn: '
+        total = 0.0
+        for report in earned:
+            text1, total = format_text(report.r_actual, text1, total)
+        if text1 == '<tt>Earn: ':
+            text1 = ''
+        else:
+            text1 += '=<b>{0:d}</b></tt><br>'.format(int(total))
+
+        given = learner.evaluator.filter(trigger__entry_point=entry_point,
+                                        sort_report='E')
+        text2 = '<tt>Gave: '
+        total = 0.0
+        for report in given:
+            text2, total = format_text(report.r_actual, text2, total)
+        if text2 == '<tt>Gave: ':
+            text2 = ''
+        else:
+            text2 += '=<b>{0:d}</b></tt>'.format(int(total))
+
+        reports[learner]['read_and_evaluated_all_reviews'] = text1 + text2
 
 
         # ---- Rebuttals
