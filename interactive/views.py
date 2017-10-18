@@ -2286,7 +2286,7 @@ def overview_learners(entry_point):
     """
     def format_text(r_actual, text, total):
         if r_actual is None:
-            return text+'NA', total
+            return text, total
         else:
             if r_actual.status in ('C', 'L'):
                 score = int(report.r_actual.score)
@@ -2294,6 +2294,8 @@ def overview_learners(entry_point):
                     return text+'+{0:d}'.format(score), total+score
                 else:
                     return text+'{0:d}'.format(score), total+score
+            else:
+                return text, total
 
 
 
