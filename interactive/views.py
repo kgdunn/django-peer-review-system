@@ -2285,16 +2285,15 @@ def overview_learners(entry_point):
     """
     Provides an overview to the instructor of what is going on
     """
-    def format_text(r_actual, text, total):
-        if r_actual is None:
+    def format_text(r_actual, text, total, url=''):
+        if r_actual is None: # It has not been started yet
             return text, total
         else:
             if r_actual.status in ('C', 'L'):
                 score = int(report.r_actual.score)
-                if score >= 0:
-                    return text+'+{0:d}'.format(score), total+score
-                else:
-                    return text+'{0:d}'.format(score), total+score
+                return '{0}<a href="{1}" target="_blank">{2:+d}</a> '.format(text,
+                         url+report.r_actual.rubric_code, score), total+score
+
             else:
                 return text, total
 
@@ -2320,47 +2319,41 @@ def overview_learners(entry_point):
                                                         sub[0].file_upload.url)
 
 
-        # ---- Evaluations: earned and given
-        earned = learner.peer_reviewer.filter(trigger__entry_point=entry_point,
-                                              sort_report='E')
-        text1 = '<tt>Earn: '
-        total = 0.0
-        for report in earned:
-            text1, total = format_text(report.r_actual, text1, total)
-        if text1 == '<tt>Earn: ':
-            text1 = ''
-        else:
-            text1 += '=<b>{0:d}</b></tt><br>'.format(int(total))
+        # ---- Reviewed by ...
+        temp = ''
+        learner_group = learner.membership_set.filter(role='Submit',
+                                                          group__entry_point=entry_point)
+        if learner_group:
+            members = learner_group[0].group.membership_set.filter\
+                    (role='Review')
+            for member in members:
+                report = ReviewReport.objects.filter(reviewer=member.learner,
+                                                         entry_point=entry_point,
+                                                         submission__submitted_by=learner)
 
-        given = learner.evaluator.filter(trigger__entry_point=entry_point,
-                                        sort_report='E')
-        text2 = '<tt>Gave: '
-        total = 0.0
-        for report in given:
-            text2, total = format_text(report.r_actual, text2, total)
+                code = ''
+                if report:
+                    rubric = RubricActual.objects.get(\
+                            rubric_code=report[0].unique_code)
+                    code = report[0].unique_code
 
-        if text2 == '<tt>Gave: ':
-            text2 = ''
-        else:
-            text2 += '=<b>{0:d}</b></tt>'.format(int(total))
+                initials = member.learner.get_initials()
+                if code:
+                    hlink = (' <a href="/interactive/review/{0}" target="_blank">'
+                                 '{1}</a> [{2:3.1f}] {3:4d} words<br>').format(code,
+                                                                               initials,
+                            rubric.score/rubric.rubric_template.maximum_score*10,
+                            rubric.word_count,)
+                else:
+                    hlink = ' {}<br>'.format(initials)
 
-        reports[learner]['read_and_evaluated_all_reviews'] = text1 + text2
+                temp += hlink
 
-
-        # ---- Rebuttals
-
-
-
-
-        # ---- Assessments
-
-
+        reports[learner]['reviewed_by'] = '<tt>{}</tt>'.format(temp[0:-4])
 
 
         # ---- Reviewer of ...
-        reviewer_of = ReviewReport.objects.filter(reviewer=learner,
-                                                       entry_point=entry_point)
-
+        reviewer_of = learner.reviewreport_set.filter(entry_point=entry_point)
         temp = ''
         for review in reviewer_of:
 
@@ -2382,39 +2375,94 @@ def overview_learners(entry_point):
 
         reports[learner]['reviewer_of'] = '<tt>{}</tt>'.format(temp[0:-1])
 
-        # ---- Reviewed by ...
-        temp = ''
-        learner_group = Membership.objects.filter(learner=learner,
-                                            role='Submit',
-                                            group__entry_point=entry_point)
-        if learner_group:
-            members = learner_group[0].group.membership_set.filter\
-                                                                 (role='Review')
-            for member in members:
-                report = ReviewReport.objects.filter(reviewer=member.learner,
-                                                     entry_point=entry_point,
-                                            submission__submitted_by=learner)
 
-                code = ''
-                if report:
-                    rubric = RubricActual.objects.get(\
-                                            rubric_code=report[0].unique_code)
-                    code = report[0].unique_code
 
-                initials = member.learner.get_initials()
-                if code:
-                    hlink = (' <a href="/interactive/review/{0}" target="_blank">'
-                             '{1}</a> [{2:3.1f}] {3:4d} words<br>').format(code,
-                        initials,
-                        rubric.score/rubric.rubric_template.maximum_score*10,
-                        rubric.word_count,)
-                else:
-                    hlink = ' {}<br>'.format(initials)
 
-                temp += hlink
+        # ---- Evaluations: earned and given
+        earned = learner.peer_reviewer.filter(trigger__entry_point=entry_point,
+                                                  sort_report='E')
+        text1 = '<tt>Earn: '
+        total = 0.0
+        for report in earned:
+            text1, total = format_text(report.r_actual, text1, total,
+                                           url='/interactive/evaluate/')
+        if text1 == '<tt>Earn: ':
+            text1 = ''
+        else:
+            text1 += '= <b>{0:+d}</b></tt><br>'.format(int(total))
 
-        reports[learner]['reviewed_by'] = '<tt>{}</tt>'.format(temp[0:-4])
+        given = learner.evaluator.filter(trigger__entry_point=entry_point,
+                                             sort_report='E')
+        text2 = '<tt>Gave: '
+        total = 0.0
+        for report in given:
+            text2, total = format_text(report.r_actual, text2, total,
+                                           url='/interactive/evaluate/')
+
+        if text2 == '<tt>Gave: ':
+            text2 = ''
+        else:
+            text2 += '= <b>{0:+d}</b></tt>'.format(int(total))
+
+        reports[learner]['read_and_evaluated_all_reviews'] = text1 + text2
+
+
+        # ---- Rebuttals
+        if reports[learner]['completed_rebuttal']:
+            rebuttals = learner.evaluator.filter(sort_report='R',
+                                                     trigger__entry_point=entry_point)
+            if rebuttals.count()==1:
+                hyperlink = '/interactive/rebuttal/{0}'.format(
+                        rebuttals[0].r_actual.rubric_code)
+            reports[learner]['completed_rebuttal'].hyperlink = hyperlink
+
+
+        # ---- Assessments: earned and given
+        earned = learner.peer_reviewer.filter(trigger__entry_point=entry_point,
+                                              sort_report='A')
+        text1 = '<tt>Earn: '
+        total = 0.0
+        for report in earned:
+            text1, total = format_text(report.r_actual, text1, total,
+                                           url='/interactive/assessment/')
+        if text1 == '<tt>Earn: ':
+            text1 = ''
+        else:
+            text1 += '= <b>{0:+d}</b></tt><br>'.format(int(total))
+
+        given = learner.evaluator.filter(trigger__entry_point=entry_point,
+                                        sort_report='A')
+        text2 = '<tt>Gave: '
+        total = 0.0
+        for report in given:
+            text2, total = format_text(report.r_actual, text2, total,
+                                           url='/interactive/assessment/')
+
+        if text2 == '<tt>Gave: ':
+            text2 = ''
+        else:
+            text2 += '= <b>{0:+d}</b></tt>'.format(int(total))
+
+        reports[learner]['assessed_rebuttals'] = text1 + text2
+
+
+        # Used by the D3.js animation
         reports[learner]['_highest_achievement'] = highest_achievement
+
+        order = ['submitted',
+                 'reviewed_by',
+                 'reviewer_of',
+                 'completed_all_reviews',
+                 'read_and_evaluated_all_reviews',
+                 'completed_rebuttal',
+                 'assessed_rebuttals',
+                 '_highest_achievement']
+
+        new_dict = OrderedDict()
+        for i in order:
+            new_dict[i] = reports[learner][i]
+
+        reports[learner] = new_dict
 
 
     ctx['learners'] = learners
