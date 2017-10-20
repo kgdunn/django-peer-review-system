@@ -28,7 +28,6 @@ text {
 }
 
 </style>
-<p><em>Double-click on a learner node to see their connections. Double-click again to undo.</em>
 <script src="//d3js.org/d3.v3.min.js"></script>
 <script>
 
@@ -57,7 +56,7 @@ var nodes = {{graph.nodes|safe}};
 // {"title": "Submitted", "id": 9999996, "achieved": "submit"},
 
 
-var width = 1000, height = 400;
+var width = 1000, height = 600;
 var circle_radius = 8;
 var linkDistance = 40;		// target distance between linked nodes; optimized during simulation
 var linkStrength = 0.5;
@@ -190,6 +189,7 @@ function mouseout() {
 }
 
 </script>
+<p><em>Double-click on a learner node to see their connections. Double-click again to undo.</em>
 <!-- ---------------------- -->
 
 <script>
@@ -222,7 +222,7 @@ $(document).ready( function () {
   <th>Initials</th>
   <th>Learner</th>
   <th>Submit</th>
-  <th>Reviewed by <br><tt>()Earn)</tt></th>
+  <th>Reviewed by <br><tt>(Earn)</tt></th>
   <th>Reviewer of <br><tt>(Gave)</tt></th>
   <th>Reviews <br>completed</th>
   <th>Evaluate</th>
