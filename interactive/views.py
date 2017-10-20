@@ -515,7 +515,8 @@ def get_line1(learner, trigger, summaries):
                 summaries.append(summary)
 
             elif prior[0].status in ('P', 'V'):
-                status = '<span class="still-to-do">Continue your review</span>'
+                status = ('<span class="still-to-do">Start/continue your '
+                          'review</span>')
 
         # We have a potential review
         out.append(('', ('<a href="/interactive/review/{1}" target="_blank">'
