@@ -35,6 +35,7 @@ def entry_point_discovery(request, course_code=None, entry_code=None):
     ``EntryPoint``.
 
     """
+    logger.debug(request.POST)
     message = ''
     course_ID = request.POST.get('context_id', '') or (settings.DEBUG and \
                                     request.GET.get('context_id', ''))
