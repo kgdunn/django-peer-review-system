@@ -144,9 +144,9 @@ def starting_point(request, course=None, learner=None, entry_point=None):
 
 
     # Step 1:
-    response = push_to_gradebook(learner, 0.0, entry_point, testing=True)
-    if not(response):
-        return HttpResponse(response)
+    error_response = push_to_gradebook(learner, 0.0, entry_point, testing=True)
+    if response:  # We don't expect an error
+        return HttpResponse(error_response)
 
     # Step 2: Call all triggers:
     triggers = Trigger.objects.filter(entry_point=entry_point,

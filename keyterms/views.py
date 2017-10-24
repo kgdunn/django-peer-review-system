@@ -14,7 +14,7 @@ def test(request, course=None, learner=None, entry_point=None):
     """
     # Step 1:
     response = push_to_gradebook(learner, 74, entry_point, testing=False)
-    if not(response):
+    if response:
         return HttpResponse(response)
     else:
         return HttpResponse(content='Grade pushed')
