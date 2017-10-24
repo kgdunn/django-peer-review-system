@@ -1,20 +1,20 @@
 from django.http import HttpResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.clickjacking import xframe_options_exempt
+from grades.views import push_grade as push_to_gradebook
+
 
 # Logging
 import logging
 logger = logging.getLogger(__name__)
 
-# Debugging
-import wingdbstub
 
-#@csrf_exempt
-#@xframe_options_exempt
 def test(request, course=None, learner=None, entry_point=None):
     """
     Start the interactive tool here:
     0. Can we even run this entry_point?
     """
-    return HttpResponse(content='Hi there')
+    # Step 1:
+    if not push_to_gradebook(learner, .77, entry_point, testing=False):
+        return HttpResponse('Please create a GradeItem attached to this Entry')
+    else:
+        return HttpResponse(content='Grade pushed')
 
