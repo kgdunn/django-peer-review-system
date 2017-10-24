@@ -2,7 +2,6 @@
 
 {% load template_extras %}
 
-
 {% block header %}
 <script>
 $(document).ready( function () {
@@ -23,8 +22,6 @@ $(document).ready( function () {
 </script>
 
 <style>
-
-
 #overall_progress tbody td{
     text-align:center;
     vertical-align:middle;
@@ -43,9 +40,6 @@ $(document).ready( function () {
     font-family: Lato;
     font-size: 120%;
 }
-
-
-
 </style>
 {% endblock %}
 
@@ -53,6 +47,8 @@ $(document).ready( function () {
 {% block content %}
 
 <span style="float:left">Note: <em>the links at the top of each column are clickable</em></span>
+
+<h2>Overview for {{learner.display_name}}</h2>
 <table class="summaries pr-admin" id="overall_progress">
 <thead><tr>
 <td style="font-size:28">Achievement</td>
