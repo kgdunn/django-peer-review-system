@@ -13,7 +13,7 @@ def test(request, course=None, learner=None, entry_point=None):
     0. Can we even run this entry_point?
     """
     # Step 1:
-    response = push_to_gradebook(learner, .77, entry_point, testing=False)
+    response = push_to_gradebook(learner, 74, entry_point, testing=False)
     if not(response):
         return HttpResponse(response)
     else:
