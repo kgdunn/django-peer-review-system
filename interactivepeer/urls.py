@@ -43,25 +43,19 @@ urlpatterns = [
         views.sign_in_user,
         name='sign_in_user'),
 
-
     # The rest of the entry points:
     url(r'course/(?P<course_code>.+)/(?P<entry_code>.+)/',
+        include('basic.urls'),
+        name='basic'),
+
+    # The keyterms entry points:
+    url(r'keyterms/',
         include('basic.urls'),
         name='basic'),
 
     url(r'', include('basic.urls'), name='basic'),
 
 ]
-
-#urlpatterns = [
-    #url(r'^(?P<course_code>[\w-]+)-(?P<entry_code>\w+)/', include([
-        #url(r'^history/$', views.history),
-        #url(r'^edit/$', views.edit),
-        #url(r'^discuss/$', views.discuss),
-        #url(r'^permissions/$', views.permissions),
-    #])),
-#]
-
 
 if settings.DEBUG:
     from django.conf.urls.static import static
