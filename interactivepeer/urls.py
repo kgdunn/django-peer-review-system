@@ -49,9 +49,9 @@ urlpatterns = [
         name='basic'),
 
     # The keyterms entry points:
-    url(r'keyterms/',
-        include('basic.urls'),
-        name='basic'),
+#    url(r'keyterms/',
+#        include('basic.urls'),
+#        name='basic'),
 
     url(r'', include('basic.urls'), name='basic'),
 
