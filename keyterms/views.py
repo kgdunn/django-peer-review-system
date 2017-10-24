@@ -13,8 +13,9 @@ def test(request, course=None, learner=None, entry_point=None):
     0. Can we even run this entry_point?
     """
     # Step 1:
-    if not push_to_gradebook(learner, .77, entry_point, testing=False):
-        return HttpResponse('Please create a GradeItem attached to this Entry')
+    response = push_to_gradebook(learner, .77, entry_point, testing=False)
+    if not(response)
+        return HttpResponse(response)
     else:
         return HttpResponse(content='Grade pushed')
 

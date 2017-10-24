@@ -357,7 +357,7 @@ def push_grade(learner, grade_value, entry_point, testing=False):
     if gradeitem:
         gitem = gradeitem[0]
     else:
-        return False
+        return 'Could not find GradeItem; please create it first.'
 
     grade, _ = LearnerGrade.objects.get_or_create(gitem=gitem,
                                                   learner=learner)
@@ -365,8 +365,10 @@ def push_grade(learner, grade_value, entry_point, testing=False):
     grade.value = grade_value
     grade.save()
 
-    if grade_value > 1.0 and grade_value <= 100.0:
+    if grade_value >= 0.0 and grade_value <= 100.0:
         grade_to_push = grade_value / 100.0
+    else:
+        return 'Grade values must be between 0 and 100.'
 
     if not(testing):
         return push_grades_to_platform(learner.last_lis, grade_to_push)
