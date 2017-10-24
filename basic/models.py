@@ -48,7 +48,7 @@ class Person(models.Model):
                                             verbose_name='User ID from LMS/LTI')
     role = models.CharField(max_length=5, choices=ROLES, default='Learn')
 
-    last_lis = models.CharField(max_length=100, blank=True,
+    last_lis = models.CharField(max_length=200, blank=True,
                                 verbose_name='Last known: lis_result_sourcedid')
     course = models.ForeignKey(Course, blank=True, null=True, default=None)
     created = models.DateTimeField(auto_now_add=True)
