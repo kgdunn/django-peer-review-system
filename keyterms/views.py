@@ -17,7 +17,11 @@ def starting_point(request):
 def draft_keyterm(request, course=None, learner=None, entry_point=None):
     """
     """
+    logger.debug(request.POST)
+    logger.debug('Draft keyterm [{}] for {}'.format(entry_point, learner))
     ctx = {'keyterm': 'TCK',
+           'course': course,
+           'entry_point': entry_point,
            'learner': learner,
           }
     return render(request, 'keyterms/draft.html', ctx)

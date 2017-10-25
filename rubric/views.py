@@ -27,8 +27,6 @@ from .models import ROptionTemplate, ROptionActual
 import logging
 logger = logging.getLogger(__name__)
 
-
-
 @csrf_exempt
 @xframe_options_exempt
 def handle_review(request, ractual_code):
