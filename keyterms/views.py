@@ -1,5 +1,4 @@
 from django.http import HttpResponse
-from grades.views import push_grade as push_to_gradebook
 
 # Logging
 import logging
