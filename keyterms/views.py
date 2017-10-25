@@ -19,6 +19,9 @@ def draft_keyterm(request, course=None, learner=None, entry_point=None):
     """
     logger.debug(request.POST)
     logger.debug('Draft keyterm [{}] for {}'.format(entry_point, learner))
+
+    keyterm = request.POST.get('custom_keyterm', '')
+
     ctx = {'keyterm': 'TCK',
            'course': course,
            'entry_point': entry_point,
