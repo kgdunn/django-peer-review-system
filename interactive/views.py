@@ -43,7 +43,7 @@ from rubric.views import (handle_review, get_create_actual_rubric,
                           get_learner_details)
 from rubric.models import RubricTemplate, RubricActual
 from grades.models import GradeItem, LearnerGrade
-from grades.views import push_grade as push_to_gradebook
+#from grades.views import push_grade as push_to_gradebook
 from stats.views import create_hit
 from submissions.views import get_submission, upload_submission
 from submissions.models import Submission
@@ -90,14 +90,6 @@ def starting_point(request, course=None, learner=None, entry_point=None):
     2. Call the triggers to process sequentially.
     3. Render the page.
     """
-    #from basic.models import Course, EntryPoint
-    #orig_course = Course.objects.get(label='43639')
-    #orig_ep = EntryPoint.objects.get(course=orig_course, LTI_id='1931107264')
-    #from interactive.views import group_graph
-    #graph = group_graph(orig_ep)
-    #graph.plot_graph()
-
-
     # Check if all/any release conditions are passed. If not, return immediately
     # with a display that shows which conditions are not passed yet.
     rc_configs = ReleaseConditionConfig.objects.filter(entry_point=entry_point)
@@ -2231,13 +2223,13 @@ def completed(learner, achievement, entry_point, push_grade=False,
         completed.done = True
         completed.save()
 
-        if push_grade:
-            if not(score_override):
-                push_to_gradebook(learner, completed.achieved.score,
-                                  entry_point)
+        #if push_grade:
+        #    if not(score_override):
+        #        push_to_gradebook(learner, completed.achieved.score,
+        #                          entry_point)
 
-    if score_override:
-        push_to_gradebook(learner, score_override, trigger.entry_point)
+    #if score_override:
+    #    push_to_gradebook(learner, score_override, trigger.entry_point)
 
 
 

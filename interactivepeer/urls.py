@@ -23,10 +23,13 @@ from basic import views
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
 
-    # The interactive (main page)
+    # The interactive peer reviews
     url(r'interactive/',
         include('interactive.urls'),
         name='interactive'),
+
+    # The keyterms entry points:
+    url(r'keyterms/', include('keyterms.urls'), name='keyterms'),
 
     # The review/rubric filling part, (re)submitting, XHR events
     url(r'review/',
@@ -47,11 +50,6 @@ urlpatterns = [
     url(r'course/(?P<course_code>.+)/(?P<entry_code>.+)/',
         include('basic.urls'),
         name='basic'),
-
-    # The keyterms entry points:
-#    url(r'keyterms/',
-#        include('basic.urls'),
-#        name='basic'),
 
     url(r'', include('basic.urls'), name='basic'),
 

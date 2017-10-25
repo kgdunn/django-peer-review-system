@@ -61,8 +61,9 @@ def entry_point_discovery(request, course_code=None, entry_code=None):
     entry_ID = entry_ID or entry_code
 
     if not(course_ID) or not(entry_ID):
-        return HttpResponse(("Homepage of the interactive peer review tool."))
-
+        return HttpResponse(("Homepage of the peer interaction tool. "
+                             "Please access this site from your learning "
+                             "platform, for example: Brightspace or edX."))
 
     course = None
     try:

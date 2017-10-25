@@ -1,21 +1,40 @@
 from django.http import HttpResponse
 from grades.views import push_grade as push_to_gradebook
 
-
 # Logging
 import logging
 logger = logging.getLogger(__name__)
 
 
-def test(request, course=None, learner=None, entry_point=None):
+def starting_point(request, course=None, learner=None, entry_point=None):
     """
     Start the interactive tool here:
     0. Can we even run this entry_point?
     """
     # Step 1:
-    response = push_to_gradebook(learner, 74, entry_point, testing=False)
-    if response:
-        return HttpResponse(response)
-    else:
-        return HttpResponse(content='Grade pushed')
+    return HttpResponse(content='Start here')
+
+
+def draft_keyterm(request, course=None, learner=None, entry_point=None):
+    """
+    """
+    return HttpResponse(content='Draft')
+
+
+def preview_keyterm(request, course=None, learner=None, entry_point=None):
+    """
+    """
+    return HttpResponse(content='Preview')
+
+
+def submit_keyterm(request, course=None, learner=None, entry_point=None):
+    """
+    """
+    return HttpResponse(content='Submit')
+
+
+def final_keyterms(request, course=None, learner=None, entry_point=None):
+    """
+    """
+    return HttpResponse(content='View all')
 
