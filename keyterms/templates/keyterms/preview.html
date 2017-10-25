@@ -1,0 +1,26 @@
+{% extends "basic/base.html" %}
+
+{% block content %}
+
+{{header|safe}}
+<form action="{% url 'starting_point' %}" method="POST"
+      enctype="multipart/form-data">{% csrf_token %}
+    <input type="hidden" name="context_id" value="{{course.label}}">
+    <input type="hidden" name="resource_link_id" value="{{entry_point.LTI_id}}">
+    <input type="hidden" name="learner_ID" value="{{learner.user_ID}}">
+
+
+<h2>1. Preview your key term: {{keyterm}}</h2>
+
+
+
+<span class="submit_button" >
+    <input type="submit" name="draft-keyterm" value="Return back to editing">
+</span>
+
+<span style="float:right" class="submit_button" >
+    <input type="submit" name="submit-keyterm" value="Submit your keyterm">
+</span>
+
+</form>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "basic/base.html" %}
+
+{% block content %}
+
+{{header|safe}}
+<form action="{% url 'starting_point' %}" method="POST"
+      enctype="multipart/form-data">{% csrf_token %}
+    <input type="hidden" name="context_id" value="{{course.label}}">
+    <input type="hidden" name="resource_link_id" value="{{entry_point.LTI_id}}">
+    <input type="hidden" name="learner_ID" value="{{learner.user_ID}}">
+
+
+<h2>Thank you!</h2>
+
+Your keyterm definition for {{keyterm}} has been submitted.
+
+Start to view other's keyterms and vote on them. You have 3 votes to allocate. You might have to wait until {{NN}} keyterms are uploaded. So far there are {{YY}}.
+
+Once you start viewing and voting you cannot edit your keyterm.
+
+
+<span class="submit_button" >
+    <input type="submit" name="draft-keyterm" value="Wait! I want to go back to edit ...">
+</span>
+
+<span style="float:right" class="submit_button" >
+    <input type="submit" name="finalize-keyterm" value="View and Vote">
+</span>
+
+</form>
+{% endblock %}

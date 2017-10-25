@@ -17,10 +17,40 @@ def starting_point(request):
 def draft_keyterm(request, course=None, learner=None, entry_point=None):
     """
     """
+
     logger.debug(request.POST)
     logger.debug('Draft keyterm [{}] for {}'.format(entry_point, learner))
 
     keyterm = request.POST.get('custom_keyterm', '')
+    keyterm_finalized = False
+
+    # Code here to determine if the user has finalized their keyterm
+
+
+    if request.POST.get('preview-keyterm', ''):
+        return preview_keyterm(request,
+                               course=None,
+                               learner=None,
+                               entry_point=None)
+
+    if request.POST.get('draft-keyterm', ''):
+        return draft_keyterm(request,
+                             course=None,
+                             learner=None,
+                             entry_point=None)
+
+    if request.POST.get('submit-keyterm', ''):
+        return submit_keyterm(request,
+                             course=None,
+                             learner=None,
+                             entry_point=None)
+
+    if request.POST.get('finalize-keyterm', '') or keyterm_finalized:
+        return finalize_keyterm(request,
+                             course=None,
+                             learner=None,
+                             entry_point=None)
+
 
     ctx = {'keyterm': 'TCK',
            'course': course,
@@ -33,17 +63,31 @@ def draft_keyterm(request, course=None, learner=None, entry_point=None):
 def preview_keyterm(request, course=None, learner=None, entry_point=None):
     """
     """
-    return HttpResponse(content='Preview')
+    ctx = {'keyterm': 'TCK',
+           'course': course,
+           'entry_point': entry_point,
+           'learner': learner,
+           }
+    return render(request, 'keyterms/preview.html', ctx)
 
 
 def submit_keyterm(request, course=None, learner=None, entry_point=None):
     """
     """
-    return HttpResponse(content='Submit')
-
+    ctx = {'keyterm': 'TCK',
+           'course': course,
+           'entry_point': entry_point,
+           'learner': learner,
+           }
+    return render(request, 'keyterms/submit.html', ctx)
 
 def final_keyterms(request, course=None, learner=None, entry_point=None):
     """
     """
-    return HttpResponse(content='View all')
+    ctx = {'keyterm': 'TCK',
+           'course': course,
+           'entry_point': entry_point,
+           'learner': learner,
+           }
+    return render(request, 'keyterms/finalize.html', ctx)
 
