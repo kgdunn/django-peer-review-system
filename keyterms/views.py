@@ -1,18 +1,17 @@
 from django.http import HttpResponse
+from basic.views import entry_point_discovery
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.clickjacking import xframe_options_exempt
+
 
 # Logging
 import logging
 logger = logging.getLogger(__name__)
 
-
-def starting_point(request, course=None, learner=None, entry_point=None):
-    """
-    Start the interactive tool here:
-    0. Can we even run this entry_point?
-    """
-    # Step 1:
-    return HttpResponse(content='Start here')
-
+@csrf_exempt
+@xframe_options_exempt
+def starting_point(request):
+    return entry_point_discovery(request)
 
 def draft_keyterm(request, course=None, learner=None, entry_point=None):
     """

@@ -3,6 +3,7 @@ from django.conf.urls import url
 from . import views
 
 urlpatterns = [
+    url(r'^$', views.starting_point, name='starting_point'),
     url(r'^draft/$', views.draft_keyterm, name='draft_keyterm'),
     url(r'^preview/$', views.preview_keyterm, name='preview_keyterm'),
     url(r'^submit/$', views.submit_keyterm, name='submit_keyterm'),
