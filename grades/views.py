@@ -327,6 +327,7 @@ def push_grades_to_platform(sourcedid, grade_value):
                                                           settings.LTI_KEY,
                                                           settings.LTI_SECRET)
     php_script = settings.BASE_DIR_LOCAL + os.sep + 'grades/push_grades.php'
+    logger.debug('Grades calling: php {0} {1}'.format(php_script, calling_args))
     proc = subprocess.Popen("php {0} {1}".format(php_script, calling_args),
                             shell=True,
                             stdout=subprocess.PIPE)
