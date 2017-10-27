@@ -109,7 +109,8 @@ def upload_submission(request, learner, trigger, no_thumbnail=True):
 
     # Check that the file format is PDF, if that is required.
     strike1 = False
-    if 'pdf' in trigger.accepted_file_types_comma_separated.lower():
+    if 'pdf' in trigger.accepted_file_types_comma_separated.lower() and \
+       extension in ('pdf',):
         try:
             mime = magic.from_file(full_path, mime=True)
             if not(isinstance(mime, str)):
@@ -133,22 +134,76 @@ def upload_submission(request, learner, trigger, no_thumbnail=True):
             return None, ('An encrypted PDF cannot be uploaded. Please remove '
                           'the encryption and try again.')
 
+
+    strike1 = False
+    if (('jpeg' in trigger.accepted_file_types_comma_separated.lower()) or \
+       ('jpg' in trigger.accepted_file_types_comma_separated.lower())) and \
+       extension in ('jpg', 'jpeg'):
+
+        try:
+            mime = magic.from_file(full_path, mime=True)
+            if not(isinstance(mime, str)):
+                mime = mime.decode('utf-8')
+        except Exception as exp:
+            logger.error('Could not determine MIME type: ' + str(exp))
+            mime = ''
+            strike1 = True
+
+        if 'image/jpeg' not in mime.lower():
+            strike1 = True
+
+        if strike1:
+            logger.debug('Invalid JPG upload: {0} [{1}]'.format(mime,
+                                                            full_path))
+            return None, 'Invalid file. Uploaded image should be a JPEG file.'
+
+
+    strike1 = False
+    if ('png' in trigger.accepted_file_types_comma_separated.lower()) and \
+       extension in ('png',):
+
+        try:
+            mime = magic.from_file(full_path, mime=True)
+            if not(isinstance(mime, str)):
+                mime = mime.decode('utf-8')
+        except Exception as exp:
+            logger.error('Could not determine MIME type: ' + str(exp))
+            mime = ''
+            strike1 = True
+
+        if 'image/png' not in mime.lower():
+            strike1 = True
+
+        if strike1:
+            logger.debug('Invalid PNG upload: {0} [{1}]'.format(mime,
+                                                                full_path))
+            return None, 'Invalid file. Uploaded image should be a PNG file.'
+
+
     strike2 = False
     if extension.lower() not in \
                             trigger.accepted_file_types_comma_separated.lower():
-        logger.debug('Invalid file type upload: expected {0}; [{1}]'.format(\
+        logger.debug('Invalid file type upload: received ".{0}"; [{1}]'.format(\
                                                     extension, full_path))
         return None, ('Invalid file upload. Uploaded file must be: {}'.format(\
                                  trigger.accepted_file_types_comma_separated))
 
 
-    # Uses individual submissions:
-    prior = Submission.objects.filter(status='S',
-                                      submitted_by=learner,
-                                      entry_point=entry_point,
-                                      trigger=trigger,
-                                      is_valid=True
-                                    )
+    if trigger == entry_point:
+        # In some instances we don't use triggers, just entry_points
+        prior = Submission.objects.filter(status='S',
+                                          submitted_by=learner,
+                                          entry_point=entry_point,
+                                          is_valid=True
+                                        )
+    else:
+        prior = Submission.objects.filter(status='S',
+                                          submitted_by=learner,
+                                          entry_point=entry_point,
+                                          trigger=trigger,
+                                          is_valid=True
+                                        )
+
 
     for item in prior:
         logger.debug(('Setting prior submission to False: {0} and name '
@@ -156,19 +211,40 @@ def upload_submission(request, learner, trigger, no_thumbnail=True):
         item.is_valid = False
         item.save()
 
-    sub = Submission(submitted_by=learner,
-                     group_submitted=None,
-                     status='S',
-                     entry_point=entry_point,
-                     trigger=trigger,
-                     is_valid=True,
-                     file_upload=submitted_file_name_django,
-                     thumbnail=thumbnail_file_name_django,
-                     submitted_file_name=filename,
-                     ip_address=get_IP_address(request),
-                     )
-    sub.save()
-    clean_PDF(sub)
+
+    if trigger == entry_point:
+        # In some instances we don't use triggers, just entry_points
+        sub = Submission(submitted_by=learner,
+                         group_submitted=None,
+                         status='S',
+                         entry_point=entry_point,
+                         is_valid=True,
+                         file_upload=submitted_file_name_django,
+                         thumbnail=thumbnail_file_name_django,
+                         submitted_file_name=filename,
+                         ip_address=get_IP_address(request),
+                         )
+        sub.save()
+    else:
+        sub = Submission(submitted_by=learner,
+                             group_submitted=None,
+                             status='S',
+                             entry_point=entry_point,
+                             trigger=trigger,
+                             is_valid=True,
+                             file_upload=submitted_file_name_django,
+                             thumbnail=thumbnail_file_name_django,
+                             submitted_file_name=filename,
+                             ip_address=get_IP_address(request),
+                             )
+        sub.save()
+
+
+
+    if 'pdf' in trigger.accepted_file_types_comma_separated.lower() and \
+                                                         extension in ('pdf',):
+        clean_PDF(sub)
+
 
     return sub
 

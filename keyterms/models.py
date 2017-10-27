@@ -36,7 +36,8 @@ class KeyTermTask(models.Model):
 
     keyterm = models.ForeignKey(KeyTerm)
     learner = models.ForeignKey('basic.Person')
-    image_raw = models.ImageField(blank=True, null=True)
+    image_raw = models.ForeignKey('submissions.Submission',
+                                  blank=True, null=True)
     image_modified = models.ImageField(blank=True, null=True)
     image_thumbnail = models.ImageField(blank=True, null=True)
     last_edited = models.DateTimeField(auto_now=True, auto_now_add=False)

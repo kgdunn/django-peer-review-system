@@ -1,10 +1,17 @@
 from django.http import HttpResponse
 from django.shortcuts import render
-from basic.views import entry_point_discovery
 
+# This app's imports
+from .models import KeyTerm, KeyTermTask
+from .forms import UploadFileForm_one_file
+
+# Imports from other apps
+
+#from submissions.models import Submission
+from submissions.views import upload_submission
+from basic.views import entry_point_discovery
 from grades.views import push_grade
 
-from .models import KeyTerm, KeyTermTask
 
 # Logging
 import logging
@@ -67,9 +74,11 @@ def draft_keyterm(request, course=None, learner=None, entry_point=None):
     keytermtask.is_finalized = False
     keytermtask.save()
 
-    # Get prior values in the task, to render here
     # Checkbox shown if image was uploaded already (date and time also; size)
     # Reference should also be shown
+
+    entry_point.file_upload_form = UploadFileForm_one_file()
+
 
     # TODO: real-time saving of the text as it is typed
     ctx = {'keytermtask': keytermtask,
@@ -109,21 +118,58 @@ def preview_keyterm(request, course=None, learner=None, entry_point=None):
     keytermtask.is_submitted = False
     keytermtask.is_finalized = False
 
-    # TODO: keytermtask.image_raw = ...
 
-    definition = request.POST.get('keyterm-definition', '')
-    if len(definition) > 500:
-        keytermtask.definition_text = definition[0:500] + ' ...'
+    # For the ``Submission`` app we need a Trigger. We don't have that, or
+    # need it. So abuse ``entry_point`` as the trigger instead.
+    # A ``trigger`` needs an entry_point field, so just refer back to itself.
+    entry_point.entry_point = entry_point
+    entry_point.accepted_file_types_comma_separated = 'JPEG, PNG, JPG'
+    entry_point.max_file_upload_size_MB = 5
+    entry_point.send_email_on_success = False
 
-    explanation = request.POST.get('keyterm-explanation', '')
+    # Get the (prior) image submission
+    submission = prior_submission = None
+    subs = learner.submission_set.filter(is_valid=True, entry_point=entry_point)
+    subs = subs.order_by('-datetime_submitted')
+    if subs.count():
+        submission = prior_submission = subs[0]
+
+
+    error_message = ''
+    if request.FILES:
+
+        submit_inst = upload_submission(request, learner, trigger=entry_point,
+                                        no_thumbnail=False)
+
+        if isinstance(submit_inst, tuple):
+            # Problem with the upload
+            error_message = submit_inst[1]
+            submission = prior_submission
+        else:
+            # Successfully uploaded a document
+            error_message = ''
+            submission = submit_inst
+
+        # Now that the image is processed:
+        keytermtask.image_raw = submission
+
+
+    definition_text = request.POST.get('keyterm-definition', '')
+    keytermtask.definition_text = definition_text
+    if len(definition_text) > 500:
+        keytermtask.definition_text = definition_text[0:500] + ' ...'
+
+    explainer_text = request.POST.get('keyterm-explanation', '')
+    keytermtask.explainer_text = explainer_text
     if len(explainer_text) > 1000:
-            keytermtask.explainer_text = definition[0:1000] + ' ...'
+            keytermtask.explainer_text = explainer_text[0:1000] + ' ...'
 
     keytermtask.reference_text = 'STILL TO COME'
     keytermtask.save()
 
 
-    ctx = {'keyterm': entry_point,
+    ctx = {'error_message': error_message,
+           'keyterm': entry_point,
            'course': course,
            'entry_point': entry_point,
            'learner': learner,

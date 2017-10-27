@@ -18,17 +18,23 @@
 <br>
 <h2>2. Your definition, and don't forget to mention your reference(s)</h2>
 
-<textarea rows="6" cols="50" maxlength=500 name="keyterm-definition" placeholder="Your definition; no more than 500 characters in length" required >
-</textarea>
+<textarea rows="6" cols="50" maxlength=500 name="keyterm-definition"
+          placeholder="Your definition; no more than 500 characters in length"
+          required>{{keytermtask.definition_text}}</textarea>
 
 
 <br>
-<h2>3. Upload an image file</h2>
+<h2>3. Upload an image file (only JPEG or PNG please)</h2>
+
+
+<p class="error_message">{{error_message}}</p>
+{{entry_point.file_upload_form}}
 
 <br>
 <h2>4. Write your explanation</h2>
-<textarea rows="12" cols="40" maxlength=500 name="keyterm-definition" placeholder="Your explanation; no more than 1000 characters in length" required >
-</textarea>
+<textarea rows="12" cols="40" maxlength=500 name="keyterm-explanation"
+          placeholder="Your explanation; no more than 1000 characters in length"
+          required>{{keytermtask.explainer_text}}</textarea>
 
 
 <br>
