@@ -103,14 +103,15 @@ def submit_keyterm(request, course=None, learner=None, entry_point=None):
 def finalize_keyterm(request, course=None, learner=None, entry_point=None):
     """
     """
-
+    grade_push_url=request.POST.get('lis_outcome_service_url', '')
     response = push_grade(learner=learner,
                           grade_value=100,
                           entry_point=entry_point,
-                grade_push_url=request.POST.get('lis_outcome_service_url', ''),
-                testing=False)
-    logger.debug('Grade for {0} set response: {1}'.format(learner,
-                                                          response))
+                          grade_push_url=grade_push_url,
+                          testing=False)
+    logger.debug('Grade for {0} at [{1}]; response: {2}'.format(learner,
+                                                                grade_push_url,
+                                                                response))
 
     ctx = {'keyterm': entry_point.full_URL,
            'course': course,

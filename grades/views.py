@@ -366,8 +366,7 @@ def push_grade(grade_push_url, learner, grade_value, entry_point, testing=False)
     if gradeitem:
         gitem = gradeitem[0]
     else:
-        # 'Could not find GradeItem; please create it first.'
-        return False
+        return 'Could not find GradeItem; please create it first.'
 
     grade, _ = LearnerGrade.objects.get_or_create(gitem=gitem,
                                                   learner=learner)
