@@ -49,6 +49,8 @@ class KeyTermTask(models.Model):
 
     is_in_draft = models.BooleanField(help_text=('User is in draft mode'),
                                       default=False)
+    is_in_preview = models.BooleanField(help_text=('Preview mode'),
+                                      default=False)
     is_finalized = models.BooleanField(help_text=('User has submitted, and it '
                                                   'is after the deadline'),
                                        default=False)
