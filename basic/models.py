@@ -206,7 +206,7 @@ class EntryPoint(models.Model):
                    'with "/"; eg: /course/12345/98765432'))
 
     def __str__(self):
-        return '[{0}]:{1}'.format(self.course, self.LTI_title[0:7])
+        return '[{0}]:{1}'.format(self.course, self.LTI_title[0:17])
 
 
 class Email_Task(models.Model):

@@ -21,6 +21,11 @@ class KeyTerm(models.Model):
             help_text='Number of terms shown per page.')
 
 
+    def __str__(self):
+        return u'{0}: deadline = {1}'.format(self.keyterm,
+                                             self.deadline_for_voting)
+
+
 class KeyTermTask(models.Model):
     """
     The details that 1 learner has filled in for 1 keyterm.
@@ -56,14 +61,14 @@ class KeyTermTask(models.Model):
 
     def __str__(self):
         return u'[{0}][{1}] on {2:%Y-%m-%d %H:%M}'.format(\
-            self.keyterm, self.person.initials, self.last_edited)
+            self.keyterm, self.learner.initials, self.last_edited)
 
 
     def save(self, *args, **kwargs):
         if self.definition_text and (len(self.definition_text)>=500):
             self.definition_text = self.definition_text[0:501] + ' ...'
 
-        super(KeyTerm_Definition, self).save(*args, **kwargs)
+        super(KeyTermTask, self).save(*args, **kwargs)
 
 
 class Thumbs(models.Model):

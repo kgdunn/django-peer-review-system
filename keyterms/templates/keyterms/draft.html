@@ -1,8 +1,10 @@
-{% extends "basic/base.html" %}
+{% extends "keyterms/base.html" %}
 
 {% block content %}
 
-{{header|safe}}
+<h1 style="display:inline; clear:none;">Keyterm: {{keytermtask.keyterm.keyterm}} </h1>
+<br>
+<p>
 <form action="{% url 'keyterms_entry_point' %}" method="POST"
       enctype="multipart/form-data">{% csrf_token %}
     <input type="hidden" name="context_id" value="{{course.label}}">
@@ -11,12 +13,12 @@
     <input type="hidden" name="lis_outcome_service_url" value="{{grade_push_url}}">
 
 <br>
-<h2>1. Define this key term: {{keyterm}}</h2>
+<h2>1. Define this key term: <span class='keyterm-name'>{{keytermtask.keyterm.keyterm}}</span></h2>
 
 <br>
 <h2>2. Your definition, and don't forget to mention your reference(s)</h2>
 
-<textarea rows="4" cols="50" maxlength=500 name="keyterm-definition" placeholder="Your definition; no more than 500 characters in length" required >
+<textarea rows="8" cols="50" maxlength=500 name="keyterm-definition" placeholder="Your definition; no more than 500 characters in length" required >
 </textarea>
 
 
@@ -25,7 +27,7 @@
 
 <br>
 <h2>4. Write your explanation</h2>
-<textarea rows="10" cols="40" maxlength=500 name="keyterm-definition" placeholder="Your explanation; no more than 1000 characters in length" required >
+<textarea rows="20" cols="40" maxlength=500 name="keyterm-definition" placeholder="Your explanation; no more than 1000 characters in length" required >
 </textarea>
 
 
