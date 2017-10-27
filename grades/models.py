@@ -52,9 +52,9 @@ class GradeItem(models.Model):
     An item in the gradebook. Each gradebook consists of one or more items
     (columns) in the gradebook.
     """
-    category = models.ForeignKey(GradeCategory)
-    entry = models.ForeignKey('basic.EntryPoint', blank=True, null=True)
-    order = models.PositiveSmallIntegerField(
+    category = models.ForeignKey(GradeCategory, blank=True, null=True)
+    entry_point = models.ForeignKey('basic.EntryPoint', blank=True, null=True)
+    order = models.PositiveSmallIntegerField(default=1,
         help_text="Which column order is this item")
     display_name = models.CharField(max_length=250, default='Assignment ...')
     max_score = models.DecimalField(max_digits=5, decimal_places=2, default=100,

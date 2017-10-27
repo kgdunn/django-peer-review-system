@@ -362,11 +362,14 @@ def push_grade(grade_push_url, learner, grade_value, entry_point, testing=False)
 
     >>> sourcedid = request.POST.get('lis_result_sourcedid', '')
     """
-    gradeitem = GradeItem.objects.filter(entry=entry_point)
-    if gradeitem:
+    gradeitem = GradeItem.objects.filter(entry_point=entry_point)
+    if gradeitem.count():
         gitem = gradeitem[0]
     else:
-        return 'Could not find GradeItem; please create it first.'
+        gitem = GradeItem(category=None,
+                          entry_point=entry_point,
+                          display_name='Please update: ' + str(entry_point))
+        gitem.save()
 
     grade, _ = LearnerGrade.objects.get_or_create(gitem=gitem,
                                                   learner=learner)
