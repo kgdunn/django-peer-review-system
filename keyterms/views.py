@@ -2,6 +2,11 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from basic.views import entry_point_discovery
 
+from grades.views import push_grade
+
+
+from .models import KeyTerm, KeyTermTask
+
 # Logging
 import logging
 logger = logging.getLogger(__name__)
@@ -34,7 +39,31 @@ def start_keyterm(request, course=None, learner=None, entry_point=None):
 def draft_keyterm(request, course=None, learner=None, entry_point=None):
     """
     """
-    ctx = {'keyterm': entry_point.full_URL,
+    keyterm = entry_point.full_URL
+
+
+    #prior_tasks = learner.keytermtask.filter(entry_point=entry_point)
+    #if prior_tasks.count():
+        #keytermtask = prior_tasks[0]
+    #else:
+        #settings = KeyTermSettings()
+        #settings.save()
+
+
+
+    #KeyTermTask.objects.get_or_create(learner=learner, entry_point=entry_point,
+                                      #keyterm=keyterm)
+
+    #KeyTermTask.objects.get_or_create(learner=learner, entry_point=entry_point,
+                                      #keyterm=keyterm)
+
+
+
+    #settings = models.ForeignKey(KeyTermSettings)
+
+
+
+    ctx = {'keyterm': keyterm,
            'course': course,
            'entry_point': entry_point,
            'learner': learner,
@@ -45,6 +74,8 @@ def draft_keyterm(request, course=None, learner=None, entry_point=None):
 def preview_keyterm(request, course=None, learner=None, entry_point=None):
     """
     """
+    definition = request.POST.get('keyterm-definition', '')
+    explanation = request.POST.get('keyterm-explanation', '')
 
     ctx = {'keyterm': entry_point.full_URL,
            'course': course,
@@ -67,6 +98,11 @@ def submit_keyterm(request, course=None, learner=None, entry_point=None):
 def finalize_keyterm(request, course=None, learner=None, entry_point=None):
     """
     """
+
+    response = push_grade(learner, 74, entry_point, testing=False)
+    logger.debug('Grade for {0} set response: {1}'.format(learner,
+                                                          response))
+
     ctx = {'keyterm': entry_point.full_URL,
            'course': course,
            'entry_point': entry_point,
