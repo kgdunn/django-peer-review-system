@@ -328,7 +328,7 @@ def push_grades_to_platform(sourcedid, grade_push_url, grade_value):
 
     # Call the PHP to do the work. Supply the required command line arguments
     calling_args = ("--sourcedid {0} --grade {1} --oauth_consumer_key={2} "
-                    "--oauth_consumer_secret={3}"
+                    "--oauth_consumer_secret={3} " # space is important here
                     "--grade_push_url={4}").format(sourcedid,
                                                    grade,
                                                    settings.LTI_KEY,
