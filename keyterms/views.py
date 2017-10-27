@@ -42,6 +42,7 @@ def draft_keyterm(request, course=None, learner=None, entry_point=None):
     keyterm = entry_point.full_URL
 
 
+
     #prior_tasks = learner.keytermtask.filter(entry_point=entry_point)
     #if prior_tasks.count():
         #keytermtask = prior_tasks[0]
@@ -67,7 +68,9 @@ def draft_keyterm(request, course=None, learner=None, entry_point=None):
            'course': course,
            'entry_point': entry_point,
            'learner': learner,
+           'grade_push_url': request.POST.get('lis_outcome_service_url', '')
            }
+    logger.debug(ctx)
     return render(request, 'keyterms/draft.html', ctx)
 
 
@@ -81,6 +84,7 @@ def preview_keyterm(request, course=None, learner=None, entry_point=None):
            'course': course,
            'entry_point': entry_point,
            'learner': learner,
+           'grade_push_url': request.POST.get('lis_outcome_service_url', '')
            }
     return render(request, 'keyterms/preview.html', ctx)
 
@@ -92,6 +96,7 @@ def submit_keyterm(request, course=None, learner=None, entry_point=None):
            'course': course,
            'entry_point': entry_point,
            'learner': learner,
+           'grade_push_url': request.POST.get('lis_outcome_service_url', '')
            }
     return render(request, 'keyterms/submit.html', ctx)
 
@@ -99,7 +104,11 @@ def finalize_keyterm(request, course=None, learner=None, entry_point=None):
     """
     """
 
-    response = push_grade(learner, 74, entry_point, testing=False)
+    response = push_grade(learner=learner,
+                          grade_value=100,
+                          entry_point=entry_point,
+                grade_push_url=request.POST.get('lis_outcome_service_url', ''),
+                testing=False)
     logger.debug('Grade for {0} set response: {1}'.format(learner,
                                                           response))
 

@@ -303,7 +303,7 @@ def grade_landing_page(request, course=None, learner=None, entry_point=None):
 
     #return HttpResponse('out:' + out)
 
-def push_grades_to_platform(sourcedid, grade_value):
+def push_grades_to_platform(sourcedid, grade_push_url, grade_value):
     """
     Based on: https://community.brightspace.com/devcop/blog/ ...
                              so_you_want_to_extend_your_lms__part_1_lti_primer
@@ -311,7 +311,12 @@ def push_grades_to_platform(sourcedid, grade_value):
     1. Requires the ``lis_result_sourcedid`` from request.POST, as input
        variable ``sourcedid``.
        sourcedid = request.POST.get('lis_result_sourcedid', '')
-    2. The ``grade``: a value between 0.0 and 1.0
+
+    2. Requires the ``lis_outcome_service_url`` from request.POST, as input
+       variable ``grade_push_url``.
+       grade_push_url = request.POST.get('lis_outcome_service_url', '')
+
+    3. The ``grade``: a value between 0.0 and 1.0
 
     Will return "True" if the grade was successfully set; else it returns None.
     """
@@ -323,9 +328,12 @@ def push_grades_to_platform(sourcedid, grade_value):
 
     # Call the PHP to do the work. Supply the required command line arguments
     calling_args = ("--sourcedid {0} --grade {1} --oauth_consumer_key={2} "
-                    "--oauth_consumer_secret={3}").format(sourcedid, grade,
-                                                          settings.LTI_KEY,
-                                                          settings.LTI_SECRET)
+                    "--oauth_consumer_secret={3}"
+                    "--grade_push_url={4}").format(sourcedid,
+                                                   grade,
+                                                   settings.LTI_KEY,
+                                                   settings.LTI_SECRET,
+                                                   grade_push_url)
     php_script = settings.BASE_DIR_LOCAL + os.sep + 'grades/push_grades.php'
     logger.debug('Grades calling: php {0} {1}'.format(php_script, calling_args))
     proc = subprocess.Popen("php {0} {1}".format(php_script, calling_args),
@@ -342,7 +350,7 @@ def push_grades_to_platform(sourcedid, grade_value):
         return False
 
 
-def push_grade(learner, grade_value, entry_point, testing=False):
+def push_grade(grade_push_url, learner, grade_value, entry_point, testing=False):
     """
     Pushes the ``grade_value`` (a number between 0 and 100) for ``learner``
     at the given ``entry_point`` to the platform.
@@ -370,7 +378,9 @@ def push_grade(learner, grade_value, entry_point, testing=False):
     grade_to_push = grade_value / 100.0
 
     if not(testing):
-        return push_grades_to_platform(learner.last_lis, grade_to_push)
+        return push_grades_to_platform(learner.last_lis,
+                                       grade_push_url,
+                                       grade_to_push)
     else:
         return True
 

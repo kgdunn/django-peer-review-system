@@ -4,7 +4,7 @@
 # which appears to be based on the MIT licensed code of Andy Smith, (c) 2007.
 
 require_once 'OAuth.php';
-$endpoint     = 'https://profed.tudelft.nl/courses/course-v1:TUDelft+CSD+Fall_2017/xblock/block-v1:TUDelft+CSD+Fall_2017+type@lti+block@8c1a75b32baa4b6e9a46f166f7b350e8/handler_noauth/grade_handler';
+//$endpoint     = 'https://profed.tudelft.nl/courses/course-v1:TUDelft+CSD+Fall_2017/xblock/block-v1:TUDelft+CSD+Fall_2017+type@lti+block@8c1a75b32baa4b6e9a46f166f7b350e8/handler_noauth/grade_handler';
 //$endpoint     = 'https://brightspace.tudelft.nl/d2l/le/lti/Outcome';
 
 // From: http://php.net/manual/en/function.file-get-contents.php
@@ -201,6 +201,7 @@ $sourcedid = $options['sourcedid'];
 $grade = floatval($options['grade']);
 $oauth_consumer_key = $options['oauth_consumer_key'];
 $oauth_consumer_secret = $options['oauth_consumer_secret'];
+$endpoint = $options['grade_push_url'];
 
 #$postBody = str_replace(
 #    array('SOURCEDID', 'OPERATION', 'MESSAGE'),

@@ -108,6 +108,8 @@ def entry_point_discovery(request, course_code=None, entry_code=None):
     if request.POST.get('lis_result_sourcedid', ''):
         # Update only if needed.
         person.last_lis = request.POST.get('lis_result_sourcedid', '')
+        person.last_grade_push_url = request.POST.get('lis_outcome_service_url',
+                                                      '')
         person.save()
 
 

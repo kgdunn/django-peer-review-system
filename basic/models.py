@@ -50,6 +50,8 @@ class Person(models.Model):
 
     last_lis = models.CharField(max_length=200, blank=True,
                                 verbose_name='Last known: lis_result_sourcedid')
+    last_grade_push_url = models.CharField(max_length=500, blank=True,
+                default='', verbose_name='Last known: lis_outcome_service_url')
     course = models.ForeignKey(Course, blank=True, null=True, default=None)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
