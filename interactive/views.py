@@ -2230,7 +2230,7 @@ def completed(learner, achievement, entry_point, push_grade=False,
         #                          entry_point)
 
     #if score_override:
-    #    push_to_gradebook(learner, score_override, trigger.entry_point)
+    #    push_to_gradebook(learner, score_override, entry_point)
 
 
 
@@ -2256,21 +2256,34 @@ def overview(request, course=None, learner=None, entry_point=None):
     achieved = {}
     entry_display = []
     graphs = []
+
+    num_completed = 0
+    total_entries = 0
     for entry in entries:
         if entry == entry_point:
             continue
+        else:
+            total_entries += 1
+
         achieved[entry] = reportcard(learner, entry, detailed=True)
         entry_display.append(entry)
+
+        if achieved[entry]['assessed_rebuttals']:
+            num_completed += 1
 
         if learner.role in ('Admin', ):
             graphs.append(group_graph(entry).graph)
 
+    all_completed = False
+    if total_entries == num_completed:
+        all_completed = True
 
     ctx = {'learner': learner,
            'course': course,
            'achieved': achieved,
            'entries': entry_display,
-           'entry_point': entry_point}
+           'entry_point': entry_point,
+           'all_completed': all_completed}
 
     html = loader.render_to_string('interactive/display_progress.html', ctx)
     return HttpResponse(html)

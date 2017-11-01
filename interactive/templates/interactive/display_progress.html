@@ -28,7 +28,7 @@ $(document).ready( function () {
 }
 .first-column{
     padding-right: 20px;
-    padding-top:   10px;
+    padding-top:   2px;
     padding-bottom: 10px;
 }
 .achieved_dt{
@@ -127,6 +127,7 @@ $(document).ready( function () {
 <tr><td><em>Enjoy!</em></td>
     {% for unit in entries %}
 
+
         {% if forloop.counter == 1 %}
             {% if achieved|keyvalue:unit|keyvalue:'assessed_rebuttals' %}
                 <td style="padding: 0 0 0 0; border: 0"><img width=100% src="/documents/us2Fsq0p.png"></td>
@@ -169,7 +170,12 @@ $(document).ready( function () {
         {% endif %} {# if-elif-elif-... #}
     {% endfor %}    {# for unit in entries #}
 </tr>
-
+<tr>
+<td></td>
+{% if all_completed %}
+    <td colspan="5" style="padding: 0 0 0 0; border: 0"><img width=100% src="/documents/639ams1s.png"></td>
+{% endif %}
+</tr>
 </tbody>
 </table>
 
