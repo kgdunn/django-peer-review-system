@@ -18,9 +18,6 @@ from submissions.models import Submission
 import logging
 logger = logging.getLogger(__name__)
 
-# Debugging
-import wingdbstub
-
 def get_submission(learner, trigger, entry_point=None):
 
     """

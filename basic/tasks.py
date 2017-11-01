@@ -29,9 +29,6 @@ logger = logging.getLogger(__name__)
 
 from .models import Email_Task
 
-# Debugging
-import wingdbstub
-
 def email__no_reviews_after_submission():
     """
     Send email to learners that have waited more than 24 hours since uploading

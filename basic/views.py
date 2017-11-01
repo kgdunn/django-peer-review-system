@@ -20,10 +20,6 @@ from utils import generate_random_token, send_email
 import logging
 logger = logging.getLogger(__name__)
 
-# Debugging
-import wingdbstub
-
-
 @csrf_exempt
 @xframe_options_exempt
 def entry_point_discovery(request, course_code=None, entry_code=None):

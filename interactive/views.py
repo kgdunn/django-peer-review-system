@@ -7,9 +7,6 @@ from django.core.files import File
 from django.conf import settings
 from django.utils import timezone
 
-# Debugging
-import wingdbstub
-
 # Python and 3rd party imports
 import os
 import sys
