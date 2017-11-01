@@ -126,7 +126,7 @@ def upload_submission(request, learner, trigger, no_thumbnail=True):
         if strike1:
             logger.debug('Invalid PDF upload: {0} [{1}]'.format(mime,
                                                             full_path))
-            return None, 'Invalid file upload. Uploaded file must be a PDF.'
+            return None, 'Invalid file uploaded. Uploaded file must be a PDF.'
 
         doc = PdfFileReader(full_path)
         if doc.isEncrypted:
@@ -155,7 +155,8 @@ def upload_submission(request, learner, trigger, no_thumbnail=True):
         if strike1:
             logger.debug('Invalid JPG upload: {0} [{1}]'.format(mime,
                                                             full_path))
-            return None, 'Invalid file. Uploaded image should be a JPEG file.'
+            return None, ('Invalid file. Uploaded image should be a valid '
+                          'and readable JPEG file.')
 
 
     strike1 = False
@@ -177,7 +178,8 @@ def upload_submission(request, learner, trigger, no_thumbnail=True):
         if strike1:
             logger.debug('Invalid PNG upload: {0} [{1}]'.format(mime,
                                                                 full_path))
-            return None, 'Invalid file. Uploaded image should be a PNG file.'
+            return None, ('Invalid file. Uploaded image should be a valid '
+                          'and readable PNG file.')
 
 
     strike2 = False
@@ -185,7 +187,7 @@ def upload_submission(request, learner, trigger, no_thumbnail=True):
                             trigger.accepted_file_types_comma_separated.lower():
         logger.debug('Invalid file type upload: received ".{0}"; [{1}]'.format(\
                                                     extension, full_path))
-        return None, ('Invalid file upload. Uploaded file must be: {}'.format(\
+        return None, ('Invalid file uploaded. Uploaded file must be: {}'.format(\
                                  trigger.accepted_file_types_comma_separated))
 
 

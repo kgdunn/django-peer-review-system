@@ -1,4 +1,4 @@
-{% extends "basic/base.html" %}
+{% extends "keyterms/base.html" %}
 
 {% block content %}
 
@@ -11,7 +11,7 @@
     <input type="hidden" name="lis_outcome_service_url" value="{{grade_push_url}}">
 
 
-<h2>Preview your key term: {{keyterm}}</h2>
+<h2>Preview your key term: <span class='keyterm-name'>{{keytermtask.keyterm.keyterm}}</span></h2>
 
 <span class="submit_button" >
     <input type="submit" name="draft-keyterm" value="Return back to editing">

@@ -43,7 +43,8 @@ def start_keyterm(request, course=None, learner=None, entry_point=None):
     return draft_keyterm(request, course, learner, entry_point)
 
 
-def draft_keyterm(request, course=None, learner=None, entry_point=None):
+def draft_keyterm(request, course=None, learner=None, entry_point=None,
+                  error_message=''):
     """
     The user is in Draft mode: adding the text
     """
@@ -81,7 +82,8 @@ def draft_keyterm(request, course=None, learner=None, entry_point=None):
 
 
     # TODO: real-time saving of the text as it is typed
-    ctx = {'keytermtask': keytermtask,
+    ctx = {'error_message': error_message,
+           'keytermtask': keytermtask,
            'course': course,
            'entry_point': entry_point,
            'learner': learner,
@@ -167,9 +169,13 @@ def preview_keyterm(request, course=None, learner=None, entry_point=None):
     keytermtask.reference_text = 'STILL TO COME'
     keytermtask.save()
 
+    # We have saved, but if there was an error message: go back to DRAFT
+    if error_message:
+        return draft_keyterm(request, course=course, learner=learner,
+                        entry_point=entry_point, error_message=error_message)
 
-    ctx = {'error_message': error_message,
-           'keyterm': entry_point,
+
+    ctx = {'keytermtask': keytermtask,
            'course': course,
            'entry_point': entry_point,
            'learner': learner,
@@ -208,7 +214,7 @@ def submit_keyterm(request, course=None, learner=None, entry_point=None):
     # Get all other user's keyterms: how many other keyterms are uploaded already?
     # Float the submit buttons left and right of each other
 
-    ctx = {'keyterm': entry_point,
+    ctx = {'keytermtask': keytermtask,
            'course': course,
            'entry_point': entry_point,
            'learner': learner,
@@ -255,7 +261,7 @@ def finalize_keyterm(request, course=None, learner=None, entry_point=None):
                                                                 grade_push_url,
                                                                 response))
 
-    ctx = {'keyterm': entry_point,
+    ctx = {'keytermtask': keytermtask,
            'course': course,
            'entry_point': entry_point,
            'learner': learner,

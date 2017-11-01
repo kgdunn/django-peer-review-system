@@ -1,13 +1,13 @@
-{% extends "basic/base.html" %}
+{% extends "keyterms/base.html" %}
 
 {% block content %}
 
 {{header|safe}}
 
 
-<h2>All keyterms for: {{keyterm}}</h2>
+<h2>Definitions for <span class='keyterm-name'>{{keytermtask.keyterm.keyterm}}</span> submitted by you and your colleagues</h2>
 
-
+<br>
 Don't forget to vote!
 
 {% endblock %}

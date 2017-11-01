@@ -1,4 +1,4 @@
-{% extends "basic/base.html" %}
+{% extends "keyterms/base.html" %}
 
 {% block content %}
 
@@ -13,11 +13,11 @@
 
 <h2>Thank you!</h2>
 
-Your keyterm definition for {{keyterm}} has been submitted.
+Your keyterm definition for <span class='keyterm-name'>{{keytermtask.keyterm.keyterm}}</span> has been submitted.
 
-Start to view other's keyterms and vote on them. You have 3 votes to allocate. You might have to wait until {{NN}} keyterms are uploaded. So far there are {{YY}} uploads.
+Click the button "View and Vote" to view other's keyterms and vote on them. You have 3 thumbs-up votes to allocate. You might have to wait until {{NN}} keyterms are uploaded. So far there are {{YY}} uploads in total.
 
-<p>You cannot edit your keyterm again once you start viewing and voting .
+<p>You cannot edit your keyterm once you start viewing and voting.
 
 
 <span class="submit_button" >
