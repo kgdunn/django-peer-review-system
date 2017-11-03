@@ -27,11 +27,25 @@ def start_keyterm(request, course=None, learner=None, entry_point=None):
     """
     """
     logger.debug(request.POST)
-
-    keyterm_finalized = False
-
-    # TODO: Code here to determine if the user has finalized their keyterm
-    # TODO: make the user resume from the last point they were at, if reloading
+    prior = learner.keytermtask_set.filter(keyterm__entry_point=entry_point)
+    if prior.count():
+        keytermtask = prior[0]
+        keyterm = keytermtask.keyterm
+    else:
+        # Create the new KeyTermTask for this learner
+        try:
+            keyterm = KeyTermSetting.objects.get(entry_point=entry_point)
+        except KeyTermSetting.DoesNotExist:
+            return HttpResponse(('Please add KeyTerm to database first; and '
+                                 "don't forget to add the GradeItem too."))
+        keytermtask = KeyTermTask(keyterm=keyterm,
+                                  learner=learner,
+                                  definition_text='',
+                                  explainer_text='',
+                                  reference_text='',
+                                  is_in_draft=True
+                                  )
+        keytermtask.save()
 
     if request.POST.get('preview-keyterm', ''):
         return preview_keyterm(request, course, learner, entry_point)
@@ -42,7 +56,7 @@ def start_keyterm(request, course=None, learner=None, entry_point=None):
     if request.POST.get('submit-keyterm', ''):
         return submit_keyterm(request, course, learner, entry_point)
 
-    if request.POST.get('finalize-keyterm', '') or keyterm_finalized:
+    if request.POST.get('finalize-keyterm', '') or keytermtask.is_finalized:
         return finalize_keyterm(request, course, learner, entry_point)
 
     # If nothing else (usually the first time we start, we start with drafting)
@@ -63,16 +77,8 @@ def draft_keyterm(request, course=None, learner=None, entry_point=None,
         try:
             keyterm = KeyTermSetting.objects.get(entry_point=entry_point)
         except KeyTermSetting.DoesNotExist:
-            return HttpResponse(('Please add KeyTerm to database first; and '
-                                 "don't forget to add the GradeItem too."))
-        keytermtask = KeyTermTask(keyterm=keyterm,
-                                  learner=learner,
-                                  definition_text='',
-                                  explainer_text='',
-                                  reference_text='',
-                                  is_in_draft=True
-                                  )
-        keytermtask.save()
+            logger.error('Draft: An error occurred. [{0}]'.format(learner))
+            return HttpResponse('An error occurred.')
 
     # We have 4 states: set the correct settings (in case page is reloaded here)
     keytermtask.is_in_draft = True
