@@ -96,8 +96,7 @@ def upload_submission(request, learner, trigger, no_thumbnail=True):
                                     trigger.max_file_upload_size_MB))
 
 
-    elif trigger.allow_multiple_files:
-        # Refer to prior code: this is removed for now
+    else:  #if trigger.allow_multiple_files: this is removed for now
         filename = ''
         extension = ''
         submitted_file_name_django = ''

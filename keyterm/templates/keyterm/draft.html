@@ -30,9 +30,13 @@
 <p class="error_message">{{error_message}}</p>
 {{entry_point.file_upload_form}}
 
+{% if keytermtask.image_raw %}
+   You already <a href="/{{keytermtask.image_raw.file_upload.url}}" target="_blank">uploaded an image</a> on {{keytermtask.image_raw.datetime_submitted|date:"d F Y"}} at {{keytermtask.image_raw.datetime_submitted|time:"H:i"}}; no need to upload it again.
+{% endif%}
+
 <br>
-<h2>4. Write your explanation</h2>
-<textarea rows="12" cols="40" maxlength=500 name="keyterm-explanation"
+<h2>4. Write your explanation (max of 1000 characters)</h2>
+<textarea rows="12" cols="40" maxlength=1000 name="keyterm-explanation"
           placeholder="Your explanation; no more than 1000 characters in length"
           required>{{keytermtask.explainer_text}}</textarea>
 

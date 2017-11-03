@@ -1,11 +1,17 @@
 from django.http import HttpResponse
 from django.shortcuts import render
+from django.conf import settings
 
 # This app's imports
 from .models import KeyTermSetting, KeyTermTask
-from .forms import UploadFileForm_one_file
+from .forms import UploadFileForm_file_optional, UploadFileForm_file_required
 
-# Imports from other apps
+# 3rd party imports: image rendering
+import PIL
+from PIL import ImageFont, Image, ImageDraw
+
+# Import from our other apps
+from utils import generate_random_token
 
 #from submissions.models import Submission
 from submissions.views import upload_submission
@@ -75,10 +81,13 @@ def draft_keyterm(request, course=None, learner=None, entry_point=None,
     keytermtask.is_finalized = False
     keytermtask.save()
 
-    # Checkbox shown if image was uploaded already (date and time also; size)
-    # Reference should also be shown
 
-    entry_point.file_upload_form = UploadFileForm_one_file()
+    # TODO: Reference should also be shown
+
+    if keytermtask.image_raw:
+        entry_point.file_upload_form = UploadFileForm_file_optional()
+    else:
+        entry_point.file_upload_form = UploadFileForm_file_required()
 
 
     # TODO: real-time saving of the text as it is typed
@@ -158,13 +167,13 @@ def preview_keyterm(request, course=None, learner=None, entry_point=None):
 
     definition_text = request.POST.get('keyterm-definition', '')
     keytermtask.definition_text = definition_text
-    if len(definition_text) > 500:
-        keytermtask.definition_text = definition_text[0:500] + ' ...'
+    if len(definition_text.replace('\n','').replace('\r','')) > 515:
+        keytermtask.definition_text = definition_text[0:515] + ' ...'
 
     explainer_text = request.POST.get('keyterm-explanation', '')
     keytermtask.explainer_text = explainer_text
-    if len(explainer_text) > 1000:
-            keytermtask.explainer_text = explainer_text[0:1000] + ' ...'
+    if len(explainer_text.replace('\n','').replace('\r','')) > 1015:
+            keytermtask.explainer_text = explainer_text[0:1015] + ' ...'
 
     keytermtask.reference_text = 'STILL TO COME'
     keytermtask.save()
@@ -173,6 +182,8 @@ def preview_keyterm(request, course=None, learner=None, entry_point=None):
     if error_message:
         return draft_keyterm(request, course=course, learner=learner,
                         entry_point=entry_point, error_message=error_message)
+    else:
+        create_preview(keytermtask)
 
 
     ctx = {'keytermtask': keytermtask,
@@ -182,6 +193,123 @@ def preview_keyterm(request, course=None, learner=None, entry_point=None):
            'grade_push_url': request.POST.get('lis_outcome_service_url', '')
            }
     return render(request, 'keyterm/preview.html', ctx)
+
+
+def create_preview(keytermtask):
+    """
+    Creates the keyterm page (PNG file), from the text, image, reference..
+    Renders the image; uploads it as a submission.
+    """
+
+    # Settings
+    targetH = 1600
+    targetW = 1000 + 900                # side text + image
+    start_Lw = 1000  # top left width coordinate (distance from left edge) of paste
+    start_Lh = 0     # top left height coordinate (distance from top edge) of paste
+
+    base_image_wh = (targetW, targetH)
+    bgcolor = "#EEE"
+    color = "#000"
+    REPLACEMENT_CHARACTER = u'\uFFFD'
+    NEWLINE_REPLACEMENT_STRING = ' ' + REPLACEMENT_CHARACTER + ' '
+    fontfullpath = 'keyterm/fonts/Lato-Regular.ttf'
+    output_extension  = 'jpg'
+
+    keyterm_header = keytermtask.keyterm.keyterm
+    definition = keytermtask.definition_text
+    explainer = keytermtask.explainer_text
+
+    img = Image.new("RGB", base_image_wh, bgcolor)
+    draw = ImageDraw.Draw(img)
+    # https://www.snip2code.com/Snippet/1601691/Python-text-to-image-(png)-conversion-wi
+    def text2png(text, draw, start_y=0, fontsize=50, leftpadding=3, rightpadding=3,
+                 width=2000):
+        #font = ImageFont.load_default()
+        font =  ImageFont.truetype(fontfullpath, fontsize)
+        text = text.replace('\n', NEWLINE_REPLACEMENT_STRING)
+        lines = []
+        line = u""
+
+        for word in text.split():
+            if word == REPLACEMENT_CHARACTER: # Give a blank line
+                lines.append( line[1:] )      # Slice the white space in the begining of the line
+                line = u""
+                lines.append( u"" ) # blank line
+            elif font.getsize( line + ' ' + word )[0] <= (width - rightpadding - leftpadding):
+                line += ' ' + word
+            else: #start a new line
+                lines.append( line[1:] ) #slice the white space
+                line = u""
+
+                #TODO: handle too long words at this point
+                line += ' ' + word # Assume no word alone can exceed line width
+
+        if len(line) != 0:
+            lines.append( line[1:] ) # add last line
+
+        line_height = font.getsize(text)[1]
+        img_height = line_height * (len(lines) + 1)
+
+        y = start_y
+        for line in lines:
+            if line == '':
+                line = ' '
+            draw.text( (leftpadding, y), line, color, font=font)
+            y += line_height
+
+        return y, line_height
+
+
+    last_y, line_height = text2png(keyterm_header, draw, start_y=50,
+                                   fontsize=75, leftpadding=20)
+
+    last_y, line_height = text2png(definition, draw, start_y=last_y,
+                                   fontsize=25, width=900-20*2, leftpadding=20,
+                                   rightpadding=20)
+
+    last_y, line_height = text2png('Example/Explanation:', draw,
+                                   start_y=last_y+line_height*2,
+                                   fontsize=30, width=900-20*2, leftpadding=20,
+                                   rightpadding=20)
+
+    last_y, line_height = text2png(explainer, draw, start_y=last_y,
+                                   fontsize=25, width=900-20*2, leftpadding=20,
+                                   rightpadding=20)
+
+
+
+    source = Image.open(keytermtask.image_raw.file_upload)
+    width, height = source.width, source.height
+    targetWimg = 1000   # the pasted image is 1000 pixels wide
+    targetHimg = targetH
+
+    if (height/width) < (targetHimg/targetWimg):
+        # Current image has width as the limiting constraint. Set width to target.
+        height = int(height/width * targetWimg)
+        width = targetWimg
+        start_Lh = start_Lh + int((targetHimg - height)/2)
+
+
+    elif (height/width) > (targetHimg/targetWimg):
+        # Current image has height as the limiting constraint. Set height to target.
+        width = int(width/height * targetHimg)
+        height = targetHimg
+        start_Lw = targetWimg + int((targetWimg-width)/2)
+
+    source = source.resize((width, height))
+    img.paste(source, (start_Lw, start_Lh))
+    keytermtask.image_modified = ''
+
+
+    entry_point = keytermtask.keyterm.entry_point
+    base_dir_for_file_uploads = settings.MEDIA_ROOT
+    submitted_file_name_django = 'uploads/{0}/{1}'.format(entry_point.id,
+            generate_random_token(token_length=16) + '.' + output_extension)
+    full_path = base_dir_for_file_uploads + submitted_file_name_django
+    img.save(full_path)
+
+    keytermtask.image_modified = submitted_file_name_django
+    keytermtask.save()
 
 
 def submit_keyterm(request, course=None, learner=None, entry_point=None):
