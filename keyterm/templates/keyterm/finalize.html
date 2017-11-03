@@ -1,5 +1,251 @@
 {% extends "keyterm/base.html" %}
 
+
+{% block header %}
+    <style type="text/css">
+
+    /* http://zurb.com/playground/css3-polaroids */
+    ul.polaroids li {
+        display: inline;
+    }
+    ul.polaroids a {
+        background: #fff;
+        display: inline;
+        float: left;
+        margin: 0 0 27px 30px;
+        width: auto;
+        padding: 10px 10px 15px;
+        text-align: center;
+        font-family: sans-serif;
+        text-decoration: none;
+        color: #333;
+        font-size: 1em;
+        -webkit-box-shadow: 0 3px 6px rgba(0,0,0,.25);
+        -moz-box-shadow: 0 3px 6px rgba(0,0,0,.25);
+        -webkit-transform: rotate(-1deg);
+        -webkit-transition: -webkit-transform .15s linear;
+        -moz-transform: rotate(-2deg);
+    }
+    ul.polaroids li {
+        padding-left: 0;
+    }
+    @media screen and (max-width: 768px) {
+        ul.polaroids li a {
+            margin-left: 0;
+        }
+
+    }
+    ul.polaroids img {
+        display: block;
+        width: 100%;
+        margin-bottom: 12px;
+    }
+    ul.polaroids a:after {
+        content: attr(title);
+    }
+    ul.polaroids li:nth-child(even) a {
+        -webkit-transform: rotate(2deg);
+        -moz-transform: rotate(2deg);
+    }
+    ul.polaroids li:nth-child(3n) a {
+        -webkit-transform: none;
+        position: relative;
+        top: -5px;
+        -moz-transform: none;
+    }
+    ul.polaroids li:nth-child(5n) a {
+        -webkit-transform: rotate(5deg);
+        position: relative;
+        right: 5px;
+        -moz-transform: rotate(5deg);
+    }
+    ul.polaroids li:nth-child(8n) a {
+        position: relative;
+        right: 5px;
+        top: 8px;
+    }
+    ul.polaroids li:nth-child(11n) a {
+        position: relative;
+        left: -5px;
+        top: 3px;
+    }
+    ul.polaroids li.messy a {
+        margin-top: -400px;
+        position: relative;
+        left: 160px;
+    }
+    ul.polaroids li a:hover {
+        -webkit-transform: scale(1.25);
+        -moz-transform: scale(1.25);
+        -webkit-box-shadow: 0 3px 6px rgba(0,0,0,.5);
+        -moz-box-shadow: 0 3px 6px rgba(0,0,0,.5);
+        position: relative;
+        z-index: 5;
+    }
+    h2.polaroid-overlay {
+        position: absolute;
+        top: 200px;
+        left: 0;
+        width: 100%;
+    }
+    h3.polaroid-overlay {
+        position: absolute;
+        top: 30px;
+        left: 0;
+        width: 100%;
+    }
+
+    h2.polaroid-overlay span {
+        color: white;
+        font: bold 36px/45px Helvetica, Sans-Serif;
+        background: rgb(0, 0, 0); /* fallback color */
+        background: rgba(0, 0, 0, 0.7);
+        padding: 10px;
+    }
+    h3.polaroid-overlay span {
+        color: white;
+        font: bold 16px/26px Helvetica, Sans-Serif;
+        background: rgb(0, 0, 0); /* fallback color */
+        background: rgba(0, 0, 0, 0.7);
+        padding: 5px;
+        float: left;
+    }
+
+
+
+
+
+
+/*Eliminates padding, centers the thumbnail */
+
+body, html {
+padding: 0;
+margin: 0;
+text-align: center;
+}
+
+/* Styles the thumbnail */
+
+a.lightbox img {
+height: 150px;
+border: 3px solid white;
+box-shadow: 0px 0px 8px rgba(0,0,0,.3);
+margin: 94px 20px 20px 20px;
+}
+
+/* Styles the lightbox, removes it from sight and adds the fade-in transition */
+
+.lightbox-target {
+position: fixed;
+top: -100%;
+width: 100%;
+background: rgba(0,0,0,.7);
+width: 100%;
+opacity: 0;
+-webkit-transition: opacity .5s ease-in-out;
+-moz-transition: opacity .5s ease-in-out;
+-o-transition: opacity .5s ease-in-out;
+transition: opacity .5s ease-in-out;
+overflow: hidden;
+}
+
+/* Styles the lightbox image, centers it vertically and horizontally, adds the zoom-in transition and makes it responsive using a combination of margin and absolute positioning */
+
+.lightbox-target img {
+margin: auto;
+position: absolute;
+top: 0;
+left:0;
+right:0;
+bottom: 0;
+max-height: 0%;
+max-width: 0%;
+border: 3px solid white;
+box-shadow: 0px 0px 8px rgba(0,0,0,.3);
+box-sizing: border-box;
+-webkit-transition: .5s ease-in-out;
+-moz-transition: .5s ease-in-out;
+-o-transition: .5s ease-in-out;
+transition: .5s ease-in-out;
+}
+
+/* Styles the close link, adds the slide down transition */
+
+a.lightbox-close {
+display: block;
+width:50px;
+height:50px;
+box-sizing: border-box;
+background: white;
+color: black;
+text-decoration: none;
+position: absolute;
+top: -80px;
+right: 0;
+-webkit-transition: .5s ease-in-out;
+-moz-transition: .5s ease-in-out;
+-o-transition: .5s ease-in-out;
+transition: .5s ease-in-out;
+}
+
+/* Provides part of the "X" to eliminate an image from the close link */
+
+a.lightbox-close:before {
+content: "";
+display: block;
+height: 30px;
+width: 1px;
+background: black;
+position: absolute;
+left: 26px;
+top:10px;
+-webkit-transform:rotate(45deg);
+-moz-transform:rotate(45deg);
+-o-transform:rotate(45deg);
+transform:rotate(45deg);
+}
+
+/* Provides part of the "X" to eliminate an image from the close link */
+
+a.lightbox-close:after {
+content: "";
+display: block;
+height: 30px;
+width: 1px;
+background: black;
+position: absolute;
+left: 26px;
+top:10px;
+-webkit-transform:rotate(-45deg);
+-moz-transform:rotate(-45deg);
+-o-transform:rotate(-45deg);
+transform:rotate(-45deg);
+}
+
+/* Uses the :target pseudo-class to perform the animations upon clicking the .lightbox-target anchor */
+
+.lightbox-target:target {
+opacity: 1;
+top: 0;
+bottom: 0;
+}
+
+.lightbox-target:target img {
+max-height: 100%;
+max-width: 100%;
+}
+
+.lightbox-target:target a.lightbox-close {
+top: 0px;
+}
+
+
+    </style>
+{% endblock %}
+{# ------------------------------------------------#}
+
+
+
 {% block content %}
 
 {{header|safe}}
@@ -7,7 +253,42 @@
 
 <h2>Definitions for <span class='keyterm-name'>{{keytermtask.keyterm.keyterm}}</span> submitted by you and your colleagues</h2>
 
-<br>
-Don't forget to vote!
+<div style="padding-top: 1em">
+You must vote before {{keytermtask.keyterm.deadline_for_voting|date:"d F Y" }} {{keytermtask.keyterm.deadline_for_voting|time:"H:i" }}; <span style="color:darkgreen">you have {{keytermtask.keyterm.deadline_for_voting| timeuntil }} left</span>.
+</div>
+
+<ul class="polaroids large-block-grid-4 small-block-grid-2">
+{% for keyterm in valid_tasks %}
+
+
+{# first one is your own submission; cannot vote for this one!#}
+
+
+    <li>
+        <a href="#" title="{{ keyterm.learner.display_name }}" >
+            <img class="front-image"
+                 alt="/{{ keyterm.learner.display_name }}"
+                 src="/{{ keyterm.image_thumbnail.url }}"
+                 />
+
+             <h3 class="polaroid-overlay"><span>
+                Level: adadas
+            </span></h3>
+        </a>
+        <div class="lightbox-target" id="dog">
+            <img href="/{{ keyterm.image_modified.url }}"/>
+            <a class="lightbox-close" href="#"></a>
+        </div>
+
+    </li>
+{% endfor %}
+</ul>
 
 {% endblock %}
+
+
+
+
+
+
+

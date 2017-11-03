@@ -2,6 +2,10 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from django.conf import settings
 
+# Python import
+import os
+from random import shuffle
+
 # This app's imports
 from .models import KeyTermSetting, KeyTermTask
 from .forms import UploadFileForm_file_optional, UploadFileForm_file_required
@@ -26,7 +30,6 @@ logger = logging.getLogger(__name__)
 def start_keyterm(request, course=None, learner=None, entry_point=None):
     """
     """
-    logger.debug(request.POST)
     prior = learner.keytermtask_set.filter(keyterm__entry_point=entry_point)
     if prior.count():
         keytermtask = prior[0]
@@ -73,7 +76,6 @@ def draft_keyterm(request, course=None, learner=None, entry_point=None,
         keytermtask = prior[0]
         keyterm = keytermtask.keyterm
     else:
-        # Create the new KeyTermTask for this learner
         try:
             keyterm = KeyTermSetting.objects.get(entry_point=entry_point)
         except KeyTermSetting.DoesNotExist:
@@ -96,7 +98,8 @@ def draft_keyterm(request, course=None, learner=None, entry_point=None,
         entry_point.file_upload_form = UploadFileForm_file_required()
 
 
-    # TODO: real-time saving of the text as it is typed
+    # TODO: real-time saving of the text as it is typed??
+
     ctx = {'error_message': error_message,
            'keytermtask': keytermtask,
            'course': course,
@@ -207,11 +210,12 @@ def create_preview(keytermtask):
     Renders the image; uploads it as a submission.
     """
 
-    # Settings
+    # Settings for creating the image and thumbnail.
     targetH = 1600
     targetW = 1000 + 900                # side text + image
     start_Lw = 1000  # top left width coordinate (distance from left edge) of paste
     start_Lh = 0     # top left height coordinate (distance from top edge) of paste
+    thumbWimg = thumbHimg = 200
 
     base_image_wh = (targetW, targetH)
     bgcolor = "#EEE"
@@ -220,6 +224,23 @@ def create_preview(keytermtask):
     NEWLINE_REPLACEMENT_STRING = ' ' + REPLACEMENT_CHARACTER + ' '
     fontfullpath = settings.MEDIA_ROOT + 'keyterm/fonts/Lato-Regular.ttf'
     output_extension  = 'jpg'
+
+    entry_point = keytermtask.keyterm.entry_point
+
+    # Is the storage space reachable?
+
+    deepest_dir = settings.MEDIA_ROOT + 'uploads/{0}/thumbs/'.format(
+        entry_point.id)
+
+    try:
+        os.makedirs(deepest_dir)
+    except OSError:
+        if not os.path.isdir(deepest_dir):
+            logger.error('Cannot create directory for upload: {0}'.format(
+                deepest_dir))
+            raise
+
+
 
     keyterm_header = keytermtask.keyterm.keyterm
     definition = keytermtask.definition_text
@@ -304,17 +325,59 @@ def create_preview(keytermtask):
 
     source = source.resize((width, height))
     img.paste(source, (start_Lw, start_Lh))
-    keytermtask.image_modified = ''
 
 
-    entry_point = keytermtask.keyterm.entry_point
-    base_dir_for_file_uploads = settings.MEDIA_ROOT
+
+    base_name = generate_random_token(token_length=16) + '.' + output_extension
     submitted_file_name_django = 'uploads/{0}/{1}'.format(entry_point.id,
-            generate_random_token(token_length=16) + '.' + output_extension)
-    full_path = base_dir_for_file_uploads + submitted_file_name_django
+                                                          base_name)
+    full_path = settings.MEDIA_ROOT + submitted_file_name_django
     img.save(full_path)
 
     keytermtask.image_modified = submitted_file_name_django
+    keytermtask.save()
+
+
+    # Repeat: make the image even smaller, to get a thumbnail
+    #width, height = source.width, source.height
+    thumbWimg = 200
+    thumbHimg = 200
+    #start_Lw = 0
+    #start_Lh = 0
+
+    #if (height/width) > (targetHimg/targetWimg):
+        ## Current image has width as the limiting constraint. Set width to target.
+        ## Chop off the top and bottom of the height
+        #height = int(height/width * targetWimg)
+        #width = targetWimg
+        #start_Lh = int((height - targetHimg)/2)
+
+    #elif (height/width) < (targetHimg/targetWimg):
+        ## Current image has height as the limiting constraint. Set height to target.
+        ## Chop off the left and right of the width
+        #width = int(width/height * targetHimg)
+        #height = targetHimg
+        #start_Lw = int((width - targetWimg)/2)
+
+    #source = source.crop((start_Lw, start_Lh,
+                          #start_Lw+targetWimg,
+                          #start_Lh+targetHimg))
+    #img = Image.new("RGB", (targetWimg, targetHimg), bgcolor)
+    #keytermtask.image_modified = ''
+
+
+    submitted_file_name_django = 'uploads/{0}/thumbs/{1}'.format(entry_point.id,
+                                                                 base_name)
+    full_path = settings.MEDIA_ROOT + submitted_file_name_django
+    source.thumbnail((thumbWimg, thumbHimg))
+    fill_color = ''  # your background
+    if source.mode in ('RGBA', 'LA'):
+        background = Image.new(source.mode[:-1], source.size, bgcolor)
+        background.paste(source, source.split()[-1])
+        source = background
+    source.save(full_path, quality=95)
+
+    keytermtask.image_thumbnail = submitted_file_name_django
     keytermtask.save()
 
 
@@ -344,17 +407,20 @@ def submit_keyterm(request, course=None, learner=None, entry_point=None):
     keytermtask.is_submitted = True
     keytermtask.is_finalized = False
 
+    valid_tasks = keyterm.keytermtask_set.filter(is_finalized=True)
+
 
     # Get all other user's keyterms: how many other keyterms are uploaded already?
     # Float the submit buttons left and right of each other
-
     ctx = {'keytermtask': keytermtask,
            'course': course,
            'entry_point': entry_point,
            'learner': learner,
+           'total_finalized': valid_tasks.count(),
            'grade_push_url': request.POST.get('lis_outcome_service_url', '')
            }
     return render(request, 'keyterm/submit.html', ctx)
+
 
 def finalize_keyterm(request, course=None, learner=None, entry_point=None):
     """
@@ -379,8 +445,13 @@ def finalize_keyterm(request, course=None, learner=None, entry_point=None):
 
     # Get all prior keyterms: and show their thumbnails in random order
     # Show how many votes the user has left?
-    # Show
 
+    valid_tasks = keyterm.keytermtask_set.filter(is_finalized=True)
+    own_task = valid_tasks.get(learner=learner)
+    valid_tasks = list(valid_tasks)
+    valid_tasks.remove(own_task)
+    shuffle(valid_tasks)
+    valid_tasks.insert(0, own_task)
 
 
     # TODO: push the grade async
@@ -399,6 +470,7 @@ def finalize_keyterm(request, course=None, learner=None, entry_point=None):
            'course': course,
            'entry_point': entry_point,
            'learner': learner,
+           'valid_tasks': valid_tasks,
            }
     return render(request, 'keyterm/finalize.html', ctx)
 
