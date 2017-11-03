@@ -212,7 +212,7 @@ def create_preview(keytermtask):
     color = "#000"
     REPLACEMENT_CHARACTER = u'\uFFFD'
     NEWLINE_REPLACEMENT_STRING = ' ' + REPLACEMENT_CHARACTER + ' '
-    fontfullpath = 'keyterm/fonts/Lato-Regular.ttf'
+    fontfullpath = settings.MEDIA_ROOT + 'keyterm/fonts/Lato-Regular.ttf'
     output_extension  = 'jpg'
 
     keyterm_header = keytermtask.keyterm.keyterm
