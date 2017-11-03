@@ -2,7 +2,7 @@ from django.http import HttpResponse
 from django.shortcuts import render
 
 # This app's imports
-from .models import KeyTerm, KeyTermTask
+from .models import KeyTermSetting, KeyTermTask
 from .forms import UploadFileForm_one_file
 
 # Imports from other apps
@@ -55,8 +55,8 @@ def draft_keyterm(request, course=None, learner=None, entry_point=None,
     else:
         # Create the new KeyTermTask for this learner
         try:
-            keyterm = KeyTerm.objects.get(entry_point=entry_point)
-        except KeyTerm.DoesNotExist:
+            keyterm = KeyTermSetting.objects.get(entry_point=entry_point)
+        except KeyTermSetting.DoesNotExist:
             return HttpResponse(('Please add KeyTerm to database first; and '
                                  "don't forget to add the GradeItem too."))
         keytermtask = KeyTermTask(keyterm=keyterm,
@@ -103,8 +103,8 @@ def preview_keyterm(request, course=None, learner=None, entry_point=None):
         keyterm = keytermtask.keyterm
     else:
         try:
-            keyterm = KeyTerm.objects.get(entry_point=entry_point)
-        except KeyTerm.DoesNotExist:
+            keyterm = KeyTermSetting.objects.get(entry_point=entry_point)
+        except KeyTermSetting.DoesNotExist:
             logger.error('Preview: An error occurred. [{0}]'.format(learner))
             return HttpResponse('An error occurred.')
 
@@ -193,8 +193,8 @@ def submit_keyterm(request, course=None, learner=None, entry_point=None):
         keyterm = keytermtask.keyterm
     else:
         try:
-            keyterm = KeyTerm.objects.get(entry_point=entry_point)
-        except KeyTerm.DoesNotExist:
+            keyterm = KeyTermSetting.objects.get(entry_point=entry_point)
+        except KeyTermSetting.DoesNotExist:
             logger.error('Submit: An error occurred. [{0}]'.format(learner))
             return HttpResponse('An error occurred.')
 
@@ -231,8 +231,8 @@ def finalize_keyterm(request, course=None, learner=None, entry_point=None):
         keyterm = keytermtask.keyterm
     else:
         try:
-            keyterm = KeyTerm.objects.get(entry_point=entry_point)
-        except KeyTerm.DoesNotExist:
+            keyterm = KeyTermSetting.objects.get(entry_point=entry_point)
+        except KeyTermSetting.DoesNotExist:
             logger.error('Finalize: An error occurred. [{0}]'.format(learner))
             return HttpResponse('An error occurred.')
 

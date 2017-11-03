@@ -5,7 +5,7 @@ from datetime import timedelta
 def get_deadline():
     return now() + timedelta(days=20)
 
-class KeyTerm(models.Model):
+class KeyTermSetting(models.Model):
     class Meta:
         verbose_name = "Key Term Setting"
         verbose_name_plural = "Key Term Settings"
@@ -34,13 +34,14 @@ class KeyTermTask(models.Model):
         verbose_name = "Key Term Task"
         verbose_name_plural = "Key Term Tasks"
 
-    keyterm = models.ForeignKey(KeyTerm)
+    keyterm = models.ForeignKey(KeyTermSetting)
     learner = models.ForeignKey('basic.Person')
     image_raw = models.ForeignKey('submissions.Submission',
                                   blank=True, null=True)
     image_modified = models.ImageField(blank=True, null=True)
     image_thumbnail = models.ImageField(blank=True, null=True)
     last_edited = models.DateTimeField(auto_now=True, auto_now_add=False)
+
 
     definition_text = models.CharField(max_length=505, blank=True, null=True,
                                        help_text='Capped at 500 characters.')

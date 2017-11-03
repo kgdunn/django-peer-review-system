@@ -1,11 +1,11 @@
 from django.contrib import admin
-from .models import KeyTerm, KeyTermTask, Thumbs
+from .models import KeyTermSetting, KeyTermTask, Thumbs
 
 
-class KeyTermAdmin(admin.ModelAdmin):
+class KeyTermSettingAdmin(admin.ModelAdmin):
     list_display = ("keyterm", "entry_point", "max_thumbs", "terms_per_page",
                     "min_submissions_before_voting", "deadline_for_voting")
-admin.site.register(KeyTerm, KeyTermAdmin)
+admin.site.register(KeyTermSetting, KeyTermSettingAdmin)
 
 
 class KeyTermTaskAdmin(admin.ModelAdmin):
