@@ -29,7 +29,7 @@ urlpatterns = [
         name='interactive'),
 
     # The keyterms entry points:
-    url(r'keyterms/', include('keyterms.urls'), name='keyterms'),
+    url(r'keyterm/', include('keyterm.urls'), name='keyterm'),
 
     # The review/rubric filling part, (re)submitting, XHR events
     url(r'review/',

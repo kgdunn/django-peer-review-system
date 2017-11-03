@@ -90,7 +90,7 @@ def draft_keyterm(request, course=None, learner=None, entry_point=None,
            'grade_push_url': request.POST.get('lis_outcome_service_url', '')
            }
     logger.debug(ctx)
-    return render(request, 'keyterms/draft.html', ctx)
+    return render(request, 'keyterm/draft.html', ctx)
 
 
 def preview_keyterm(request, course=None, learner=None, entry_point=None):
@@ -181,7 +181,7 @@ def preview_keyterm(request, course=None, learner=None, entry_point=None):
            'learner': learner,
            'grade_push_url': request.POST.get('lis_outcome_service_url', '')
            }
-    return render(request, 'keyterms/preview.html', ctx)
+    return render(request, 'keyterm/preview.html', ctx)
 
 
 def submit_keyterm(request, course=None, learner=None, entry_point=None):
@@ -220,7 +220,7 @@ def submit_keyterm(request, course=None, learner=None, entry_point=None):
            'learner': learner,
            'grade_push_url': request.POST.get('lis_outcome_service_url', '')
            }
-    return render(request, 'keyterms/submit.html', ctx)
+    return render(request, 'keyterm/submit.html', ctx)
 
 def finalize_keyterm(request, course=None, learner=None, entry_point=None):
     """
@@ -266,5 +266,5 @@ def finalize_keyterm(request, course=None, learner=None, entry_point=None):
            'entry_point': entry_point,
            'learner': learner,
            }
-    return render(request, 'keyterms/finalize.html', ctx)
+    return render(request, 'keyterm/finalize.html', ctx)
 
