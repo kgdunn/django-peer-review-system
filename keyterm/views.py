@@ -264,16 +264,16 @@ def create_preview(keytermtask):
                                    fontsize=75, leftpadding=20)
 
     last_y, line_height = text2png(definition, draw, start_y=last_y,
-                                   fontsize=25, width=900-20*2, leftpadding=20,
+                                   fontsize=35, width=900-20*2, leftpadding=20,
                                    rightpadding=20)
 
     last_y, line_height = text2png('Example/Explanation:', draw,
                                    start_y=last_y+line_height*2,
-                                   fontsize=30, width=900-20*2, leftpadding=20,
+                                   fontsize=50, width=900-20*2, leftpadding=20,
                                    rightpadding=20)
 
     last_y, line_height = text2png(explainer, draw, start_y=last_y,
-                                   fontsize=25, width=900-20*2, leftpadding=20,
+                                   fontsize=35, width=900-20*2, leftpadding=20,
                                    rightpadding=20)
 
 
