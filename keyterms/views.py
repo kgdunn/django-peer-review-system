@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 def start_keyterm(request, course=None, learner=None, entry_point=None):
     """
     """
-    #logger.debug(request.POST)
+    logger.debug(request.POST)
 
     keyterm_finalized = False
 
