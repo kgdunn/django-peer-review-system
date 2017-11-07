@@ -2272,7 +2272,7 @@ def overview(request, course=None, learner=None, entry_point=None):
             graphs.append(group_graph(entry).graph)
 
     all_completed = False
-    if total_entries == num_completed:
+    if total_entries == num_completed and total_entries != 0:
         all_completed = True
 
     ctx = {'learner': learner,
