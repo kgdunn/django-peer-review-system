@@ -2265,7 +2265,7 @@ def overview(request, course=None, learner=None, entry_point=None):
         achieved[entry] = reportcard(learner, entry, detailed=True)
         entry_display.append(entry)
 
-        if achieved[entry]['assessed_rebuttals']:
+        if achieved[entry].get('assessed_rebuttals', False):
             num_completed += 1
 
         if learner.role in ('Admin', ):

@@ -7,7 +7,7 @@ from interactive.models import Trigger
 
 #--------------------
 # AIM: Create a new set of triggers for all courses, and all entry points.
-# Specify the course, and the entry_point manually, via the LTI_ID
+# Create the course, and the entry_point manually first. Then use this code.
 # (which is assumed to have been created already)
 orig_course = Course.objects.get(label='36957')
 orig_ep = EntryPoint.objects.get(course=orig_course, LTI_id='370183435')
