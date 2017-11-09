@@ -37,7 +37,7 @@ class TriggerAdmin(admin.ModelAdmin):
     list_display = ("name", "order", "function", "is_active",
                     "entry_point", "start_dt", "deadline_dt", )
     ordering = ["-entry_point", 'order', 'name']
-    list_filter = ['entry_point']
+    list_filter = ['entry_point__course']
 admin.site.register(Trigger, TriggerAdmin)
 
 

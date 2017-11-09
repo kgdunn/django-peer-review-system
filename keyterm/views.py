@@ -184,7 +184,11 @@ def preview_keyterm(request, course=None, learner=None, entry_point=None):
     if len(explainer_text.replace('\n','').replace('\r','')) > 1015:
             keytermtask.explainer_text = explainer_text[0:1015] + ' ...'
 
-    keytermtask.reference_text = 'STILL TO COME'
+    reference_text = request.POST.get('keyterm-reference', '')
+    keytermtask.reference_text = reference_text
+    if len(reference_text.replace('\n','').replace('\r','')) > 245:
+        keytermtask.reference_text = reference_text[0:245] + ' ...'
+
     keytermtask.save()
 
     # We have saved, but if there was an error message: go back to DRAFT
@@ -240,12 +244,6 @@ def create_preview(keytermtask):
                 deepest_dir))
             raise
 
-
-
-    keyterm_header = keytermtask.keyterm.keyterm
-    definition = keytermtask.definition_text
-    explainer = keytermtask.explainer_text
-
     img = Image.new("RGB", base_image_wh, bgcolor)
     draw = ImageDraw.Draw(img)
     # https://www.snip2code.com/Snippet/1601691/Python-text-to-image-(png)-conversion-wi
@@ -287,21 +285,30 @@ def create_preview(keytermtask):
         return y, line_height
 
 
-    last_y, line_height = text2png(keyterm_header, draw, start_y=50,
-                                   fontsize=75, leftpadding=20)
+    last_y, line_height = text2png(keytermtask.keyterm.keyterm, draw,
+                                   start_y=50, fontsize=75, leftpadding=20)
 
-    last_y, line_height = text2png(definition, draw, start_y=last_y,
-                                   fontsize=35, width=900-20*2, leftpadding=20,
-                                   rightpadding=20)
+    last_y, line_height = text2png(keytermtask.definition_text, draw,
+                                   start_y=last_y, fontsize=32, width=900-20*2,
+                                   leftpadding=20, rightpadding=20)
 
     last_y, line_height = text2png('Example/Explanation:', draw,
                                    start_y=last_y+line_height*2,
                                    fontsize=50, width=900-20*2, leftpadding=20,
                                    rightpadding=20)
 
-    last_y, line_height = text2png(explainer, draw, start_y=last_y,
+    last_y, line_height = text2png(keytermtask.explainer_text, draw,
+                                   start_y=last_y, fontsize=28, width=900-20*2,
+                                   leftpadding=20, rightpadding=20)
+
+    last_y, line_height = text2png('Reference:', draw,
+                                   start_y=last_y+line_height*2,
                                    fontsize=30, width=900-20*2, leftpadding=20,
                                    rightpadding=20)
+
+    last_y, line_height = text2png(keytermtask.reference_text, draw,
+                                   start_y=last_y-line_height, fontsize=20, width=900-20*2,
+                                   leftpadding=20, rightpadding=20)
 
 
 
@@ -340,8 +347,8 @@ def create_preview(keytermtask):
 
     # Repeat: make the image even smaller, to get a thumbnail
     #width, height = source.width, source.height
-    thumbWimg = 200
-    thumbHimg = 200
+    thumbWimg = 400
+    thumbHimg = 400
     #start_Lw = 0
     #start_Lh = 0
 

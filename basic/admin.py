@@ -69,6 +69,7 @@ admin.site.register(GroupEnrolled, GroupEnrolledAdmin)
 
 class TokenAdmin(admin.ModelAdmin):
     list_display = ("person", "was_used", "hash_value", "time_used", "next_uri")
+    list_per_page = 1000
 admin.site.register(Token, TokenAdmin)
 
 

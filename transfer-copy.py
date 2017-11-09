@@ -1,3 +1,22 @@
+# SEN Q2: 50121
+# EPA Q2: 49698
+
+
+
+# ------
+# TO create the entry points
+from basic.models import EntryPoint, Course
+course = Courses.objects.get(name='Prep MSc')
+for entry in EntryPoint.objects.all():
+    entry.id = None
+    entry.save()
+    entry.course=course
+    entry.save()
+
+
+
+# ------
+
 # Aim: copy rubric template, items and options from one course to another
 
 
@@ -10,39 +29,48 @@ from interactive.models import Trigger
 # Create the course, and the entry_point manually first. Then use this code.
 # (which is assumed to have been created already)
 orig_course = Course.objects.get(label='36957')
-orig_ep = EntryPoint.objects.get(course=orig_course, LTI_id='370183435')
-targ_course = Course.objects.get(label='43639')
-targ_ep = EntryPoint.objects.get(course=targ_course, LTI_id='370183435')
+orig_ep = EntryPoint.objects.get(course=orig_course, LTI_id='1931107264')
+targ_course = Course.objects.get(label='49698')
 
-assert(orig_ep.trigger_set.all().count() == 0)
-assert(targ_ep.trigger_set.all().count() == 0)
-
-for trigger in orig_ep.trigger_set.all():
-    trigger.id = None
-    trigger.save()
-    trigger.entry_point = targ_ep
-    trigger.save()
-
-#--------------------
-# AIM: Create a new set of achieveConfigs for all courses, and all entry points.
-orig_course = Course.objects.get(name='SEN2321')
-orig_ep = EntryPoint.objects.get(course=orig_course,
-                                 LTI_id='1931107264')
-targ_course = Course.objects.get(name='Prep MSc')
 target_entries = ['1931107264', '1475539468',   '1499960701',
                   '370183435', '1371427444']
 
 for target in target_entries:
-    targ_ep = EntryPoint.objects.get(course=targ_course,
-                                     LTI_id=target)
+    print('Processing for {}'.format(target))
+    targ_ep = EntryPoint.objects.get(course=targ_course, LTI_id=target)
+    assert(targ_ep.trigger_set.all().count() == 0)
+
+    count = 0
+    for trigger in orig_ep.trigger_set.all():
+        trigger.id = None
+        trigger.save()
+        trigger.entry_point = targ_ep
+        trigger.save()
+        count += 1
+
+    print('Successfully added {} triggers'.format(count))
+
+#--------------------
+# AIM: Create a new set of achieveConfigs for all courses, and all entry points.
+orig_course = Course.objects.get(label='43639')
+targ_course = Course.objects.get(label='50121')
+target_entries = ['1931107264', '1475539468',   '1499960701',
+                  '370183435', '1371427444']
+
+for target in target_entries:
+    print('Processing for {}'.format(target))
+    orig_ep = EntryPoint.objects.get(course=orig_course, LTI_id=target)
+    targ_ep = EntryPoint.objects.get(course=targ_course, LTI_id=target)
     assert(orig_ep.achieveconfig_set.all().count() > 0)
     assert(targ_ep.achieveconfig_set.all().count() == 0)
-
+    count = 0
     for achieve in orig_ep.achieveconfig_set.all():
         achieve.id = None
         achieve.save()
         achieve.entry_point = targ_ep
         achieve.save()
+        count += 1
+    print('Successfully added {} achievements'.format(count))
 #--------------------
 
 

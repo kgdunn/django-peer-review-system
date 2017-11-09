@@ -18,30 +18,52 @@
 <br>
 <h2>2. Your definition, and don't forget to mention your reference(s)</h2>
 
-<textarea rows="6" cols="50" maxlength=500 name="keyterm-definition"
+<textarea rows="5" cols="50" maxlength=500 name="keyterm-definition"
           placeholder="Your definition; no more than 500 characters in length"
           required>{{keytermtask.definition_text}}</textarea>
 
 
 <br>
 <h2>3. Write your explanation (max of 1000 characters)</h2>
-<textarea rows="12" cols="40" maxlength=1000 name="keyterm-explanation"
+<textarea rows="10" cols="40" maxlength=1000 name="keyterm-explanation"
           placeholder="Your explanation; no more than 1000 characters in length"
           required>{{keytermtask.explainer_text}}</textarea>
 
 <br>
 <h2>4. Upload an image file (only JPEG or PNG please)</h2>
 
+<style>
+.column-left{ float: left; width: 45%; }
+.column-right{ float: right; width: 40%; }
+.column-center{ display: inline-block; width: 15%; text-align: center;}
+</style>
+<div style="width:100%" class="container">
+   <div class="column-center" >
+      {% if keytermtask.image_thumbnail %}<img width="100%" src="/{{keytermtask.image_thumbnail.url}}">{% endif %}
+</div>
+   <div class="column-left">
+      <p class="error_message">{{error_message}}</p>
+      {{entry_point.file_upload_form}}
+      <p>
+      Recommended aspect ratio: <tt>width 1 : height 1.6</tt>
+      <br>for example, <tt>1000 x 1600</tt> pixels.
+   </div>
+   <div class="column-right">
+      {% if keytermtask.image_raw %}
+         You already <a href="/{{keytermtask.image_raw.file_upload.url}}" target="_blank">uploaded an image</a> of {{keytermtask.image_raw.file_upload.size|filesizeformat}} on {{keytermtask.image_raw.datetime_submitted|date:"d F Y"}} at {{keytermtask.image_raw.datetime_submitted|time:"H:i"}}; you do not need to upload it again.
+      {% endif%}
+   </div>
+</div>
 
-<p class="error_message">{{error_message}}</p>
-{{entry_point.file_upload_form}}
+<div style="clear:both;"></div>
 
-{% if keytermtask.image_raw %}
-   You already <a href="/{{keytermtask.image_raw.file_upload.url}}" target="_blank">uploaded an image</a> on {{keytermtask.image_raw.datetime_submitted|date:"d F Y"}} at {{keytermtask.image_raw.datetime_submitted|time:"H:i"}}; you do not need to upload it again.
-{% endif%}
+
 
 <br>
 <h2>5. A reference for your image</h2>
+<br>
+<label for="reference">Reference:</label>
+  <input type="text" name="keyterm-reference" size="80" maxlength="245" placeholder="Own photo taken at ... | Photo from http://.... | etc" value="{{keytermtask.reference_text}}"><br>
 
 
 <span class="submit_button" >
