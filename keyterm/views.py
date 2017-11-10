@@ -100,6 +100,9 @@ def draft_keyterm(request, course=None, learner=None, entry_point=None,
 
     # TODO: real-time saving of the text as it is typed??
 
+    if keytermtask.reference_text == '<no reference>':
+        keytermtask.reference_text = ''
+
     ctx = {'error_message': error_message,
            'keytermtask': keytermtask,
            'course': course,
@@ -107,7 +110,6 @@ def draft_keyterm(request, course=None, learner=None, entry_point=None,
            'learner': learner,
            'grade_push_url': request.POST.get('lis_outcome_service_url', '')
            }
-    logger.debug(ctx)
     return render(request, 'keyterm/draft.html', ctx)
 
 
@@ -175,16 +177,19 @@ def preview_keyterm(request, course=None, learner=None, entry_point=None):
 
 
     definition_text = request.POST.get('keyterm-definition', '')
+    definition_text = definition_text or '<no definition>'
     keytermtask.definition_text = definition_text
     if len(definition_text.replace('\n','').replace('\r','')) > 515:
         keytermtask.definition_text = definition_text[0:515] + ' ...'
 
     explainer_text = request.POST.get('keyterm-explanation', '')
+    explainer_text = explainer_text or '<no explanation>'
     keytermtask.explainer_text = explainer_text
     if len(explainer_text.replace('\n','').replace('\r','')) > 1015:
             keytermtask.explainer_text = explainer_text[0:1015] + ' ...'
 
     reference_text = request.POST.get('keyterm-reference', '')
+    reference_text = reference_text or '<no reference>'
     keytermtask.reference_text = reference_text
     if len(reference_text.replace('\n','').replace('\r','')) > 245:
         keytermtask.reference_text = reference_text[0:245] + ' ...'
@@ -289,7 +294,8 @@ def create_preview(keytermtask):
                                    start_y=50, fontsize=75, leftpadding=20)
 
     last_y, line_height = text2png(keytermtask.definition_text, draw,
-                                   start_y=last_y, fontsize=32, width=900-20*2,
+                                   start_y=last_y+line_height*1,
+                                   fontsize=32, width=900-20*2,
                                    leftpadding=20, rightpadding=20)
 
     last_y, line_height = text2png('Example/Explanation:', draw,
@@ -307,7 +313,7 @@ def create_preview(keytermtask):
                                    rightpadding=20)
 
     last_y, line_height = text2png(keytermtask.reference_text, draw,
-                                   start_y=last_y-line_height, fontsize=20, width=900-20*2,
+                                   start_y=last_y, fontsize=20, width=900-20*2,
                                    leftpadding=20, rightpadding=20)
 
 
@@ -345,34 +351,9 @@ def create_preview(keytermtask):
     keytermtask.save()
 
 
-    # Repeat: make the image even smaller, to get a thumbnail
-    #width, height = source.width, source.height
+    # Repeat: make the uploaded image -> thumbnail
     thumbWimg = 400
     thumbHimg = 400
-    #start_Lw = 0
-    #start_Lh = 0
-
-    #if (height/width) > (targetHimg/targetWimg):
-        ## Current image has width as the limiting constraint. Set width to target.
-        ## Chop off the top and bottom of the height
-        #height = int(height/width * targetWimg)
-        #width = targetWimg
-        #start_Lh = int((height - targetHimg)/2)
-
-    #elif (height/width) < (targetHimg/targetWimg):
-        ## Current image has height as the limiting constraint. Set height to target.
-        ## Chop off the left and right of the width
-        #width = int(width/height * targetHimg)
-        #height = targetHimg
-        #start_Lw = int((width - targetWimg)/2)
-
-    #source = source.crop((start_Lw, start_Lh,
-                          #start_Lw+targetWimg,
-                          #start_Lh+targetHimg))
-    #img = Image.new("RGB", (targetWimg, targetHimg), bgcolor)
-    #keytermtask.image_modified = ''
-
-
     submitted_file_name_django = 'uploads/{0}/thumbs/{1}'.format(entry_point.id,
                                                                  base_name)
     full_path = settings.MEDIA_ROOT + submitted_file_name_django
@@ -415,14 +396,14 @@ def submit_keyterm(request, course=None, learner=None, entry_point=None):
     keytermtask.is_finalized = False
 
     valid_tasks = keyterm.keytermtask_set.filter(is_finalized=True)
+    NN_to_upload = keyterm.min_submissions_before_voting - valid_tasks.count()
 
-
-    # Get all other user's keyterms: how many other keyterms are uploaded already?
-    # Float the submit buttons left and right of each other
+    # Get all other user's keyterms: how many othersare uploaded already?
     ctx = {'keytermtask': keytermtask,
            'course': course,
            'entry_point': entry_point,
            'learner': learner,
+           'NN_to_upload_still': max(0, NN_to_upload),
            'total_finalized': valid_tasks.count(),
            'grade_push_url': request.POST.get('lis_outcome_service_url', '')
            }

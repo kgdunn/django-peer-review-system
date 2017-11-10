@@ -11,25 +11,27 @@
     <input type="hidden" name="lis_outcome_service_url" value="{{grade_push_url}}">
 
 
-<h2>Thank you!</h2>
+<h2>Thank you! Your keyterm definition for <span class='keyterm-name'>{{keytermtask.keyterm.keyterm}}</span> has been submitted.</h2>
 
 <br>
-Your keyterm definition for <span class='keyterm-name'>{{keytermtask.keyterm.keyterm}}</span> has been submitted.
-
-<p>Click "View and Vote" now to view keyterms from your colleagues and vote on them.
-
-<p>You have 3 thumbs-up votes to allocate. You might have to wait until {{NN}} keyterms are uploaded. So far there {{total_finalized|pluralize:"is,are"}} {{total_finalized}} upload{{total_finalized|pluralize}} in total.
-
-<p><em>You cannot edit your keyterm once you start viewing and voting.</em>
 
 
-<span class="submit_button" >
+<p>Next, please click on "View and Vote" to view keyterms from your colleagues, and to vote on them. You must vote before {{keytermtask.keyterm.deadline_for_voting|date:"d F Y" }} {{keytermtask.keyterm.deadline_for_voting|time:"H:i" }}.
+
+<p>You have 3 thumbs-up votes <i class="fa fa-thumbs-o-up" aria-hidden="true"></i><i class="fa fa-thumbs-o-up" aria-hidden="true"></i><i class="fa fa-thumbs-o-up" aria-hidden="true"></i> that you can award to your peers.
+
+<p>{% if NN_to_upload_still %}You do however have to wait until {{NN_to_upload_still}} more keyterm{{NN_to_upload_still|pluralize}} {{NN_to_upload_still|pluralize:"is,are"}} uploaded. {%endif%}So far there {{total_finalized|pluralize:"is,are"}} {{total_finalized}} upload{{total_finalized|pluralize}} in total.
+
+<div style="clear:both;"></div>
+<span class="submit_button" style="float:left">
     <input type="submit" name="draft-keyterm" value="Wait! I want to go back to edit ...">
 </span>
 
-<span style="float:right" class="submit_button" >
-    <input type="submit" name="finalize-keyterm" value="View and Vote">
-</span>
+<div style="float:right; " class="submit_button" >
+    <input style="float:right;" type="submit" name="finalize-keyterm" value="View and Vote" >
+
+    <p style="color: darkgreen;  font-style: italic;">You cannot edit your keyterm once you start viewing and voting.
+</div>
 
 </form>
 {% endblock %}

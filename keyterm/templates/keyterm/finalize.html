@@ -251,7 +251,7 @@ top: 0px;
 {{header|safe}}
 
 
-<h2>Definitions for <span class='keyterm-name'>{{keytermtask.keyterm.keyterm}}</span> submitted by you and your colleagues</h2>
+<h2>Definitions for <span class='keyterm-name'>{{keytermtask.keyterm.keyterm}}</span> submitted by you, and your colleagues</h2>
 
 <div style="padding-top: 1em">
 You must vote before {{keytermtask.keyterm.deadline_for_voting|date:"d F Y" }} {{keytermtask.keyterm.deadline_for_voting|time:"H:i" }}; <span style="color:darkgreen">you have {{keytermtask.keyterm.deadline_for_voting| timeuntil }} left</span>.
@@ -265,14 +265,15 @@ You must vote before {{keytermtask.keyterm.deadline_for_voting|date:"d F Y" }} {
 
 
     <li>
-        <a href="#" title="{{ keyterm.learner.display_name }}" >
+        <a href="#" title="" >
             <img class="front-image"
                  alt="/{{ keyterm.learner.display_name }}"
                  src="/{{ keyterm.image_thumbnail.url }}"
+                 width="40%"
                  />
 
              <h3 class="polaroid-overlay"><span>
-                Level: adadas
+                By: {{ keyterm.learner.display_name }}
             </span></h3>
         </a>
         <div class="lightbox-target" id="dog">
