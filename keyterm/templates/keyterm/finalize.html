@@ -1,255 +1,27 @@
 {% extends "keyterm/base.html" %}
 
-
 {% block header %}
-    <style type="text/css">
 
-    /* http://zurb.com/playground/css3-polaroids */
-    ul.polaroids li {
-        display: inline;
-    }
-    ul.polaroids a {
-        background: #fff;
-        display: inline;
-        float: left;
-        margin: 0 0 27px 30px;
-        width: auto;
-        padding: 10px 10px 15px;
-        text-align: center;
-        font-family: sans-serif;
-        text-decoration: none;
-        color: #333;
-        font-size: 1em;
-        -webkit-box-shadow: 0 3px 6px rgba(0,0,0,.25);
-        -moz-box-shadow: 0 3px 6px rgba(0,0,0,.25);
-        -webkit-transform: rotate(-1deg);
-        -webkit-transition: -webkit-transform .15s linear;
-        -moz-transform: rotate(-2deg);
-    }
-    ul.polaroids li {
-        padding-left: 0;
-    }
-    @media screen and (max-width: 768px) {
-        ul.polaroids li a {
-            margin-left: 0;
-        }
+<!-- Core CSS file -->
+<link rel="stylesheet" href="/documents/ps/photoswipe.css">
 
-    }
-    ul.polaroids img {
-        display: block;
-        width: 100%;
-        margin-bottom: 12px;
-    }
-    ul.polaroids a:after {
-        content: attr(title);
-    }
-    ul.polaroids li:nth-child(even) a {
-        -webkit-transform: rotate(2deg);
-        -moz-transform: rotate(2deg);
-    }
-    ul.polaroids li:nth-child(3n) a {
-        -webkit-transform: none;
-        position: relative;
-        top: -5px;
-        -moz-transform: none;
-    }
-    ul.polaroids li:nth-child(5n) a {
-        -webkit-transform: rotate(5deg);
-        position: relative;
-        right: 5px;
-        -moz-transform: rotate(5deg);
-    }
-    ul.polaroids li:nth-child(8n) a {
-        position: relative;
-        right: 5px;
-        top: 8px;
-    }
-    ul.polaroids li:nth-child(11n) a {
-        position: relative;
-        left: -5px;
-        top: 3px;
-    }
-    ul.polaroids li.messy a {
-        margin-top: -400px;
-        position: relative;
-        left: 160px;
-    }
-    ul.polaroids li a:hover {
-        -webkit-transform: scale(1.25);
-        -moz-transform: scale(1.25);
-        -webkit-box-shadow: 0 3px 6px rgba(0,0,0,.5);
-        -moz-box-shadow: 0 3px 6px rgba(0,0,0,.5);
-        position: relative;
-        z-index: 5;
-    }
-    h2.polaroid-overlay {
-        position: absolute;
-        top: 200px;
-        left: 0;
-        width: 100%;
-    }
-    h3.polaroid-overlay {
-        position: absolute;
-        top: 30px;
-        left: 0;
-        width: 100%;
-    }
+<!-- Skin CSS file (styling of UI - buttons, caption, etc.)
+     In the folder of skin CSS file there are also:
+     - .png and .svg icons sprite,
+     - preloader.gif (for browsers that do not support CSS animations) -->
+<link rel="stylesheet" href="/documents/ps/default-skin/default-skin.css">
 
-    h2.polaroid-overlay span {
-        color: white;
-        font: bold 36px/45px Helvetica, Sans-Serif;
-        background: rgb(0, 0, 0); /* fallback color */
-        background: rgba(0, 0, 0, 0.7);
-        padding: 10px;
-    }
-    h3.polaroid-overlay span {
-        color: white;
-        font: bold 16px/26px Helvetica, Sans-Serif;
-        background: rgb(0, 0, 0); /* fallback color */
-        background: rgba(0, 0, 0, 0.7);
-        padding: 5px;
-        float: left;
-    }
+<!-- Core JS file -->
+<script src="/documents/ps/photoswipe.min.js"></script>
 
+<!-- UI JS file -->
+<script src="/documents/ps/photoswipe-ui-default.min.js"></script>
 
-
-
-
-
-/*Eliminates padding, centers the thumbnail */
-
-body, html {
-padding: 0;
-margin: 0;
-text-align: center;
-}
-
-/* Styles the thumbnail */
-
-a.lightbox img {
-height: 150px;
-border: 3px solid white;
-box-shadow: 0px 0px 8px rgba(0,0,0,.3);
-margin: 94px 20px 20px 20px;
-}
-
-/* Styles the lightbox, removes it from sight and adds the fade-in transition */
-
-.lightbox-target {
-position: fixed;
-top: -100%;
-width: 100%;
-background: rgba(0,0,0,.7);
-width: 100%;
-opacity: 0;
--webkit-transition: opacity .5s ease-in-out;
--moz-transition: opacity .5s ease-in-out;
--o-transition: opacity .5s ease-in-out;
-transition: opacity .5s ease-in-out;
-overflow: hidden;
-}
-
-/* Styles the lightbox image, centers it vertically and horizontally, adds the zoom-in transition and makes it responsive using a combination of margin and absolute positioning */
-
-.lightbox-target img {
-margin: auto;
-position: absolute;
-top: 0;
-left:0;
-right:0;
-bottom: 0;
-max-height: 0%;
-max-width: 0%;
-border: 3px solid white;
-box-shadow: 0px 0px 8px rgba(0,0,0,.3);
-box-sizing: border-box;
--webkit-transition: .5s ease-in-out;
--moz-transition: .5s ease-in-out;
--o-transition: .5s ease-in-out;
-transition: .5s ease-in-out;
-}
-
-/* Styles the close link, adds the slide down transition */
-
-a.lightbox-close {
-display: block;
-width:50px;
-height:50px;
-box-sizing: border-box;
-background: white;
-color: black;
-text-decoration: none;
-position: absolute;
-top: -80px;
-right: 0;
--webkit-transition: .5s ease-in-out;
--moz-transition: .5s ease-in-out;
--o-transition: .5s ease-in-out;
-transition: .5s ease-in-out;
-}
-
-/* Provides part of the "X" to eliminate an image from the close link */
-
-a.lightbox-close:before {
-content: "";
-display: block;
-height: 30px;
-width: 1px;
-background: black;
-position: absolute;
-left: 26px;
-top:10px;
--webkit-transform:rotate(45deg);
--moz-transform:rotate(45deg);
--o-transform:rotate(45deg);
-transform:rotate(45deg);
-}
-
-/* Provides part of the "X" to eliminate an image from the close link */
-
-a.lightbox-close:after {
-content: "";
-display: block;
-height: 30px;
-width: 1px;
-background: black;
-position: absolute;
-left: 26px;
-top:10px;
--webkit-transform:rotate(-45deg);
--moz-transform:rotate(-45deg);
--o-transform:rotate(-45deg);
-transform:rotate(-45deg);
-}
-
-/* Uses the :target pseudo-class to perform the animations upon clicking the .lightbox-target anchor */
-
-.lightbox-target:target {
-opacity: 1;
-top: 0;
-bottom: 0;
-}
-
-.lightbox-target:target img {
-max-height: 100%;
-max-width: 100%;
-}
-
-.lightbox-target:target a.lightbox-close {
-top: 0px;
-}
-
-
-    </style>
 {% endblock %}
-{# ------------------------------------------------#}
 
 
 
 {% block content %}
-
-{{header|safe}}
-
 
 <h2>Definitions for <span class='keyterm-name'>{{keytermtask.keyterm.keyterm}}</span> submitted by you, and your colleagues</h2>
 
@@ -257,33 +29,299 @@ top: 0px;
 You must vote before {{keytermtask.keyterm.deadline_for_voting|date:"d F Y" }} {{keytermtask.keyterm.deadline_for_voting|time:"H:i" }}; <span style="color:darkgreen">you have {{keytermtask.keyterm.deadline_for_voting| timeuntil }} left</span>.
 </div>
 <br><br>
-<ul class="polaroids large-block-grid-4 small-block-grid-2">
-{% for keyterm in valid_tasks %}
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe.
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides.
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                      <div class="pswp__preloader__cut">
+                        <div class="pswp__preloader__donut"></div>
+                      </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+<div class="gallery-keyterms" itemscope itemtype="http://schema.org/ImageGallery">
+    {% for keyterm in valid_tasks %}
+    <figure itemprop="associatedMedia" itemscope itemtype="http://schema.org/ImageObject">
+        <a href="/{{ keyterm.image_modified.url }}" itemprop="contentUrl" data-size="1900x1600">
+            <img src="/{{ keyterm.image_thumbnail.url }}" itemprop="thumbnail" alt="{{ keyterm.learner.display_name }}" />
+        </a>
+        <figcaption itemprop="caption description">Image caption</figcaption>
+    </figure>
+    {% endfor %}
+
+</div>
 
 
 {# first one is your own submission; cannot vote for this one!#}
 
 
-    <li>
-        <a href="#" title="" >
-            <img class="front-image"
-                 alt="/{{ keyterm.learner.display_name }}"
-                 src="/{{ keyterm.image_thumbnail.url }}"
-                 width="40%"
-                 />
+<script>
+var initPhotoSwipeFromDOM = function(gallerySelector) {
 
-             <h3 class="polaroid-overlay"><span>
-                By: {{ keyterm.learner.display_name }}
-            </span></h3>
-        </a>
-        <div class="lightbox-target" id="dog">
-            <img href="/{{ keyterm.image_modified.url }}"/>
-            <a class="lightbox-close" href="#"></a>
-        </div>
+    // parse slide data (url, title, size ...) from DOM elements
+    // (children of gallerySelector)
+    var parseThumbnailElements = function(el) {
+        var thumbElements = el.childNodes,
+            numNodes = thumbElements.length,
+            items = [],
+            figureEl,
+            linkEl,
+            size,
+            item;
 
-    </li>
-{% endfor %}
-</ul>
+        for(var i = 0; i < numNodes; i++) {
+
+            figureEl = thumbElements[i]; // <figure> element
+
+            // include only element nodes
+            if(figureEl.nodeType !== 1) {
+                continue;
+            }
+
+            linkEl = figureEl.children[0]; // <a> element
+
+            size = linkEl.getAttribute('data-size').split('x');
+
+            // create slide object
+            item = {
+                src: linkEl.getAttribute('href'),
+                w: parseInt(size[0], 10),
+                h: parseInt(size[1], 10)
+            };
+
+
+
+            if(figureEl.children.length > 1) {
+                // <figcaption> content
+                item.title = figureEl.children[1].innerHTML;
+            }
+
+            if(linkEl.children.length > 0) {
+                // <img> thumbnail element, retrieving thumbnail url
+                item.msrc = linkEl.children[0].getAttribute('src');
+            }
+
+            item.el = figureEl; // save link to element for getThumbBoundsFn
+            items.push(item);
+        }
+
+        return items;
+    };
+
+    // find nearest parent element
+    var closest = function closest(el, fn) {
+        return el && ( fn(el) ? el : closest(el.parentNode, fn) );
+    };
+
+    // triggers when user clicks on thumbnail
+    var onThumbnailsClick = function(e) {
+        e = e || window.event;
+        e.preventDefault ? e.preventDefault() : e.returnValue = false;
+
+        var eTarget = e.target || e.srcElement;
+
+        // find root element of slide
+        var clickedListItem = closest(eTarget, function(el) {
+            return (el.tagName && el.tagName.toUpperCase() === 'FIGURE');
+        });
+
+        if(!clickedListItem) {
+            return;
+        }
+
+        // find index of clicked item by looping through all child nodes
+        // alternatively, you may define index via data- attribute
+        var clickedGallery = clickedListItem.parentNode,
+            childNodes = clickedListItem.parentNode.childNodes,
+            numChildNodes = childNodes.length,
+            nodeIndex = 0,
+            index;
+
+        for (var i = 0; i < numChildNodes; i++) {
+            if(childNodes[i].nodeType !== 1) {
+                continue;
+            }
+
+            if(childNodes[i] === clickedListItem) {
+                index = nodeIndex;
+                break;
+            }
+            nodeIndex++;
+        }
+
+
+
+        if(index >= 0) {
+            // open PhotoSwipe if valid index found
+            openPhotoSwipe( index, clickedGallery );
+        }
+        return false;
+    };
+
+    // parse picture index and gallery index from URL (#&pid=1&gid=2)
+    var photoswipeParseHash = function() {
+        var hash = window.location.hash.substring(1),
+        params = {};
+
+        if(hash.length < 5) {
+            return params;
+        }
+
+        var vars = hash.split('&');
+        for (var i = 0; i < vars.length; i++) {
+            if(!vars[i]) {
+                continue;
+            }
+            var pair = vars[i].split('=');
+            if(pair.length < 2) {
+                continue;
+            }
+            params[pair[0]] = pair[1];
+        }
+
+        if(params.gid) {
+            params.gid = parseInt(params.gid, 10);
+        }
+
+        return params;
+    };
+
+    var openPhotoSwipe = function(index, galleryElement, disableAnimation, fromURL) {
+        var pswpElement = document.querySelectorAll('.pswp')[0],
+            gallery,
+            options,
+            items;
+
+        items = parseThumbnailElements(galleryElement);
+
+        // define options (if needed)
+        options = {
+
+            // define gallery index (for URL)
+            galleryUID: galleryElement.getAttribute('data-pswp-uid'),
+
+            getThumbBoundsFn: function(index) {
+                // See Options -> getThumbBoundsFn section of documentation for more info
+                var thumbnail = items[index].el.getElementsByTagName('img')[0], // find thumbnail
+                    pageYScroll = window.pageYOffset || document.documentElement.scrollTop,
+                    rect = thumbnail.getBoundingClientRect();
+
+                return {x:rect.left, y:rect.top + pageYScroll, w:rect.width};
+            }
+
+        };
+
+        // PhotoSwipe opened from URL
+        if(fromURL) {
+            if(options.galleryPIDs) {
+                // parse real index when custom PIDs are used
+                // http://photoswipe.com/documentation/faq.html#custom-pid-in-url
+                for(var j = 0; j < items.length; j++) {
+                    if(items[j].pid == index) {
+                        options.index = j;
+                        break;
+                    }
+                }
+            } else {
+                // in URL indexes start from 1
+                options.index = parseInt(index, 10) - 1;
+            }
+        } else {
+            options.index = parseInt(index, 10);
+        }
+
+        // exit if index not found
+        if( isNaN(options.index) ) {
+            return;
+        }
+
+        if(disableAnimation) {
+            options.showAnimationDuration = 0;
+        }
+
+        // Pass data to PhotoSwipe and initialize it
+        gallery = new PhotoSwipe( pswpElement, PhotoSwipeUI_Default, items, options);
+        gallery.init();
+    };
+
+    // loop through all gallery elements and bind events
+    var galleryElements = document.querySelectorAll( gallerySelector );
+
+    for(var i = 0, l = galleryElements.length; i < l; i++) {
+        galleryElements[i].setAttribute('data-pswp-uid', i+1);
+        galleryElements[i].onclick = onThumbnailsClick;
+    }
+
+    // Parse URL and open gallery if it contains #&pid=3&gid=1
+    var hashData = photoswipeParseHash();
+    if(hashData.pid && hashData.gid) {
+        openPhotoSwipe( hashData.pid ,  galleryElements[ hashData.gid - 1 ], true, true );
+    }
+};
+
+// execute above function
+initPhotoSwipeFromDOM('.gallery-keyterms');
+</script>
+
+
+
 
 {% endblock %}
 
