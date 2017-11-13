@@ -222,16 +222,16 @@ def create_preview(keytermtask):
     """
 
     # Settings for creating the image and thumbnail.
-    targetWimg = 1000   # the pasted image is 1000 pixels wide
-    targetWtxt =  900   # the text is 900 pixels wide
+    targetWimg = int(1000)   # the pasted image is 1000 pixels wide
+    targetWtxt = int(900)   # the text is 900 pixels wide
     targetW = targetWtxt + targetWimg
-    targetH = 1600
+    targetHimg = int(1600)
     start_Lw = targetWtxt # top left width coordinate (distance from left edge)
                           # of pasted image
     start_Lh = 0  # top left height coordinate (distance from top edge) of paste
-    thumbWimg = thumbHimg = 200
+    thumbWimg = thumbHimg = int(800)
 
-    base_image_wh = (targetW, targetH)
+    base_image_wh = (targetW, targetHimg)
     bgcolor = "#EEE"
     color = "#000"
     REPLACEMENT_CHARACTER = u'\uFFFD'
@@ -325,29 +325,24 @@ def create_preview(keytermtask):
                                    leftpadding=20, rightpadding=20)
 
 
-
     source = Image.open(keytermtask.image_raw.file_upload)
     width, height = source.width, source.height
 
-    targetHimg = targetH
-
     if (height/width) < (targetHimg/targetWimg):
         # Current image has width as the limiting constraint. Set width to target.
-        height = int(height/width * targetWimg)
+        height = int(max(height/width * targetWimg, 1))
         width = targetWimg
         start_Lh = start_Lh + int((targetHimg - height)/2)
 
 
     elif (height/width) > (targetHimg/targetWimg):
         # Current image has height as the limiting constraint. Set height to target.
-        width = int(width/height * targetHimg)
+        width = int(max(width/height * targetHimg, 1))
         height = targetHimg
         start_Lw = targetWimg + int((targetWimg-width)/2)
 
     source = source.resize((width, height))
     img.paste(source, (start_Lw, start_Lh))
-
-
 
     base_name = generate_random_token(token_length=16) + '.' + output_extension
     submitted_file_name_django = 'uploads/{0}/{1}'.format(entry_point.id,
@@ -360,12 +355,32 @@ def create_preview(keytermtask):
 
 
     # Repeat: make the uploaded image -> thumbnail
-    thumbWimg = 400
-    thumbHimg = 400
     submitted_file_name_django = 'uploads/{0}/thumbs/{1}'.format(entry_point.id,
                                                                  base_name)
     full_path = settings.MEDIA_ROOT + submitted_file_name_django
-    source.thumbnail((thumbWimg, thumbHimg))
+    width, height = source.size
+    if (height/width) > (thumbHimg/thumbWimg):
+        # Current image has width as the limiting constraint.
+        # Set width to target; pick middle part (top to bottom) as thumbnail.
+        height = int(max(height/width * thumbWimg, 1))
+        width = thumbWimg
+        source = source.resize((width, height))
+        centerH = int(height/2.0)
+        cropTh = int(centerH - thumbHimg/2.)
+        cropBh = cropTh + thumbHimg
+        source = source.crop((0, cropTh, thumbWimg, cropBh))
+
+    if (height/width) <= (targetHimg/targetWimg):
+        # Current image has height as the limiting constraint.
+        # Set height to target; pick middle part (left to right) as thumbnail.
+        width = int(max(width/height * thumbHimg, 1))
+        height = thumbHimg
+        source = source.resize((width, height))
+        centerW = int(width/2.0)
+        cropLw = int(centerW - thumbWimg/2.)
+        cropRw = cropLw + thumbWimg
+        source = source.crop((cropLw, 0, cropRw, thumbHimg))
+
     fill_color = ''  # your background
     if source.mode in ('RGBA', 'LA'):
         background = Image.new(source.mode[:-1], source.size, bgcolor)

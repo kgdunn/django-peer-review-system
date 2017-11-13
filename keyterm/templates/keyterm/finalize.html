@@ -17,6 +17,76 @@
 <!-- UI JS file -->
 <script src="/documents/ps/photoswipe-ui-default.min.js"></script>
 
+<!-- http://cssdemos.tupence.co.uk/image-polaroid.htm -->
+<style>
+figure, figcaption{ /*add any other html5 elements you use*/
+    display:block;
+}
+
+#polaroid{
+    padding:20px 10px;
+    /*setting a width and adding overflow:hidden will clear the floats we're going to apply to figure*/
+    width:100%;
+    overflow:hidden;
+}
+/***Position the figures containing the images and captions***/
+#polaroid figure{
+    float:left; /*places the images in a horizontal line*/
+    position:relative; /*allows precise positioning of the tape in step 5- see support section below for more info*/
+    width: 300px; /* width of the images: this is fixed in our code, views.py*/
+    margin:10px 20px; /*space between the images*/
+}
+
+#polaroid figure{
+    padding: 6px 8px 10px 8px; /*size of the frame*/
+    /*give the frame's background colour a gradient*/
+    background: #eee6d8; /*fallback colour for browsers that don't support gradients*/
+    background: -webkit-linear-gradient(top, #ede1c9, #fef8e2 20%, #f2ebde 60%);
+    background: -moz-linear-gradient(top, #ede1c9, #fef8e2 20%, #f2ebde 60%);
+    background: -o-linear-gradient(top, #ede1c9, #fef8e2 20%, #f2ebde 60%);
+    background: -ms-linear-gradient(top, #ede1c9, #fef8e2 20%, #f2ebde 60%);
+    background: linear-gradient(top, #ede1c9, #fef8e2 20%, #f2ebde 60%);
+    /*give the Polaroids a small drop shadow*/
+    -webkit-box-shadow: 4px 4px 8px -4px rgba(0, 0, 0, .75);
+    -moz-box-shadow: 4px 4px 8px -4px rgba(0, 0, 0, .75);
+    box-shadow: 4px 4px 8px -4px rgba(0, 0, 0, .75);
+}
+
+/***Rotate the images 1 degrees anti-clockwise***/
+#polaroid figure{
+    -webkit-transform:rotate(-1deg);
+    -moz-transform: rotate(-1deg);
+    -o-transform: rotate(-1deg);
+    -ms-transform: rotate(-1deg);
+    transform: rotate(-1deg);
+    -webkit-backface-visibility:hidden; /*prevent rotated text in the caption being jagged in Chrome and Safari*/
+}
+
+/***Rotate each even numbered image 2 degrees clockwise***/
+#polaroid figure:nth-child(even) { /*see support section below for more info on nth-child*/
+    -webkit-transform:rotate(2deg);
+    -moz-transform: rotate(2deg);
+    -o-transform: rotate(2deg);
+    -ms-transform: rotate(2deg);
+    transform: rotate(2deg);
+    /*because the image is rotated the opposite way, the drop-shadow needs moving to the other side of the image*/
+    -webkit-box-shadow: 4px 4px 8px -4px rgba(0, 0, 0, .75);
+    -moz-box-shadow: 4px 4px 8px -4px rgba(0, 0, 0, .75);
+    box-shadow: -4px 4px 8px -4px rgba(0, 0, 0, .75);
+}
+
+#polaroid figcaption{
+    text-align: center;
+    font-family: 'Lato', Arial;
+    font-size:1.2em;
+    color: #454f40;
+    letter-spacing: 0.09em;
+}
+
+</style>
+
+
+
 {% endblock %}
 
 
@@ -29,6 +99,14 @@
 You must vote before {{keytermtask.keyterm.deadline_for_voting|date:"d F Y" }} {{keytermtask.keyterm.deadline_for_voting|time:"H:i" }}; <span style="color:darkgreen">you have {{keytermtask.keyterm.deadline_for_voting| timeuntil }} left</span>.
 </div>
 <br><br>
+
+
+
+
+
+
+
+
 
 <!-- Root element of PhotoSwipe. Must have class pswp. -->
 <div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
@@ -96,17 +174,17 @@ You must vote before {{keytermtask.keyterm.deadline_for_voting|date:"d F Y" }} {
 </div>
 
 
-<div class="gallery-keyterms" itemscope itemtype="http://schema.org/ImageGallery">
+<div class="gallery-keyterms" itemscope itemtype="http://schema.org/ImageGallery" id="polaroid">
     {% for keyterm in valid_tasks %}
     <figure itemprop="associatedMedia" itemscope itemtype="http://schema.org/ImageObject">
         <a href="/{{ keyterm.image_modified.url }}" itemprop="contentUrl" data-size="1900x1600">
-            <img src="/{{ keyterm.image_thumbnail.url }}" itemprop="thumbnail" alt="{{ keyterm.learner.display_name }}" />
+            <img width="283px" src="/{{ keyterm.image_thumbnail.url }}" itemprop="thumbnail" alt="Submitted by: {{ keyterm.learner.display_name }}" />
         </a>
-        <figcaption itemprop="caption description">{# Image caption TO GO HERE STILL #}</figcaption>
+        <figcaption itemprop="caption description">{{ keyterm.learner.display_name }}</figcaption>
     </figure>
     {% endfor %}
 
-</div>
+</div> <!--end id=polaroid class=gallery-keyterms-->
 
 
 {# first one is your own submission; cannot vote for this one!#}
