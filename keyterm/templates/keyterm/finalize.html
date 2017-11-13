@@ -102,7 +102,7 @@ You must vote before {{keytermtask.keyterm.deadline_for_voting|date:"d F Y" }} {
         <a href="/{{ keyterm.image_modified.url }}" itemprop="contentUrl" data-size="1900x1600">
             <img src="/{{ keyterm.image_thumbnail.url }}" itemprop="thumbnail" alt="{{ keyterm.learner.display_name }}" />
         </a>
-        <figcaption itemprop="caption description">Image caption</figcaption>
+        <figcaption itemprop="caption description">{# Image caption TO GO HERE STILL #}</figcaption>
     </figure>
     {% endfor %}
 
@@ -257,6 +257,9 @@ var initPhotoSwipeFromDOM = function(gallerySelector) {
             // define gallery index (for URL)
             galleryUID: galleryElement.getAttribute('data-pswp-uid'),
 
+            // Turn sharing off
+            shareEl: false,
+
             getThumbBoundsFn: function(index) {
                 // See Options -> getThumbBoundsFn section of documentation for more info
                 var thumbnail = items[index].el.getElementsByTagName('img')[0], // find thumbnail
@@ -324,10 +327,3 @@ initPhotoSwipeFromDOM('.gallery-keyterms');
 
 
 {% endblock %}
-
-
-
-
-
-
-

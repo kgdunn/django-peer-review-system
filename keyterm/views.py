@@ -39,8 +39,8 @@ def start_keyterm(request, course=None, learner=None, entry_point=None):
         try:
             keyterm = KeyTermSetting.objects.get(entry_point=entry_point)
         except KeyTermSetting.DoesNotExist:
-            return HttpResponse(('Please add KeyTerm to database first; and '
-                                 "don't forget to add the GradeItem too."))
+            return HttpResponse(('Please add KeyTermSetting to database first; '
+                                 "and don't forget to add the GradeItem too."))
         keytermtask = KeyTermTask(keyterm=keyterm,
                                   learner=learner,
                                   definition_text='',
@@ -178,12 +178,14 @@ def preview_keyterm(request, course=None, learner=None, entry_point=None):
 
     definition_text = request.POST.get('keyterm-definition', '')
     definition_text = definition_text or '<no definition>'
+    definition_text = definition_text.replace('\r\n', '\n')
     keytermtask.definition_text = definition_text
     if len(definition_text.replace('\n','').replace('\r','')) > 515:
         keytermtask.definition_text = definition_text[0:515] + ' ...'
 
     explainer_text = request.POST.get('keyterm-explanation', '')
     explainer_text = explainer_text or '<no explanation>'
+    explainer_text = explainer_text.replace('\r\n', '\n')
     keytermtask.explainer_text = explainer_text
     if len(explainer_text.replace('\n','').replace('\r','')) > 1015:
             keytermtask.explainer_text = explainer_text[0:1015] + ' ...'
@@ -220,10 +222,13 @@ def create_preview(keytermtask):
     """
 
     # Settings for creating the image and thumbnail.
+    targetWimg = 1000   # the pasted image is 1000 pixels wide
+    targetWtxt =  900   # the text is 900 pixels wide
+    targetW = targetWtxt + targetWimg
     targetH = 1600
-    targetW = 1000 + 900                # side text + image
-    start_Lw = 1000  # top left width coordinate (distance from left edge) of paste
-    start_Lh = 0     # top left height coordinate (distance from top edge) of paste
+    start_Lw = targetWtxt # top left width coordinate (distance from left edge)
+                          # of pasted image
+    start_Lh = 0  # top left height coordinate (distance from top edge) of paste
     thumbWimg = thumbHimg = 200
 
     base_image_wh = (targetW, targetH)
@@ -252,10 +257,11 @@ def create_preview(keytermtask):
     img = Image.new("RGB", base_image_wh, bgcolor)
     draw = ImageDraw.Draw(img)
     # https://www.snip2code.com/Snippet/1601691/Python-text-to-image-(png)-conversion-wi
-    def text2png(text, draw, start_y=0, fontsize=50, leftpadding=3, rightpadding=3,
-                 width=2000):
+    def text2png(text, draw, start_y=0, fontsize=50, leftpadding=3,
+                 rightpadding=3, width=2000):
         #font = ImageFont.load_default()
         font =  ImageFont.truetype(fontfullpath, fontsize)
+        text = text.replace('\n\n', NEWLINE_REPLACEMENT_STRING)
         text = text.replace('\n', NEWLINE_REPLACEMENT_STRING)
         lines = []
         line = u""
@@ -295,32 +301,34 @@ def create_preview(keytermtask):
 
     last_y, line_height = text2png(keytermtask.definition_text, draw,
                                    start_y=last_y+line_height*1,
-                                   fontsize=32, width=900-20*2,
+                                   fontsize=32, width=targetWtxt-20*2,
                                    leftpadding=20, rightpadding=20)
 
     last_y, line_height = text2png('Example/Explanation:', draw,
                                    start_y=last_y+line_height*2,
-                                   fontsize=50, width=900-20*2, leftpadding=20,
-                                   rightpadding=20)
+                                   fontsize=50, width=targetWtxt-20*2,
+                                   leftpadding=20, rightpadding=20)
 
     last_y, line_height = text2png(keytermtask.explainer_text, draw,
-                                   start_y=last_y, fontsize=28, width=900-20*2,
+                                   start_y=last_y, fontsize=28,
+                                   width=targetWtxt-20*2,
                                    leftpadding=20, rightpadding=20)
 
     last_y, line_height = text2png('Reference:', draw,
                                    start_y=last_y+line_height*2,
-                                   fontsize=30, width=900-20*2, leftpadding=20,
-                                   rightpadding=20)
+                                   fontsize=30, width=targetWtxt-20*2,
+                                   leftpadding=20, rightpadding=20)
 
     last_y, line_height = text2png(keytermtask.reference_text, draw,
-                                   start_y=last_y, fontsize=20, width=900-20*2,
+                                   start_y=last_y, fontsize=20,
+                                   width=targetWtxt-20*2,
                                    leftpadding=20, rightpadding=20)
 
 
 
     source = Image.open(keytermtask.image_raw.file_upload)
     width, height = source.width, source.height
-    targetWimg = 1000   # the pasted image is 1000 pixels wide
+
     targetHimg = targetH
 
     if (height/width) < (targetHimg/targetWimg):

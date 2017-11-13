@@ -2,7 +2,7 @@
 
 {% block content %}
 
-<h1 style="display:inline; clear:none;">Keyterm: {{keytermtask.keyterm.keyterm}} </h1>
+<h2 style="display:inline; clear:none;">Key term: {{keytermtask.keyterm.keyterm}} </h1>
 <br>
 <p>
 <form action="{% url 'keyterms_entry_point' %}" method="POST"
@@ -45,8 +45,11 @@
       <p class="error_message">{{error_message}}</p>
       {{entry_point.file_upload_form}}
       <p>
-      Recommended aspect ratio: <tt>(width:height)</tt> of <tt>(1:1.6)</tt>
-      <br>for example, <tt>1000 x 1600</tt> pixels.
+      Recommended:
+      <ul>
+      <li>file size: less than 5 Mb
+      <li>aspect ratio: <tt>(width:height)</tt> of <tt>(1:1.6)</tt>
+      for example, <tt>1000 x 1600</tt> pixels.
    </div>
    <div class="column-right">
       {% if keytermtask.image_raw %}
