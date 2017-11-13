@@ -2,6 +2,9 @@ from django.db import models
 from django.utils.timezone import now
 from datetime import timedelta
 
+def get_submit_deadline():
+    return now() + timedelta(days=10)
+
 def get_deadline():
     return now() + timedelta(days=20)
 
@@ -16,6 +19,7 @@ class KeyTermSetting(models.Model):
                     help_text='Maximum number of thumbs up that can be awarded')
     min_submissions_before_voting = models.PositiveSmallIntegerField(default=10,
             help_text='Minimum number of submissions before voting can start.')
+    deadline_for_submission = models.DateTimeField(default=get_submit_deadline)
     deadline_for_voting = models.DateTimeField(default=get_deadline)
     terms_per_page = models.PositiveIntegerField(default=100,
             help_text='Number of terms shown per page.')

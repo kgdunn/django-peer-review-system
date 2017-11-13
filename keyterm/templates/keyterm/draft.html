@@ -2,8 +2,10 @@
 
 {% block content %}
 
-<h2 style="display:inline; clear:none;">Key term: {{keytermtask.keyterm.keyterm}} </h1>
+<h1 style="display:inline; clear:none;">Key term: {{keytermtask.keyterm.keyterm}} </h1>
 <br>
+<li>Please submit by: {{keytermtask.keyterm.deadline_for_submission|date:"d F Y"}} at {{keytermtask.keyterm.deadline_for_submission|time:"H:i"}}
+<li>Voting deadline:  {{keytermtask.keyterm.deadline_for_voting|date:"d F Y"}} at {{keytermtask.keyterm.deadline_for_voting|time:"H:i"}}
 <p>
 <form action="{% url 'keyterms_entry_point' %}" method="POST"
       enctype="multipart/form-data">{% csrf_token %}
