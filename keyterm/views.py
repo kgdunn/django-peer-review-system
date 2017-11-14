@@ -140,7 +140,6 @@ def preview_keyterm(request, course=None, learner=None, entry_point=None):
     keytermtask.is_submitted = False
     keytermtask.is_finalized = False
 
-
     # For the ``Submission`` app we need a Trigger. We don't have that, or
     # need it. So abuse ``entry_point`` as the trigger instead.
     # A ``trigger`` needs an entry_point field, so just refer back to itself.
@@ -155,7 +154,6 @@ def preview_keyterm(request, course=None, learner=None, entry_point=None):
     subs = subs.order_by('-datetime_submitted')
     if subs.count():
         submission = prior_submission = subs[0]
-
 
     error_message = ''
     if request.FILES:
@@ -174,7 +172,6 @@ def preview_keyterm(request, course=None, learner=None, entry_point=None):
 
         # Now that the image is processed:
         keytermtask.image_raw = submission
-
 
     definition_text = request.POST.get('keyterm-definition', '')
     definition_text = definition_text or '<no definition>'
@@ -220,7 +217,6 @@ def create_preview(keytermtask):
     Creates the keyterm page (PNG file), from the text, image, reference..
     Renders the image; uploads it as a submission.
     """
-
     # Settings for creating the image and thumbnail.
     targetWimg = int(1000)   # the pasted image is 1000 pixels wide
     targetWtxt = int(900)   # the text is 900 pixels wide
@@ -237,12 +233,11 @@ def create_preview(keytermtask):
     REPLACEMENT_CHARACTER = u'\uFFFD'
     NEWLINE_REPLACEMENT_STRING = ' ' + REPLACEMENT_CHARACTER + ' '
     fontfullpath = settings.MEDIA_ROOT + 'keyterm/fonts/Lato-Regular.ttf'
-    output_extension  = 'jpg'
+    output_extension  = 'png'
 
     entry_point = keytermtask.keyterm.entry_point
 
     # Is the storage space reachable?
-
     deepest_dir = settings.MEDIA_ROOT + 'uploads/{0}/thumbs/'.format(
         entry_point.id)
 
@@ -321,6 +316,11 @@ def create_preview(keytermtask):
 
     last_y, line_height = text2png(keytermtask.reference_text, draw,
                                    start_y=last_y, fontsize=20,
+                                   width=targetWtxt-20*2,
+                                   leftpadding=20, rightpadding=20)
+    text = 'Created by: ' + keytermtask.learner.display_name
+    last_y, line_height = text2png(text, draw,
+                                   start_y=img.size[1]-2*line_height, fontsize=20,
                                    width=targetWtxt-20*2,
                                    leftpadding=20, rightpadding=20)
 

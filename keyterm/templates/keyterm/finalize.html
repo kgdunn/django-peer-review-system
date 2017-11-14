@@ -174,13 +174,15 @@ You must vote before {{keytermtask.keyterm.deadline_for_voting|date:"d F Y" }} {
 </div>
 
 
-<div class="gallery-keyterms" itemscope itemtype="http://schema.org/ImageGallery" id="polaroid">
+<div itemscope itemtype="http://schema.org/ImageGallery" id="polaroid">
     {% for keyterm in valid_tasks %}
-    <figure itemprop="associatedMedia" itemscope itemtype="http://schema.org/ImageObject">
+    <figure class="gallery-single-task" itemprop="associatedMedia" itemscope itemtype="http://schema.org/ImageObject">
         <a href="/{{ keyterm.image_modified.url }}" itemprop="contentUrl" data-size="1900x1600">
             <img width="283px" src="/{{ keyterm.image_thumbnail.url }}" itemprop="thumbnail" alt="Submitted by: {{ keyterm.learner.display_name }}" />
         </a>
-        <figcaption itemprop="caption description">{{ keyterm.learner.display_name }}</figcaption>
+        <figcaption style="padding-top: 10px;" itemprop="caption description">
+            <span style="float:left">{{ keyterm.learner.display_name }}</span>
+            <span style="float:right;margin:5px" class='task-thumbs-up'><a href="https://google.com"><i class="fa fa-thumbs-o-up" aria-hidden="true"></i></a></span></figcaption>
     </figure>
     {% endfor %}
 
@@ -248,12 +250,30 @@ var initPhotoSwipeFromDOM = function(gallerySelector) {
         return el && ( fn(el) ? el : closest(el.parentNode, fn) );
     };
 
+    var onVoteClick = function(e){
+        event.stopPropagation();
+        alert('You clicked on child');
+
+        // Run the voting: get the current learner;
+        // get who they are voting for
+        // Send the POST
+        // Return with a message: "vote recorded" | "vote withdrawn"
+        e = e || window.event;
+        e.preventDefault ? e.preventDefault() : e.returnValue = false;
+        var eTarget = e.target || e.srcElement;
+        return true;
+    }
+
     // triggers when user clicks on thumbnail
     var onThumbnailsClick = function(e) {
         e = e || window.event;
         e.preventDefault ? e.preventDefault() : e.returnValue = false;
 
         var eTarget = e.target || e.srcElement;
+
+        if (eTarget.classList.contains('fa-thumbs-o-up')){
+            return onVoteClick(e);
+        }
 
         // find root element of slide
         var clickedListItem = closest(eTarget, function(el) {
@@ -387,7 +407,9 @@ var initPhotoSwipeFromDOM = function(gallerySelector) {
 
     for(var i = 0, l = galleryElements.length; i < l; i++) {
         galleryElements[i].setAttribute('data-pswp-uid', i+1);
+        galleryElements[i].getElementsByClassName('task-thumbs-up').onclick = onVoteClick;
         galleryElements[i].onclick = onThumbnailsClick;
+
     }
 
     // Parse URL and open gallery if it contains #&pid=3&gid=1
@@ -398,7 +420,7 @@ var initPhotoSwipeFromDOM = function(gallerySelector) {
 };
 
 // execute above function
-initPhotoSwipeFromDOM('.gallery-keyterms');
+initPhotoSwipeFromDOM('.gallery-single-task');
 </script>
 
 
