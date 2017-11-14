@@ -486,3 +486,5 @@ def finalize_keyterm(request, course=None, learner=None, entry_point=None):
            }
     return render(request, 'keyterm/finalize.html', ctx)
 
+def vote_keyterm(request):
+    pass

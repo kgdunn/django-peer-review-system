@@ -181,8 +181,10 @@ You must vote before {{keytermtask.keyterm.deadline_for_voting|date:"d F Y" }} {
             <img width="283px" src="/{{ keyterm.image_thumbnail.url }}" itemprop="thumbnail" alt="Submitted by: {{ keyterm.learner.display_name }}" />
         </a>
         <figcaption style="padding-top: 10px;" itemprop="caption description">
-            <span style="float:left">{{ keyterm.learner.display_name }}</span>
-            <span style="float:right;margin:5px" class='task-thumbs-up'><a href="/keyterm/vote/{{keyterm.id}}"><i class="fa fa-thumbs-o-up" aria-hidden="true"></i></a></span></figcaption>
+            <span style="float:left">{{ keyterm.learner.display_name }} {% if forloop.first %} (yours!) {% endif %}</span>
+            {% if not forloop.first %} {# first iteration: user's own submission; can't vote on that#}
+                <span style="float:right;margin:5px" class='task-thumbs-up'><a href="/keyterm/vote/{{keyterm.lookup_hash}}"><i class="fa fa-thumbs-o-up" aria-hidden="true"></i></a></span></figcaption>
+            {% endif %}
     </figure>
     {% endfor %}
 
@@ -349,14 +351,16 @@ var initPhotoSwipeFromDOM = function(gallerySelector) {
 
         items = parseThumbnailElements(galleryElement);
 
-        // define options (if needed)
+        // Define options (if needed)
+        // http://photoswipe.com/documentation/options.html
         options = {
 
             // define gallery index (for URL)
             galleryUID: galleryElement.getAttribute('data-pswp-uid'),
 
-            // Turn sharing off
+            // Turn sharing off : KGD
             shareEl: false,
+
 
             getThumbBoundsFn: function(index) {
                 // See Options -> getThumbBoundsFn section of documentation for more info

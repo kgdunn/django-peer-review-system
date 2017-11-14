@@ -7,6 +7,7 @@ from django.utils import timezone
 
 # Our imports
 from utils import generate_random_token
+import hashlib
 
 
 class Course(models.Model):
@@ -55,7 +56,7 @@ class Person(models.Model):
     course = models.ForeignKey(Course, blank=True, null=True, default=None)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
-
+    hash_code = models.CharField(max_length=16, default='', blank=True)
     initials = models.CharField(max_length=5, default='', blank=True,
                                 help_text='Initials of the user (for display)')
 
@@ -64,6 +65,12 @@ class Person(models.Model):
         Modifications when a ``Person`` instance is saved.
         """
         self.email = self.email.lower()
+
+        if not(self.hash_code):
+            code = hashlib.sha256()
+            code.update(str(self.id).encode('utf-8'))
+            self.hash_code = code.hexdigest()[0:16]
+
         if self.initials == '' and self.display_name:
             initials = ''
             for word in self.display_name.split(' '):
@@ -79,7 +86,12 @@ class Person(models.Model):
         super(Person, self).save(*args, **kwargs)
 
     def get_initials(self):
+        """
+        Abuse this function to also add some information to profiles over time.
+        """
         if self.initials == '':
+            self.save()
+        if not(self.hash_code):
             self.save()
         return self.initials
 

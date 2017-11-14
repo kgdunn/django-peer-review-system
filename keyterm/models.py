@@ -65,7 +65,6 @@ class KeyTermTask(models.Model):
     allow_to_share = models.BooleanField(help_text=('Student is OK to share '
                                                     'their work with class.'),
                                          default=True)
-
     lookup_hash = models.CharField(max_length=16, default='None', blank=False)
 
 
