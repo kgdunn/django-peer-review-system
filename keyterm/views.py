@@ -46,7 +46,8 @@ def start_keyterm(request, course=None, learner=None, entry_point=None):
                                   definition_text='',
                                   explainer_text='',
                                   reference_text='',
-                                  is_in_draft=True
+                                  is_in_draft=True,
+                                  lookup_hash=generate_random_token()
                                   )
         keytermtask.save()
 

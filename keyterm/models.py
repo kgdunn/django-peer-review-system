@@ -66,6 +66,8 @@ class KeyTermTask(models.Model):
                                                     'their work with class.'),
                                          default=True)
 
+    lookup_hash = models.CharField(max_length=16, default='None', blank=False)
+
 
     def __str__(self):
         return u'[{0}][{1}] on {2:%Y-%m-%d %H:%M}'.format(\
