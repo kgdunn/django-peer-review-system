@@ -83,6 +83,19 @@ figure, figcaption{ /*add any other html5 elements you use*/
     letter-spacing: 0.09em;
 }
 
+
+/** For the FontAwesome icons and voting**/
+.fa-stack{
+   height:1em
+}
+.fa-stack-1x {
+    color:black;
+}
+.voting-feedback .warning{
+    color:red;
+}
+
+
 </style>
 
 
@@ -99,12 +112,7 @@ figure, figcaption{ /*add any other html5 elements you use*/
 You must vote before {{keytermtask.keyterm.deadline_for_voting|date:"d F Y" }} {{keytermtask.keyterm.deadline_for_voting|time:"H:i" }}; <span style="color:darkgreen">you have {{keytermtask.keyterm.deadline_for_voting| timeuntil }} left</span>.
 </div>
 
-<div class='voting-feedback' style="color:darkgreen">As of DATE: You have N votes left</div>
-
-
-
-
-
+<div class='voting-feedback' style="color:darkgreen">As of {% now "d F Y" %} at {% now "H:i:s" %} (UTC): you have {{votes_left}} more vote{{votes_left|pluralize}} left.</div>
 
 
 <!-- Root element of PhotoSwipe. Must have class pswp. -->
@@ -182,17 +190,19 @@ You must vote before {{keytermtask.keyterm.deadline_for_voting|date:"d F Y" }} {
         <figcaption style="padding-top: 10px;" itemprop="caption description">
             <span style="float:left">{{ keyterm.learner.display_name }} {% if forloop.first %} (yours!) {% endif %}</span>
             {% if not forloop.first %} {# first iteration: user's own submission; can't vote on that#}
-                <span style="float:right;margin:5px" class='task-thumbs-up'>
-                    <i class="fa fa-thumbs-o-up thumb-voted" aria-hidden="true" id="{{keyterm.lookup_hash}}"></i>
-                </span></figcaption>
+                <a href="">
+                <span style="float:right;margin:5px" class="task-thumbs-up fa-stack">
+                    <i class="fa fa-square fa-stack-2x" style="{% if not keyterm.this_learner_voted_it %}display:none;{% endif %}"></i>
+                    <i class="fa fa-thumbs-o-up fa-stack-1x {% if keyterm.this_learner_voted_it %}thumb-voted{% endif %}" aria-hidden="true" id="{{keyterm.lookup_hash}}"></i>
+                </span>
+                </a>
+            </figcaption>
+
             {% endif %}
     </figure>
     {% endfor %}
 
 </div> <!--end id=polaroid class=gallery-keyterms-->
-
-
-{# first one is your own submission; cannot vote for this one!#}
 
 
 <script>
@@ -228,8 +238,6 @@ var initPhotoSwipeFromDOM = function(gallerySelector) {
                 w: parseInt(size[0], 10),
                 h: parseInt(size[1], 10)
             };
-
-
 
             if(figureEl.children.length > 1) {
                 // <figcaption> content
@@ -270,7 +278,6 @@ var initPhotoSwipeFromDOM = function(gallerySelector) {
                         'state': e.target.classList.contains('thumb-voted')
                        };
 
-
         $.ajax({
             method: "POST",
             url: '{% url 'vote_keyterm' learner_hash=learner.hash_code %}',
@@ -278,12 +285,19 @@ var initPhotoSwipeFromDOM = function(gallerySelector) {
             cache: false,
             dataType: 'html'
         })
-        .always(function(html_response) {
-            $('.voting-feedback').html(html_response);
+        .always(function(json_response) {
+            var response = JSON.parse(json_response);
+            $('.voting-feedback').html(response.message);
+            //$('.voting-feedback').addClass(response.class);
+            if(response.new_state){
+                $(response.task_hash).addClass('thumb-voted');
+                $(response.task_hash).parent().children()[0].style.display = 'inline-block';
+            }else{
+                $(response.task_hash).removeClass('thumb-voted');
+                $(response.task_hash).parent().children()[0].style.display = 'none'
+            }
+
         });
-
-
-
 
         return true;
     }

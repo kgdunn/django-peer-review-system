@@ -373,6 +373,10 @@ def push_grade(grade_push_url, learner, grade_value, entry_point, testing=False)
     grade, _ = LearnerGrade.objects.get_or_create(gitem=gitem,
                                                   learner=learner)
 
+    if grade.value == grade_value:
+        # Not needed; the grade is already set.
+        return None
+
     grade.value = grade_value
     grade.save()
 

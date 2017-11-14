@@ -1,4 +1,4 @@
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.conf import settings
 from django.utils import timezone
@@ -467,6 +467,10 @@ def finalize_keyterm(request, course=None, learner=None, entry_point=None):
     valid_tasks.remove(own_task)
     shuffle(valid_tasks)
     valid_tasks.insert(0, own_task)
+    for task in valid_tasks:
+        votes = task.thumbs_set.filter(awarded=True)
+        task.number_votes = votes.count()
+        task.this_learner_voted_it = votes.filter(voter=learner).count() > 0
 
 
     # TODO: push the grade async
@@ -477,15 +481,27 @@ def finalize_keyterm(request, course=None, learner=None, entry_point=None):
                           grade_push_url=grade_push_url,
                           testing=False)
 
+    prior_votes = Thumbs.objects.filter(voter=learner, awarded=True,
+                                        vote_type='thumbs-up',
+                                        keytermtask__keyterm=keyterm).count()
+    max_votes = keyterm.max_thumbs
+    votes_left = max_votes - prior_votes
+
+
     logger.debug('Grade for {0} at [{1}]; response: {2}'.format(learner,
                                                                 grade_push_url,
                                                                 response))
+
+
+    #Abuse the ``valid_tasks`` here, and add a field onto it that determines
+    #if it has been voted on by this user.
 
     ctx = {'keytermtask': keytermtask,
            'course': course,
            'entry_point': entry_point,
            'learner': learner,
            'valid_tasks': valid_tasks,
+           'votes_left': votes_left,
            }
     return render(request, 'keyterm/finalize.html', ctx)
 
@@ -514,60 +530,73 @@ def vote_keyterm(request, learner_hash=''):
     else:
         keytermtask = keytermtask[0]
 
-    # Fail safe: rather not vote for the post.
-    prior_state = request.POST.get('state', True)
+    # Fail safe: rather not vote for the post, so assume it was 'true'
+    prior_state = request.POST.get('state', 'true') == 'true'
     new_state = not(prior_state)
 
     # Before creating the vote; check if learner should be allowed to vote:
     # Own vote?
     valid_vote = ''
+    html_class = ''
     if learner == keytermtask.learner:
         valid_vote = 'You may not vote for your own work.'
+        html_class = 'warning'
 
     # Past the deadline?
     if timezone.now() > keytermtask.keyterm.deadline_for_voting:
         valid_vote = 'The deadline to vote has passed; sorry'
+        html_class = 'warning'
 
     if not(valid_vote):
-        thumb = Thumbs(keytermtask=keytermtask,
-                       voter=learner,
-                       awarded=new_state,
-                       vote_type='thumbs-up',
+        prior_vote = learner.thumbs_set.filter(keytermtask=keytermtask,
+                                               vote_type='thumbs-up')
+        if prior_vote:
+            thumb = prior_vote[0]
+            thumb.awarded = new_state
+            thumb.save()
+        else:
+            thumb, _ = Thumbs.objects.get_or_create(keytermtask=keytermtask,
+                                                    voter=learner,
+                                                    awarded=new_state,
+                                                    vote_type='thumbs-up',
                     )
-        thumb.save()
+            thumb.save()
 
 
     # One last check (must come after voting!)
     # Too many votes already for others in this same keyterm?
-    prior_votes = Thumbs.objects.filter(learner=learner[0], awarded=True,
+    prior_votes = Thumbs.objects.filter(voter=learner, awarded=True,
                                         vote_type='thumbs-up',
-                            keytermtask__keyterm=keytermtask.keyterm).count()
+                            keytermtask__keyterm=keytermtask.keyterm)
     max_votes = keytermtask.keyterm.max_thumbs
-    if prior_votes >= max_votes:
+    if prior_votes.count() > max_votes:
         # Undo the prior voting to get the user back to the level allowed
         thumb.awarded = False
+        new_state = False
+        valid_vote = 'All votes have been used up.'
+        html_class = 'warning'
         thumb.save()
-        prior_votes = prior_votes - 1
-
 
     logger.debug('Vote for [{}] by [{}]; new_state: {}'.format(lookup_hash,
                                                                learner_hash,
                                                                new_state))
 
-    message = '{}: you have '.format(timezone.now().strftime(\
-                                                 '%d/%m/%Y at %H:%M (UTC)'))
-    if max_votes == prior_votes:
+    message = 'As of {}: you have '.format(timezone.now().strftime(\
+                                                 '%d/%m/%Y at %H:%M:%S (UTC)'))
+    if max_votes == prior_votes.count():
         message += ('no more votes left. You may withdraw prior votes by '
                     'clicking on the icon. ')
-    elif (max_votes - prior_votes) == 1:
+    elif (max_votes - prior_votes.count()) == 1:
         message += '1 more vote left. '
     else:
-        message += '{} more votes left. '.format(max_votes - prior_votes)
+        message += '{} more votes left. '.format(max_votes-prior_votes.count())
 
-    if new_state:
-        message += 'Vote recorded.'
-    else:
-        message += 'Vote withdrawn.'
+    if valid_vote:
+        message += ' <span class="{}">{}</span>'.format(html_class, valid_vote)
 
 
-    return HttpResponse(message)
+    response = {'message': message,
+                'new_state': new_state,
+                'task_hash': '#' + lookup_hash}
+
+    return JsonResponse(response)

@@ -101,6 +101,6 @@ class Thumbs(models.Model):
 
     def __str__(self):
         return u'Thumb up by [{0}] for {1}'.format(self.voter,
-                                                   self.keyterm_task)
+                                                   self.keytermtask)
 
 
