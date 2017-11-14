@@ -47,7 +47,7 @@ class KeyTermTask(models.Model):
     last_edited = models.DateTimeField(auto_now=True, auto_now_add=False)
 
 
-    definition_text = models.CharField(max_length=520, blank=True, null=True,
+    definition_text = models.TextField(blank=True, null=True,
                                        help_text='Capped at 500 characters.')
     explainer_text = models.TextField(blank=True, null=True)
     reference_text = models.CharField(max_length=250, blank=True, null=True)
