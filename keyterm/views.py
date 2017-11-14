@@ -1,13 +1,15 @@
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.conf import settings
+from django.utils import timezone
+
 
 # Python import
 import os
 from random import shuffle
 
 # This app's imports
-from .models import KeyTermSetting, KeyTermTask
+from .models import KeyTermSetting, KeyTermTask, Thumbs
 from .forms import UploadFileForm_file_optional, UploadFileForm_file_required
 
 # 3rd party imports: image rendering
@@ -16,6 +18,7 @@ from PIL import ImageFont, Image, ImageDraw
 
 # Import from our other apps
 from utils import generate_random_token
+from basic.models import Person
 
 #from submissions.models import Submission
 from submissions.views import upload_submission
@@ -486,5 +489,85 @@ def finalize_keyterm(request, course=None, learner=None, entry_point=None):
            }
     return render(request, 'keyterm/finalize.html', ctx)
 
-def vote_keyterm(request):
-    pass
+def vote_keyterm(request, learner_hash=''):
+    """
+    POST request recieved when the user votes on an item. In the POST we get the
+    keytermtask's ``lookup_hash``, and in the POST's URL we get the learner's
+    hash. From this we can determine who is voting on what.
+    """
+    learner = Person.objects.filter(hash_code=learner_hash)
+    if learner.count() != 1:
+        logger.error('Learner error hash={}; POST=[{}]'.format(learner_hash,
+                                                               request.POST))
+        return 'Error: could not identify who you are. Please reload the page.'
+    else:
+        learner = learner[0]
+
+
+    lookup_hash = request.POST.get('voting_task', None)
+    keytermtask = KeyTermTask.objects.filter(lookup_hash=lookup_hash)
+    if keytermtask.count() != 1:
+        logger.error('Keytermtask error hash={}; POST=[{}]'.format(lookup_hash,
+                                                                request.POST))
+        return ('Error: could not identify who you are voting for. '
+                'Please reload the page.')
+    else:
+        keytermtask = keytermtask[0]
+
+    # Fail safe: rather not vote for the post.
+    prior_state = request.POST.get('state', True)
+    new_state = not(prior_state)
+
+    # Before creating the vote; check if learner should be allowed to vote:
+    # Own vote?
+    valid_vote = ''
+    if learner == keytermtask.learner:
+        valid_vote = 'You may not vote for your own work.'
+
+    # Past the deadline?
+    if timezone.now() > keytermtask.keyterm.deadline_for_voting:
+        valid_vote = 'The deadline to vote has passed; sorry'
+
+    if not(valid_vote):
+        thumb = Thumbs(keytermtask=keytermtask,
+                       voter=learner,
+                       awarded=new_state,
+                       vote_type='thumbs-up',
+                    )
+        thumb.save()
+
+
+    # One last check (must come after voting!)
+    # Too many votes already for others in this same keyterm?
+    prior_votes = Thumbs.objects.filter(learner=learner[0], awarded=True,
+                                        vote_type='thumbs-up',
+                            keytermtask__keyterm=keytermtask.keyterm).count()
+    max_votes = keytermtask.keyterm.max_thumbs
+    if prior_votes >= max_votes:
+        # Undo the prior voting to get the user back to the level allowed
+        thumb.awarded = False
+        thumb.save()
+        prior_votes = prior_votes - 1
+
+
+    logger.debug('Vote for [{}] by [{}]; new_state: {}'.format(lookup_hash,
+                                                               learner_hash,
+                                                               new_state))
+
+    message = '{}: you have '.format(timezone.now().strftime(\
+                                                 '%d/%m/%Y at %H:%M (UTC)'))
+    if max_votes == prior_votes:
+        message += ('no more votes left. You may withdraw prior votes by '
+                    'clicking on the icon. ')
+    elif (max_votes - prior_votes) == 1:
+        message += '1 more vote left. '
+    else:
+        message += '{} more votes left. '.format(max_votes - prior_votes)
+
+    if new_state:
+        message += 'Vote recorded.'
+    else:
+        message += 'Vote withdrawn.'
+
+
+    return HttpResponse(message)

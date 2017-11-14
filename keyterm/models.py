@@ -88,10 +88,16 @@ class Thumbs(models.Model):
         verbose_name = "Thumbs up"
         verbose_name_plural = "Thumbs up"
 
+    # Not really used, but built in for the future
+    VOTE_TYPE = (('thumbs-up', 'Thumbs up'),
+                 ('Smiley',  'Smiley'),)
+
     keytermtask = models.ForeignKey(KeyTermTask)
     voter = models.ForeignKey('basic.Person')
     awarded = models.BooleanField(default=False)
     last_edited = models.DateTimeField(auto_now_add=True)
+    vote_type = models.CharField(choices=VOTE_TYPE, max_length=10,
+                                 default='thumbs-up')
 
     def __str__(self):
         return u'Thumb up by [{0}] for {1}'.format(self.voter,

@@ -98,9 +98,8 @@ figure, figcaption{ /*add any other html5 elements you use*/
 <div style="padding-top: 1em">
 You must vote before {{keytermtask.keyterm.deadline_for_voting|date:"d F Y" }} {{keytermtask.keyterm.deadline_for_voting|time:"H:i" }}; <span style="color:darkgreen">you have {{keytermtask.keyterm.deadline_for_voting| timeuntil }} left</span>.
 </div>
-<br><br>
 
-
+<div class='voting-feedback' style="color:darkgreen">As of DATE: You have N votes left</div>
 
 
 
@@ -183,7 +182,9 @@ You must vote before {{keytermtask.keyterm.deadline_for_voting|date:"d F Y" }} {
         <figcaption style="padding-top: 10px;" itemprop="caption description">
             <span style="float:left">{{ keyterm.learner.display_name }} {% if forloop.first %} (yours!) {% endif %}</span>
             {% if not forloop.first %} {# first iteration: user's own submission; can't vote on that#}
-                <span style="float:right;margin:5px" class='task-thumbs-up'><a href="/keyterm/vote/{{keyterm.lookup_hash}}"><i class="fa fa-thumbs-o-up" aria-hidden="true"></i></a></span></figcaption>
+                <span style="float:right;margin:5px" class='task-thumbs-up'>
+                    <i class="fa fa-thumbs-o-up thumb-voted" aria-hidden="true" id="{{keyterm.lookup_hash}}"></i>
+                </span></figcaption>
             {% endif %}
     </figure>
     {% endfor %}
@@ -254,15 +255,36 @@ var initPhotoSwipeFromDOM = function(gallerySelector) {
 
     var onVoteClick = function(e){
         event.stopPropagation();
-        alert('You clicked on child');
 
-        // Run the voting: get the current learner;
-        // get who they are voting for
-        // Send the POST
+
         // Return with a message: "vote recorded" | "vote withdrawn"
+
+
         e = e || window.event;
         e.preventDefault ? e.preventDefault() : e.returnValue = false;
         var eTarget = e.target || e.srcElement;
+
+
+        var postdata = {'csrfmiddlewaretoken': '{{ csrf_token }}',
+                        'voting_task': e.target.id,
+                        'state': e.target.classList.contains('thumb-voted')
+                       };
+
+
+        $.ajax({
+            method: "POST",
+            url: '{% url 'vote_keyterm' learner_hash=learner.hash_code %}',
+            data: postdata,
+            cache: false,
+            dataType: 'html'
+        })
+        .always(function(html_response) {
+            $('.voting-feedback').html(html_response);
+        });
+
+
+
+
         return true;
     }
 
