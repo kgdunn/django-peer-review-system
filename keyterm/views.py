@@ -460,13 +460,14 @@ def finalize_keyterm(request, course=None, learner=None, entry_point=None):
 
     # Get all prior keyterms: and show their thumbnails in random order
     # Show how many votes the user has left?
-
     valid_tasks = keyterm.keytermtask_set.filter(is_finalized=True)
     own_task = valid_tasks.get(learner=learner)
     valid_tasks = list(valid_tasks)
     valid_tasks.remove(own_task)
     shuffle(valid_tasks)
     valid_tasks.insert(0, own_task)
+    #Abuse the ``valid_tasks`` here, and add a field onto it that determines
+    #if it has been voted on by this user.
     for task in valid_tasks:
         votes = task.thumbs_set.filter(awarded=True)
         task.number_votes = votes.count()
@@ -492,9 +493,10 @@ def finalize_keyterm(request, course=None, learner=None, entry_point=None):
                                                                 grade_push_url,
                                                                 response))
 
+    after_voting_deadline = False
+    if timezone.now() > keytermtask.keyterm.deadline_for_voting:
+        after_voting_deadline = True
 
-    #Abuse the ``valid_tasks`` here, and add a field onto it that determines
-    #if it has been voted on by this user.
 
     ctx = {'keytermtask': keytermtask,
            'course': course,
@@ -502,6 +504,7 @@ def finalize_keyterm(request, course=None, learner=None, entry_point=None):
            'learner': learner,
            'valid_tasks': valid_tasks,
            'votes_left': votes_left,
+           'after_voting_deadline': after_voting_deadline,
            }
     return render(request, 'keyterm/finalize.html', ctx)
 
@@ -538,16 +541,23 @@ def vote_keyterm(request, learner_hash=''):
     # Own vote?
     valid_vote = ''
     html_class = ''
+    max_votes = keytermtask.keyterm.max_thumbs
+    prior_votes = Thumbs.objects.filter(voter=learner, awarded=True,
+                                        vote_type='thumbs-up',
+                                       keytermtask__keyterm=keytermtask.keyterm)
+
     if learner == keytermtask.learner:
         valid_vote = 'You may not vote for your own work.'
         html_class = 'warning'
+        new_state = False
 
     # Past the deadline?
-    if timezone.now() > keytermtask.keyterm.deadline_for_voting:
+    elif timezone.now() > keytermtask.keyterm.deadline_for_voting:
         valid_vote = 'The deadline to vote has passed; sorry'
         html_class = 'warning'
+        new_state = prior_state # do nothing
 
-    if not(valid_vote):
+    elif not(valid_vote):
         prior_vote = learner.thumbs_set.filter(keytermtask=keytermtask,
                                                vote_type='thumbs-up')
         if prior_vote:
@@ -563,26 +573,25 @@ def vote_keyterm(request, learner_hash=''):
             thumb.save()
 
 
-    # One last check (must come after voting!)
-    # Too many votes already for others in this same keyterm?
-    prior_votes = Thumbs.objects.filter(voter=learner, awarded=True,
-                                        vote_type='thumbs-up',
-                            keytermtask__keyterm=keytermtask.keyterm)
-    max_votes = keytermtask.keyterm.max_thumbs
-    if prior_votes.count() > max_votes:
-        # Undo the prior voting to get the user back to the level allowed
-        thumb.awarded = False
-        new_state = False
-        valid_vote = 'All votes have been used up.'
-        html_class = 'warning'
-        thumb.save()
+        # One last check (must come after voting!)
+        # Too many votes already for others in this same keyterm?
+
+
+        if prior_votes.count() > max_votes:
+            # Undo the prior voting to get the user back to the level allowed
+            thumb.awarded = False
+            new_state = False
+            valid_vote = 'All votes have been used up.'
+            html_class = 'warning'
+            thumb.save()
 
     logger.debug('Vote for [{}] by [{}]; new_state: {}'.format(lookup_hash,
                                                                learner_hash,
                                                                new_state))
 
+
     message = 'As of {}: you have '.format(timezone.now().strftime(\
-                                                 '%d/%m/%Y at %H:%M:%S (UTC)'))
+                                                 '%d %B %Y at %H:%M:%S (UTC)'))
     if max_votes == prior_votes.count():
         message += ('no more votes left. You may withdraw prior votes by '
                     'clicking on the icon. ')

@@ -1,5 +1,5 @@
 {% extends "keyterm/base.html" %}
-
+{% load tz %}
 {% block header %}
 
 <!-- Core CSS file -->
@@ -83,6 +83,35 @@ figure, figcaption{ /*add any other html5 elements you use*/
     letter-spacing: 0.09em;
 }
 
+    h2.polaroid-overlay {
+        position: absolute;
+        top: 200px;
+        left: 0;
+        width: 100%;
+    }
+    h3.polaroid-overlay {
+        position: absolute;
+        top: 30px;
+        left: 0;
+        width: 100%;
+    }
+
+    h2.polaroid-overlay span {
+        color: white;
+        font: bold 36px/45px Helvetica, Sans-Serif;
+        background: rgb(0, 0, 0); /* fallback color */
+        background: rgba(0, 0, 0, 0.7);
+        padding: 10px;
+    }
+    h3.polaroid-overlay span {
+        color: white;
+        font: bold 16px/26px Helvetica, Sans-Serif;
+        background: rgb(0, 0, 0); /* fallback color */
+        background: rgba(0, 0, 0, 0.7);
+        padding: 5px;
+        float: left;
+    }
+
 
 /** For the FontAwesome icons and voting**/
 .fa-stack{
@@ -102,18 +131,20 @@ figure, figcaption{ /*add any other html5 elements you use*/
 
 {% endblock %}
 
-
-
 {% block content %}
 
 <h2>Definitions for <span class='keyterm-name'>{{keytermtask.keyterm.keyterm}}</span> submitted by you, and your colleagues</h2>
 
+{% timezone 'UTC' %}
 <div style="padding-top: 1em">
-You must vote before {{keytermtask.keyterm.deadline_for_voting|date:"d F Y" }} {{keytermtask.keyterm.deadline_for_voting|time:"H:i" }}; <span style="color:darkgreen">you have {{keytermtask.keyterm.deadline_for_voting| timeuntil }} left</span>.
+You must vote before {{keytermtask.keyterm.deadline_for_voting|date:"d F Y" }} {{keytermtask.keyterm.deadline_for_voting|time:"H:i" }} (UTC) [<a href="https://time.is/UTC" target="_blank">what is this?</a>]; <span style="color:darkgreen">you have {{keytermtask.keyterm.deadline_for_voting| timeuntil }} left</span>.
 </div>
 
-<div class='voting-feedback' style="color:darkgreen">As of {% now "d F Y" %} at {% now "H:i:s" %} (UTC): you have {{votes_left}} more vote{{votes_left|pluralize}} left.</div>
+{% if not after_voting_deadline %}
+    <div class='voting-feedback' style="color:darkblue">As of {% now "d F Y" %} at {% now "H:i:s" %} (UTC): you have {{votes_left}} more vote{{votes_left|pluralize}} left.</div>
 
+{% endif %}
+{% endtimezone %}
 
 <!-- Root element of PhotoSwipe. Must have class pswp. -->
 <div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
@@ -187,18 +218,22 @@ You must vote before {{keytermtask.keyterm.deadline_for_voting|date:"d F Y" }} {
         <a href="/{{ keyterm.image_modified.url }}" itemprop="contentUrl" data-size="1900x1600">
             <img width="283px" src="/{{ keyterm.image_thumbnail.url }}" itemprop="thumbnail" alt="Submitted by: {{ keyterm.learner.display_name }}" />
         </a>
+
         <figcaption style="padding-top: 10px;" itemprop="caption description">
-            <span style="float:left">{{ keyterm.learner.display_name }} {% if forloop.first %} (yours!) {% endif %}</span>
+            <span style="float:left">{{ keyterm.learner.display_name }} {% if forloop.first %} (yours!) {% endif %}
+            </span>
             {% if not forloop.first %} {# first iteration: user's own submission; can't vote on that#}
                 <a href="">
                 <span style="float:right;margin:5px" class="task-thumbs-up fa-stack">
                     <i class="fa fa-square fa-stack-2x" style="{% if not keyterm.this_learner_voted_it %}display:none;{% endif %}"></i>
+                    {% if not after_voting_deadline or keyterm.this_learner_voted_it %}
                     <i class="fa fa-thumbs-o-up fa-stack-1x {% if keyterm.this_learner_voted_it %}thumb-voted{% endif %}" aria-hidden="true" id="{{keyterm.lookup_hash}}"></i>
+                    {% endif %}
                 </span>
                 </a>
-            </figcaption>
-
             {% endif %}
+        </figcaption>
+        {% if after_voting_deadline %}<h3 class="polaroid-overlay"><span>{{keyterm.number_votes}} vote{{keyterm.number_votes|pluralize}}</span></h3>{% endif %}
     </figure>
     {% endfor %}
 
