@@ -408,7 +408,6 @@ def sign_in_user(request, hashvalue):
     request.session['person_id'] = token.person.id
     logger.info('RETURNING USER: {0}'.format(token.person))
     return HttpResponseRedirect(token.next_uri)
-    #return HttpResponseRedirect('/')
 
 
 def get_course_ep_info(request):
