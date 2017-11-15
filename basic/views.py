@@ -407,7 +407,8 @@ def sign_in_user(request, hashvalue):
     # Review system; set the person id in the session (stored on the server DB)
     request.session['person_id'] = token.person.id
     logger.info('RETURNING USER: {0}'.format(token.person))
-    return HttpResponseRedirect('/')
+    return HttpResponseRedirect(token.next_uri)
+    #return HttpResponseRedirect('/')
 
 
 def get_course_ep_info(request):
