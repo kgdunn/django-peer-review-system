@@ -8,6 +8,13 @@ class Timer(models.Model):
         ('continue-review-session',   'continue-review-session'),
         ('ending-a-review-session',   'ending-a-review-session'),
         ('reviewing-feedback',        'reviewing-feedback'),
+        ('KT-draft',                  'KT-draft'),
+        ('KT-preview',                'KT-preview'),
+        ('KT-submit',                 'KT-submit'),
+        ('KT-final',                  'KT-final'),
+        ('KT-submit',                 'KT-submit'),
+        ('KT-vote',                   'KT-vote'),
+
                   )
     event = models.CharField(max_length=80, choices=event_type)
 

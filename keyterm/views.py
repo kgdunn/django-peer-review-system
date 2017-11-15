@@ -19,6 +19,7 @@ from PIL import ImageFont, Image, ImageDraw
 # Import from our other apps
 from utils import generate_random_token
 from basic.models import Person
+from stats.views import create_hit
 
 #from submissions.models import Submission
 from submissions.views import upload_submission
@@ -93,8 +94,9 @@ def draft_keyterm(request, course=None, learner=None, entry_point=None,
     keytermtask.is_finalized = False
     keytermtask.save()
 
+    create_hit(request, item=keytermtask, event='KT-draft',
+               user=learner, other_info=keyterm.keyterm)
 
-    # TODO: Reference should also be shown
 
     if keytermtask.image_raw:
         entry_point.file_upload_form = UploadFileForm_file_optional()
@@ -198,6 +200,9 @@ def preview_keyterm(request, course=None, learner=None, entry_point=None):
         keytermtask.reference_text = reference_text[0:245] + ' ...'
 
     keytermtask.save()
+
+    create_hit(request, item=keytermtask, event='KT-preview',
+               user=learner, other_info='Error={}'.format(error_message))
 
     # We have saved, but if there was an error message: go back to DRAFT
     if error_message:
@@ -425,6 +430,9 @@ def submit_keyterm(request, course=None, learner=None, entry_point=None):
     valid_tasks = keyterm.keytermtask_set.filter(is_finalized=True)
     NN_to_upload = keyterm.min_submissions_before_voting - valid_tasks.count()
 
+    create_hit(request, item=keytermtask, event='KT-submit',
+               user=learner, other_info='')
+
     # Get all other user's keyterms: how many othersare uploaded already?
     ctx = {'keytermtask': keytermtask,
            'course': course,
@@ -498,6 +506,9 @@ def finalize_keyterm(request, course=None, learner=None, entry_point=None):
         after_voting_deadline = True
 
 
+    create_hit(request, item=keytermtask, event='KT-final',
+               user=learner, other_info='Grade push = {}'.format(response))
+
     ctx = {'keytermtask': keytermtask,
            'course': course,
            'entry_point': entry_point,
@@ -550,10 +561,11 @@ def vote_keyterm(request, learner_hash=''):
         valid_vote = 'You may not vote for your own work.'
         html_class = 'warning'
         new_state = False
+        logger.error('This should not occur, but is a safeguard. Investigate!')
 
     # Past the deadline?
     elif timezone.now() > keytermtask.keyterm.deadline_for_voting:
-        valid_vote = 'The deadline to vote has passed; sorry'
+        valid_vote = 'The deadline to vote has passed; sorry.'
         html_class = 'warning'
         new_state = prior_state # do nothing
 
@@ -575,8 +587,6 @@ def vote_keyterm(request, learner_hash=''):
 
         # One last check (must come after voting!)
         # Too many votes already for others in this same keyterm?
-
-
         if prior_votes.count() > max_votes:
             # Undo the prior voting to get the user back to the level allowed
             thumb.awarded = False
@@ -588,6 +598,8 @@ def vote_keyterm(request, learner_hash=''):
     logger.debug('Vote for [{}] by [{}]; new_state: {}'.format(lookup_hash,
                                                                learner_hash,
                                                                new_state))
+
+
 
 
     message = 'As of {}: you have '.format(timezone.now().strftime(\
@@ -602,6 +614,9 @@ def vote_keyterm(request, learner_hash=''):
 
     if valid_vote:
         message += ' <span class="{}">{}</span>'.format(html_class, valid_vote)
+
+    create_hit(request, item=keytermtask, event='KT-vote',
+                user=learner, other_info=message)
 
 
     response = {'message': message,
