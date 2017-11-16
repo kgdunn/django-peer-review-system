@@ -39,17 +39,18 @@ def entry_point_discovery(request, course_code=None, entry_code=None):
 
 
     logger.debug('POST: {}'.format(request.POST))
-    logger.debug('GET: {}'.format(request.GET))
+
     logger.debug('Problem: {0} || {1}'.format(course_ID, entry_ID))
 
 
     info = get_course_ep_info(request)
-    if (course_code is None) and isinstance(info['course'], Course) and\
-       (course_ID is None) and isinstance(info['course'], Course):
+    logger.debug('INFO: {}'.format(info))
+    if not(course_code) and isinstance(info['course'], Course) and\
+       not(course_ID) and isinstance(info['course'], Course):
         course_ID = info['course'].label
 
-    if (entry_code is None) and isinstance(info['entry_point'], EntryPoint) and\
-        (entry_ID is None) and isinstance(info['entry_point'], EntryPoint):
+    if not(entry_code) and isinstance(info['entry_point'], EntryPoint) and\
+        not(entry_ID) and isinstance(info['entry_point'], EntryPoint):
 
         if info['entry_point']:
             entry_ID = info['entry_point'].LTI_id
