@@ -38,11 +38,6 @@ def entry_point_discovery(request, course_code=None, entry_code=None):
                                     request.GET.get('resource_link_id', None))
 
 
-    logger.debug('POST: {}'.format(request.POST))
-
-    logger.debug('Problem: {0} || {1}'.format(course_ID, entry_ID))
-
-
     info = get_course_ep_info(request)
     logger.debug('INFO: {}'.format(info))
     if not(course_code) and isinstance(info['course'], Course) and\

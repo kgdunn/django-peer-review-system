@@ -735,7 +735,7 @@ def get_line5(learner, trigger, summaries):
         except RubricActual.DoesNotExist:
             pass
 
-        summary = Summary(action='Rebuttal written by peer {0}.'.format(\
+        summary = Summary(action='Peer {0} wrote a rebuttal.'.format(\
                           chr(idx+65)),
                           date=rebuttal.created,
                           link=link.format(rebuttal.unique_code, extra, '', ''),
