@@ -6,10 +6,12 @@ from django.template import Context, Template, loader
 from django.core.files import File
 from django.conf import settings
 from django.utils import timezone
+from django.utils.text import slugify
 
 # Python and 3rd party imports
 import os
 import sys
+import csv
 import json
 import time
 import random
@@ -2500,5 +2502,99 @@ def filtered_overview(learner, entry_point):
     #report['highest_achievement'] = highest_achievement
     return report, highest_achievement
 
+
+def csv_summary_download(request):
+    """
+    Returns a CSV download of the student names and scores.
+    """
+    from basic.views import get_course_ep_info
+    info = get_course_ep_info(request)
+
+    entry_point = info['entry_point']
+    fname = slugify('{}-{}-{}'.format(entry_point.course,
+                                      entry_point.LTI_id,
+                         timezone.now().strftime('%Y-%m-%d-%H-%M'))) + '.csv'
+
+    if info['learner'].role != 'Admin':
+        return HttpResponse('')
+
+    learners = entry_point.course.person_set.filter(role='Learn',
+                                        is_validated=True).order_by('-created')
+
+    # Create the HttpResponse object with the appropriate CSV header.
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="{}"'.format(fname)
+
+    writer = csv.writer(response)
+    writer.writerow(['Learner', 'Email', 'EvaluationsEarn', 'EvaluationsGave',
+                     'RebuttalDone', 'AssessmentEarn', 'AssessmentGave'])
+
+    # Columns: EvaluationsEarn, EvaluationsGave, RebuttalDone,  AssessmentEarn,
+    #          AssessmentGave
+    for learner in learners:
+
+        # ---- Evaluations: earned and given
+        earned = learner.peer_reviewer.filter(trigger__entry_point=entry_point,
+                                              sort_report='E')
+        total_eval_earn = 0.0
+        for report in earned:
+            if report.r_actual is None: # It has not been started yet
+                continue
+            else:
+                if report.r_actual.status in ('C', 'L'):
+                    total_eval_earn += report.r_actual.score
+
+
+        given = learner.evaluator.filter(trigger__entry_point=entry_point,
+                                         sort_report='E')
+        total_eval_gave = 0.0
+        for report in given:
+            if report.r_actual is None: # It has not been started yet
+                continue
+            else:
+                if report.r_actual.status in ('C', 'L'):
+                    total_eval_gave += report.r_actual.score
+
+        # Rebuttal
+        rebuttal_completed = '-'
+        rebuttals = learner.evaluator.filter(sort_report='R',
+                                             trigger__entry_point=entry_point)
+        if rebuttals.count()==1:
+            rebuttal_completed = rebuttals[0].r_actual.completed.strftime('%Y-%m-%d %H:%S')
+
+
+        # ---- Assessments: earned and given
+        earned = learner.peer_reviewer.filter(trigger__entry_point=entry_point,
+                                              sort_report='A')
+        total_assess_earn = 0.0
+        for report in earned:
+            if report.r_actual is None: # It has not been started yet
+                continue
+            else:
+                if report.r_actual.status in ('C', 'L'):
+                    total_assess_earn += report.r_actual.score
+
+
+        given = learner.evaluator.filter(trigger__entry_point=entry_point,
+                                         sort_report='A')
+        total_assess_gave = 0.0
+        for report in given:
+            if report.r_actual is None: # It has not been started yet
+                continue
+            else:
+                if report.r_actual.status in ('C', 'L'):
+                    total_assess_gave += report.r_actual.score
+
+
+        # All finished for this student
+        writer.writerow([learner.display_name,
+                         learner.email,
+                         total_eval_earn,
+                         total_eval_gave,
+                         rebuttal_completed,
+                         total_assess_earn,
+                         total_assess_gave])
+
+    return response
 
 

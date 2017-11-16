@@ -30,5 +30,10 @@ urlpatterns = [
         views.see_assessment,
         name='see_readonly_assessment_with_unique_code'),
 
+    # CSV download
+    url(r'^csv_summary_download/$',  # (?P<entry_point>.+)/(?P<course>.+)
+        views.csv_summary_download,
+        name='csv_summary_download')
+
 
 ]

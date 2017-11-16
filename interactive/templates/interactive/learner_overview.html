@@ -190,9 +190,10 @@ function mouseout() {
 
 </script>
 <p><em>Double-click on a learner node to see their connections. Double-click again to undo.</em>
+
 <!-- ---------------------- -->
 
-<script>
+<script language="javascript" type="text/javascript">
 $(document).ready( function () {
 
   $('#class_overview').DataTable( {
@@ -207,12 +208,18 @@ $(document).ready( function () {
     bAutoWidth: true,
   } );
 } );
+
+
 </script>
+
+<div style="clear:all">
+<span style="float: left; padding-left: 0.5em"><a href="{% url 'csv_summary_download' %}">Download data (CSV)</a></span>
 
 
 {% if global_summary_link %}
 <span style="float: right; padding-right: 0.5em"><a href="{{global_summary_link}}">Links to all deliverables</a></span>
 {% endif %}
+</div>
 
 <div id="pr_graph"></div>
 
