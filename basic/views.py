@@ -37,6 +37,9 @@ def entry_point_discovery(request, course_code=None, entry_code=None):
     entry_ID = request.POST.get('resource_link_id', None)or(settings.DEBUG and \
                                     request.GET.get('resource_link_id', None))
 
+
+    logger.debug('POST: {}'.request.POST)
+    logger.debug('GET: {}'.request.GET)
     logger.debug('Problem: {0} || {1}'.format(course_ID, entry_ID))
 
 
