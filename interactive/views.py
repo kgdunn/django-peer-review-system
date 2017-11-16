@@ -2526,8 +2526,14 @@ def csv_summary_download(request):
     response['Content-Disposition'] = 'attachment; filename="{}"'.format(fname)
 
     writer = csv.writer(response)
-    writer.writerow(['Learner', 'Email', 'EvaluationsEarn', 'EvaluationsGave',
-                     'RebuttalDone', 'AssessmentEarn', 'AssessmentGave'])
+    writer.writerow(['Learner',
+                     'Email',
+                     'Deliverable',
+                     'EvaluationsEarn',
+                     'EvaluationsGave',
+                     'RebuttalDone',
+                     'AssessmentEarn',
+                     'AssessmentGave'])
 
     # Columns: EvaluationsEarn, EvaluationsGave, RebuttalDone,  AssessmentEarn,
     #          AssessmentGave
@@ -2589,6 +2595,7 @@ def csv_summary_download(request):
         # All finished for this student
         writer.writerow([learner.display_name,
                          learner.email,
+                         entry_point.LTI_title,
                          total_eval_earn,
                          total_eval_gave,
                          rebuttal_completed,
