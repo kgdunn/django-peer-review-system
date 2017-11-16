@@ -39,10 +39,13 @@ def entry_point_discovery(request, course_code=None, entry_code=None):
 
 
     info = get_course_ep_info(request)
-    if (course_code is None) and isinstance(info['course'], Course):
+    if (course_code is None) and isinstance(info['course'], Course) or\
+       (course_ID is None) and isinstance(info['course'], Course):
         course_ID = info['course'].label
 
-    if (entry_code is None) and isinstance(info['entry_point'], EntryPoint):
+    if (entry_code is None) and isinstance(info['entry_point'], EntryPoint) or\
+        (entry_ID is None) and isinstance(info['entry_point'], EntryPoint):
+
         if info['entry_point']:
             entry_ID = info['entry_point'].LTI_id
 
