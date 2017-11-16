@@ -395,7 +395,7 @@ def create_preview(keytermtask):
         background = Image.new(source.mode[:-1], source.size, bgcolor)
         background.paste(source, source.split()[-1])
         source = background
-    source.save(full_path, quality=95)
+    source.convert('RGB').save(full_path, quality=95)
 
     keytermtask.image_thumbnail = submitted_file_name_django
     keytermtask.save()
