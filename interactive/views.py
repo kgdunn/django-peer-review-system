@@ -2498,8 +2498,6 @@ def filtered_overview(learner, entry_point):
         if report[item.name]:
             highest_achievement = name
 
-
-    #report['highest_achievement'] = highest_achievement
     return report, highest_achievement
 
 
