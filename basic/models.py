@@ -66,11 +66,6 @@ class Person(models.Model):
         """
         self.email = self.email.lower()
 
-        if not(self.hash_code):
-            code = hashlib.sha256()
-            code.update(str(self.id).encode('utf-8'))
-            self.hash_code = code.hexdigest()[0:16]
-
         if self.initials == '' and self.display_name:
             initials = ''
             for word in self.display_name.split(' '):
@@ -84,6 +79,15 @@ class Person(models.Model):
             self.initials = initials[0:5]
 
         super(Person, self).save(*args, **kwargs)
+
+        if not(self.hash_code):
+            code = hashlib.sha256()
+            code.update(str(self.id).encode('utf-8'))
+            self.hash_code = code.hexdigest()[0:16]
+
+        super(Person, self).save(*args, **kwargs)
+
+
 
     def get_initials(self):
         """
