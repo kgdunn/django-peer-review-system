@@ -84,8 +84,7 @@ class Person(models.Model):
             code = hashlib.sha256()
             code.update(str(self.id).encode('utf-8'))
             self.hash_code = code.hexdigest()[0:16]
-
-        super(Person, self).save(*args, **kwargs)
+            self.save()
 
 
 
