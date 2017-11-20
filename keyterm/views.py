@@ -529,7 +529,8 @@ def vote_keyterm(request, learner_hash=''):
     if learner.count() != 1:
         logger.error('Learner error hash={}; POST=[{}]'.format(learner_hash,
                                                                request.POST))
-        return 'Error: could not identify who you are. Please reload the page.'
+        return HttpResponse(('Error: could not identify who you are. Please '
+                             'reload the page.'))
     else:
         learner = learner[0]
 
@@ -539,8 +540,8 @@ def vote_keyterm(request, learner_hash=''):
     if keytermtask.count() != 1:
         logger.error('Keytermtask error hash={}; POST=[{}]'.format(lookup_hash,
                                                                 request.POST))
-        return ('Error: could not identify who you are voting for. '
-                'Please reload the page.')
+        return HttpResponse(('Error: could not identify who you are voting for.'
+                ' Please reload the page.'))
     else:
         keytermtask = keytermtask[0]
 

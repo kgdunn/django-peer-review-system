@@ -12,8 +12,8 @@ admin.site.register(KeyTermSetting, KeyTermSettingAdmin)
 
 class KeyTermTaskAdmin(admin.ModelAdmin):
     list_display = ("keyterm", "learner", "lookup_hash",
-                    "last_edited", "allow_to_share", "is_in_draft",
-                    "is_finalized", "is_submitted", )
+                    "last_edited", "is_in_draft", "is_finalized",
+                    "is_submitted", )
 admin.site.register(KeyTermTask, KeyTermTaskAdmin)
 
 
