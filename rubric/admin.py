@@ -27,7 +27,7 @@ class RItemTemplateAdmin(admin.ModelAdmin):
     list_display = ("r_template", "order", "max_score", "option_type",
                     "criterion",)
     ordering = ['-r_template', 'order']
-    list_filter = ['r_template']
+    list_filter = ['r_template__entry_point']
 admin.site.register(RItemTemplate, RItemTemplateAdmin)
 
 
