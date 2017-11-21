@@ -80,53 +80,64 @@ from basic.models import Course, EntryPoint
 from interactive.models import Trigger
 
 
-# These have the added complexity that you have a .trigger, .next_trigger and
-# item templates and option templates that depend on them.
-orig_course = Course.objects.get(label='36957')
-orig_ep = EntryPoint.objects.get(course=orig_course, LTI_id='1371427444')
-targ_course = Course.objects.get(label='43639')
-targ_ep = EntryPoint.objects.get(course=targ_course, LTI_id='1371427444')
 
-src_template_name = 'LD5 peer review'
-src_template_name = 'LD5 evaluation'
-src_template_name = 'LD5 rebuttal'
-src_template_name = 'LD5 assessment'
-new_title = src_template_name  # <-- same value because we are copying
-                               # course-to-course; it would a different
-                               # text here if we are copying within a course.
+LDs = ['1931107264',
+       '1475539468',
+       '1499960701',
+        '370183435',
+       '1371427444', ]
 
-template = RubricTemplate.objects.get(entry_point=orig_ep, title=src_template_name)
-
-current_trigger_name = template.trigger.name
-targ_trigger = Trigger.objects.get(entry_point=targ_ep, name=template.trigger.name)
-targ_next_trigger = None
-if template.next_trigger:
-    targ_next_trigger = Trigger.objects.get(entry_point=targ_ep, name=template.next_trigger.name)
-
-copy_template = RubricTemplate.objects.get(entry_point=orig_ep, title=src_template_name)
-
-
-# Now create a new template
-template.id = None
-template.save()
-template.entry_point = targ_ep
-template.title = new_title
-template.trigger = targ_trigger
-template.next_trigger = targ_next_trigger
-template.save()
-src_items = RItemTemplate.objects.filter(r_template=copy_template)
-for item in src_items:
-    # First get the associated options
-    options = item.roptiontemplate_set.all()
-    # Then copy the parent template to the new one
-    item.pk = None
-    item.r_template = template
-    item.save()
-    # Then re-parent the options to the newly created/saved item
-    for opt in options:
-        opt.pk = None
-        opt.rubric_item = item
-        opt.save()
-    # All done with options
-
-# Done with all items
+for LTI_id in LDs:
+    print('Processing LTI {}'.format(LTI_id))
+    # These have the added complexity that you have a .trigger, .next_trigger and
+    # item templates and option templates that depend on them.
+    orig_course = Course.objects.get(label='43639')
+    orig_ep = EntryPoint.objects.get(course=orig_course, LTI_id=LTI_id)
+    targ_course = Course.objects.get(label='49698')
+    targ_ep = EntryPoint.objects.get(course=targ_course, LTI_id=LTI_id)
+    #
+    src_templates = [t.title for t in orig_ep.rubrictemplate_set.all()]
+    print(src_templates)
+    #
+    for src_template_name in src_templates:
+        print('Processing template: {}'.format(src_template_name))
+        new_title = src_template_name  # <-- same value because we are copying
+                                       # course-to-course; it would a different
+                                       # text here if we are copying within a course.
+        #
+        template = RubricTemplate.objects.get(entry_point=orig_ep,
+                                              title=src_template_name)
+        current_trigger_name = template.trigger.name
+        targ_trigger = Trigger.objects.get(entry_point=targ_ep,
+                                           name=template.trigger.name)
+        targ_next_trigger = None
+        if template.next_trigger:
+            targ_next_trigger = Trigger.objects.get(entry_point=targ_ep,
+                                                    name=template.next_trigger.name)
+        copy_template = RubricTemplate.objects.get(entry_point=orig_ep,
+                                                   title=src_template_name)
+        # Now create a new template
+        template.id = None
+        template.save()
+        template.entry_point = targ_ep
+        template.title = new_title
+        template.trigger = targ_trigger
+        template.next_trigger = targ_next_trigger
+        template.save()
+        src_items = RItemTemplate.objects.filter(r_template=copy_template)
+        for item in src_items:
+            # First get the associated options
+            options = item.roptiontemplate_set.all()
+            # Then copy the parent template to the new one
+            item.pk = None
+            item.r_template = template
+            item.save()
+            # Then re-parent the options to the newly created/saved item
+            for opt in options:
+                opt.pk = None
+                opt.rubric_item = item
+                opt.save()
+            # All done with options
+        # Done with all items
+        print('--Done--')
+    print('-Klaar-')
