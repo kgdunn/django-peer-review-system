@@ -253,9 +253,9 @@ $(document).ready( function () {
               <td data-order="{{item.when.timestamp}}">
                 {% if item.when %}
                     {% if item.hyperlink %}
-                      <a target="_blank" href="{{item.hyperlink}}">{{item.when|date:"d M"}}{#item.when|date:"H:i"#}</a>
+                      <a target="_blank" href="{{item.hyperlink}}">{{item.when|date:"d M"}},{{item.when|date:"H:i"}}</a>
                     {% else %}
-                      {{item.when|date:"d M"}}
+                      {{item.when|date:"d M"}},{{item.when|date:"H:i"}}
                     {% endif %}
                 {% else %}
                     {% if item %}
