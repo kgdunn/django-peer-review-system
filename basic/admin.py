@@ -35,6 +35,7 @@ admin.site.register(Course, CourseAdmin)
 class PersonAdmin(admin.ModelAdmin):
     list_display = ("user_ID", "display_name", "initials", "is_validated",
                     "last_lis", "role", "email", "created", "modified")
+    list_per_page = 1000
 admin.site.register(Person, PersonAdmin)
 
 
@@ -83,4 +84,5 @@ class SessionAdmin(admin.ModelAdmin):
     def _session_data(self, obj):
         return obj.get_decoded()
     list_display = ['session_key', '_session_data', 'expire_date']
+    list_per_page = 1000
 admin.site.register(Session, SessionAdmin)
