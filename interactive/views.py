@@ -21,6 +21,7 @@ from random import shuffle
 from collections import namedtuple, OrderedDict
 
 import networkx as nx
+from networkx.readwrite import json_graph
 from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, PageBreak
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
@@ -78,7 +79,7 @@ class GLOBAL_Class(object):
     pass
 GLOBAL = GLOBAL_Class()
 GLOBAL.num_peers = 2
-GLOBAL.min_in_pool_before_grouping_starts = 10
+GLOBAL.min_in_pool_before_grouping_starts = 7
 
 
 def starting_point(request, course=None, learner=None, entry_point=None):
@@ -1394,20 +1395,20 @@ class group_graph(object):
         pass
 
     def graph_json(self, reports):
-
-        from networkx.readwrite import json_graph
         serialized = json_graph.node_link_data(self.graph,
             attrs=dict(id='id', source='source', target='target', key='key'))
         for idx, node in enumerate(serialized['nodes']):
             node['title'] = node['id'].get_initials()
-            node['achieved'] = reports[node['id']]['_highest_achievement']
+
+            if reports.get(node['id'], False):
+                node['achieved'] = reports[node['id']]['_highest_achievement']
+            else:
+                node['achieved'] = 'NOT_FOUND'
+
+            # Finally, re-write over the ID to avoid using actual names
             node['id'] = idx
 
         return serialized
-        #json.dump(serialized, open('/full_file_name/graph.json', 'w'))
-
-
-
 
 def review(request, unique_code=None):
     """
