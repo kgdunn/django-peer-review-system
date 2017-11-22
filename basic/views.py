@@ -313,7 +313,9 @@ def handle_website_sign_in(learner, is_newbie, request):
         token = create_token_send_email_check_success(learner, request)
         token.save()
         return ("<i>Welcome back!</i> Please check your email, and click on "
-                "the link that we emailed you.<br>{}".format(now_time))
+                "the link that we emailed you. <b>Also check your spam folder"
+                "</b> as sometimes emails don't go where we expect.<br>{}"\
+                .format(now_time))
 
 
 def create_token_send_email_check_success(person, request):
