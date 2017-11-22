@@ -143,7 +143,7 @@ figure, figcaption{ /*add any other html5 elements you use*/
 
 {% timezone 'UTC' %}
 <div style="padding-top: 1em">
-You must vote before {{keytermtask.keyterm.deadline_for_voting|date:"d F Y" }} {{keytermtask.keyterm.deadline_for_voting|time:"H:i" }} (UTC) [<a href="https://time.is/UTC" target="_blank">what is this?</a>]; <span style="color:darkgreen">you have {{keytermtask.keyterm.deadline_for_voting| timeuntil }} left</span>.
+You must vote before {{keytermtask.keyterm.deadline_for_voting|date:"d F Y" }} {{keytermtask.keyterm.deadline_for_voting|time:"H:i" }} (UTC) [<a href="https://time.is/UTC" target="_blank">what is this?</a>]; <span style="color:darkgreen">you have {{keytermtask.keyterm.deadline_for_voting| timeuntil }} left</span>. <em>Click on the image to read the details.</em>
 </div>
 
 {% if not after_voting_deadline %}
