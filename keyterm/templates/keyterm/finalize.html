@@ -228,7 +228,7 @@ You must vote before {{keytermtask.keyterm.deadline_for_voting|date:"d F Y" }} {
         <figcaption style="padding-top: 10px;" itemprop="caption description">
             <span style="float:left">{{ keyterm.learner.display_name }} {% if forloop.first and learner.role == 'Learn' %} (yours!) {% endif %}
             </span>
-            {% if not forloop.first %} {# first iteration: user's own submission; can't vote on that#}
+            {% if not forloop.first or learner.role == 'Admin'%} {# first iteration: user's own submission; can't vote on that#}
                 <a href="">
                 <span style="float:right;margin:5px" class="task-thumbs-up fa-stack">
                     <i class="fa fa-square fa-stack-2x" style="{% if not keyterm.this_learner_voted_it %}display:none;{% endif %}"></i>
@@ -238,6 +238,8 @@ You must vote before {{keytermtask.keyterm.deadline_for_voting|date:"d F Y" }} {
                 </span>
                 </a>
             {% endif %}
+
+
         </figcaption>
         {% if after_voting_deadline %}<h3 class="polaroid-overlay"><span>{{keyterm.number_votes}} vote{{keyterm.number_votes|pluralize}}</span></h3>{% endif %}
     </figure>
