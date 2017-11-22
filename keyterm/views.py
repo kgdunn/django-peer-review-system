@@ -34,6 +34,9 @@ logger = logging.getLogger(__name__)
 def start_keyterm(request, course=None, learner=None, entry_point=None):
     """
     """
+    if learner.role in ('Admin', ):
+        return finalize_keyterm(request, course, learner, entry_point)
+
     prior = learner.keytermtask_set.filter(keyterm__entry_point=entry_point)
     if prior.count():
         keytermtask = prior[0]
@@ -54,6 +57,8 @@ def start_keyterm(request, course=None, learner=None, entry_point=None):
                                   lookup_hash=generate_random_token()
                                   )
         keytermtask.save()
+
+
 
     if request.POST.get('preview-keyterm', ''):
         return preview_keyterm(request, course, learner, entry_point)
@@ -459,21 +464,37 @@ def finalize_keyterm(request, course=None, learner=None, entry_point=None):
             logger.error('Finalize: An error occurred. [{0}]'.format(learner))
             return HttpResponse('An error occurred.')
 
-    # We have 4 states: set the correct settings (in case page is reloaded here)
-    keytermtask.is_in_draft = False
-    keytermtask.is_in_preview = False
-    keytermtask.is_submitted = False
-    keytermtask.is_finalized = True
-    keytermtask.save()
-
     # Get all prior keyterms: and show their thumbnails in random order
     # Show how many votes the user has left?
     valid_tasks = keyterm.keytermtask_set.filter(is_finalized=True)
-    own_task = valid_tasks.get(learner=learner)
-    valid_tasks = list(valid_tasks)
-    valid_tasks.remove(own_task)
-    shuffle(valid_tasks)
-    valid_tasks.insert(0, own_task)
+    if learner.role in ('Learn', ):
+
+        # We have 4 states: set the correct settings
+        #                                        (in case page is reloaded here)
+        keytermtask.is_in_draft = False
+        keytermtask.is_in_preview = False
+        keytermtask.is_submitted = False
+        keytermtask.is_finalized = True
+        keytermtask.save()
+
+        own_task = valid_tasks.get(learner=learner)
+        valid_tasks = list(valid_tasks)
+        valid_tasks.remove(own_task)
+        shuffle(valid_tasks)
+        valid_tasks.insert(0, own_task)
+    else:
+
+        # Administrator's only
+        valid_tasks = list(valid_tasks)
+        shuffle(valid_tasks)
+        if len(valid_tasks) == 0:
+            return HttpResponse('There are no completed keyterms yet to view.')
+        else:
+            # Just grab the first task to use for display purposes and logic.
+            keytermtask = valid_tasks[0]
+
+
+
     #Abuse the ``valid_tasks`` here, and add a field onto it that determines
     #if it has been voted on by this user.
     for task in valid_tasks:

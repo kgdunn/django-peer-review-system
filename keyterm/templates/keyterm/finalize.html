@@ -133,7 +133,13 @@ figure, figcaption{ /*add any other html5 elements you use*/
 
 {% block content %}
 
-<h2>Definitions for <span class='keyterm-name'>{{keytermtask.keyterm.keyterm}}</span> submitted by you, and your colleagues</h2>
+<h2>Explanations for <span class='keyterm-name'>{{keytermtask.keyterm.keyterm}}</span> submitted by
+    {% if learner.role == 'Admin' %}
+        all students in this course
+    {% elif learner.rol == 'Learn' %}
+        you, and your colleagues
+    {% endif %}
+</h2>
 
 {% timezone 'UTC' %}
 <div style="padding-top: 1em">
@@ -220,7 +226,7 @@ You must vote before {{keytermtask.keyterm.deadline_for_voting|date:"d F Y" }} {
         </a>
 
         <figcaption style="padding-top: 10px;" itemprop="caption description">
-            <span style="float:left">{{ keyterm.learner.display_name }} {% if forloop.first %} (yours!) {% endif %}
+            <span style="float:left">{{ keyterm.learner.display_name }} {% if forloop.first and learner.role == 'Learn' %} (yours!) {% endif %}
             </span>
             {% if not forloop.first %} {# first iteration: user's own submission; can't vote on that#}
                 <a href="">
