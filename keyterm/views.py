@@ -2,7 +2,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.conf import settings
 from django.utils import timezone
-
+from django.views.decorators.clickjacking import xframe_options_exempt
 
 # Python import
 import os
@@ -540,6 +540,7 @@ def finalize_keyterm(request, course=None, learner=None, entry_point=None):
            }
     return render(request, 'keyterm/finalize.html', ctx)
 
+@xframe_options_exempt
 def vote_keyterm(request, learner_hash=''):
     """
     POST request recieved when the user votes on an item. In the POST we get the
