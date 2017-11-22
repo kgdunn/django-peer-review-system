@@ -255,7 +255,7 @@ $(document).ready( function () {
                     {% if item.hyperlink %}
                       <a target="_blank" href="{{item.hyperlink}}">{{item.when|date:"d M"}},{{item.when|date:"H:i"}}</a>
                     {% else %}
-                      {{item.when|date:"d M"}},{{item.when|date:"H:i"}}
+                      {{item.when|date:"d M"}}
                     {% endif %}
                 {% else %}
                     {% if item %}
