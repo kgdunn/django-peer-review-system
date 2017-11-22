@@ -2,6 +2,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.conf import settings
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.clickjacking import xframe_options_exempt
 
 # Python import
@@ -31,6 +32,7 @@ from grades.views import push_grade
 import logging
 logger = logging.getLogger(__name__)
 
+@csrf_exempt
 def start_keyterm(request, course=None, learner=None, entry_point=None):
     """
     """
@@ -540,6 +542,7 @@ def finalize_keyterm(request, course=None, learner=None, entry_point=None):
            }
     return render(request, 'keyterm/finalize.html', ctx)
 
+@csrf_exempt
 @xframe_options_exempt
 def vote_keyterm(request, learner_hash=''):
     """
