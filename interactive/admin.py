@@ -5,8 +5,10 @@ from .models import ReleaseConditionConfig, ReleaseCondition
 
 
 class AchieveConfigAdmin(admin.ModelAdmin):
-    list_display = ("name", "description", "score", "entry_point")
+    list_display = ("name", "description", "score", "entry_point",
+                    'deadline_dt')
     ordering = ['entry_point', "score"]
+    list_filter = ['entry_point__course']
 admin.site.register(AchieveConfig, AchieveConfigAdmin)
 
 

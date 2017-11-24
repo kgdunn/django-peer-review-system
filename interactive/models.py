@@ -21,6 +21,12 @@ Key assumptions:
 100 Process completed
 """
 
+# In a redo : merge AchieveConfig and Triggers. They have overlapping info,
+#             and if we add the score and ``achievements`` fields to Trigger
+#             model, we can get substantionally the same functionality.
+#             And it the functionality would be where it mattered. An
+#             achievement substantially belongs with a trigger.
+
 class AchieveConfig(models.Model):
     """
     The achievements of a person expected
@@ -30,7 +36,8 @@ class AchieveConfig(models.Model):
                                    help_text='Detailed description')
     score = models.PositiveSmallIntegerField(default=0)
     entry_point = models.ForeignKey('basic.EntryPoint', null=True, blank=True)
-
+    deadline_dt = models.DateTimeField(default=None, null=True, blank=True,
+                            verbose_name='Deadline to reach this achievement')
     achievements = models.ManyToManyField('basic.Person',
                                      through='Achievement',
                                      )
