@@ -7,9 +7,4 @@ urlpatterns = [
     url(r'^$', views.entry_point_discovery, name='keyterms_entry_point'),
 
     url(r'^vote/(?P<learner_hash>\w+)/$', keytermviews.vote_keyterm, name='vote_keyterm'),
-    #(?P<task_hash>\w+)/
-    #
-    #url(r'^preview/$', views.preview_keyterm, name='preview_keyterm'),
-    #url(r'^submit/$', views.submit_keyterm, name='submit_keyterm'),
-    #url(r'^final/$', views.final_keyterms, name='view_all_keyterms'),
 ]
