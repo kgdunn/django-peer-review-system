@@ -2234,16 +2234,7 @@ def completed(learner, achievement, entry_point, push_grade=False,
 
 
 
-def reportcard(learner, entry_point, detailed=False):
-    """
-    Get the "reportcard" (a dictionary) of the learner's achievements
-    """
 
-    report = OrderedDict()
-    for item in AchieveConfig.objects.filter(entry_point=entry_point)\
-                                                      .order_by('score'):
-        report[item.name] = has(learner, item.name, entry_point, detailed)
-    return report
 
 
 def overview(request, course=None, learner=None, entry_point=None):
@@ -2251,6 +2242,22 @@ def overview(request, course=None, learner=None, entry_point=None):
     Student gets an overview of their grade here.
     We use all ``entry_points`` related to a course, except this entry point.
     """
+    def reportcard(learner, entry_point):
+        """
+        Get the "reportcard" (a dictionary) of the learner's achievements
+        """
+        report = OrderedDict()
+        for item in AchieveConfig.objects.filter(entry_point=entry_point)\
+                                                          .order_by('score'):
+            report[item.name] = has(learner, item.name, entry_point,
+                                    detailed=True)
+            if not(report[item.name]):  # they haven't done it
+                # Store the ``achieveconfig`` instance, because we will
+                # want to access the deadline
+                item.done = False         # add a fake field to the instance
+                report[item.name] = item
+        return report
+
 
     entries = EntryPoint.objects.filter(course=course).order_by('order')
     achieved = {}
@@ -2265,10 +2272,10 @@ def overview(request, course=None, learner=None, entry_point=None):
         else:
             total_entries += 1
 
-        achieved[entry] = reportcard(learner, entry, detailed=True)
+        achieved[entry] = reportcard(learner, entry)
         entry_display.append(entry)
 
-        if achieved[entry].get('assessed_rebuttals', False):
+        if achieved[entry].get('assessed_rebuttals').done:
             num_completed += 1
 
         if learner.role in ('Admin', ):
@@ -2304,10 +2311,7 @@ def overview_learners(entry_point):
             else:
                 return text, total
 
-
-
     ctx = {}
-
     # Not the most robust way to group students; will fall apart if a student
     # uses this system in more than 1 course
     learners = entry_point.course.person_set.filter(role='Learn',
@@ -2324,7 +2328,6 @@ def overview_learners(entry_point):
             if sub:
                 reports[learner]['submitted'].hyperlink = '/{}'.format(\
                                                         sub[0].file_upload.url)
-
 
         # ---- Reviewed by ...
         temp = ''
@@ -2358,7 +2361,6 @@ def overview_learners(entry_point):
 
         reports[learner]['reviewed_by'] = '<tt>{}</tt>'.format(temp[0:-4])
 
-
         # ---- Reviewer of ...
         reviewer_of = learner.reviewreport_set.filter(entry_point=entry_point)
         temp = ''
@@ -2381,9 +2383,6 @@ def overview_learners(entry_point):
             temp += hlink
 
         reports[learner]['reviewer_of'] = '<tt>{}</tt>'.format(temp[0:-1])
-
-
-
 
         # ---- Evaluations: earned and given
         earned = learner.peer_reviewer.filter(trigger__entry_point=entry_point,
@@ -2413,7 +2412,6 @@ def overview_learners(entry_point):
 
         reports[learner]['read_and_evaluated_all_reviews'] = text1 + text2
 
-
         # ---- Rebuttals
         if reports[learner]['completed_rebuttal']:
             rebuttals = learner.evaluator.filter(sort_report='R',
@@ -2422,7 +2420,6 @@ def overview_learners(entry_point):
                 hyperlink = '/interactive/rebuttal/{0}'.format(
                         rebuttals[0].r_actual.rubric_code)
             reports[learner]['completed_rebuttal'].hyperlink = hyperlink
-
 
         # ---- Assessments: earned and given
         earned = learner.peer_reviewer.filter(trigger__entry_point=entry_point,
@@ -2451,7 +2448,6 @@ def overview_learners(entry_point):
             text2 += '= <b>{0:+d}</b></tt>'.format(int(total))
 
         reports[learner]['assessed_rebuttals'] = text1 + text2
-
 
         # Used by the D3.js animation
         reports[learner]['_highest_achievement'] = highest_achievement
