@@ -49,16 +49,18 @@ text {
 var links = {{graph.links|safe}};
 
 var nodes = {{graph.nodes|safe}};
-
-// {"title": "Rebutted", "id": 9999999, "achieved": "rebut"},
-// {"title": "Evaluated", "id": 9999998, "achieved": "evaluate"},
-// {"title": "Reviewed", "id": 9999997, "achieved": "review"},
-// {"title": "Submitted", "id": 9999996, "achieved": "submit"},
+nodes.push({"title": "Assessed", "id": 9999999, "achieved": "assessed_rebuttals"},
+           {"title": "Rebutted", "id": 9999999, "achieved": "completed_rebuttal"},
+           {"title": "Evaluated", "id": 9999998, "achieved": "read_and_evaluated_all_reviews"},
+           {"title": "Reviewed", "id": 9999997, "achieved": "completed_all_reviews"},
+           {"title": "Submitted", "id": 9999996, "achieved": "submitted"},
+           {"title": "Withdrawn", "id": 9999995, "achieved": "NOT_FOUND"},
+        );
 
 
 var width = 1000, height = 600;
 var circle_radius = 8;
-var linkDistance = 40;		// target distance between linked nodes; optimized during simulation
+var linkDistance = 40; // target distance between linked nodes; optimized during simulation
 var linkStrength = 0.5;
 var charge = -200;
 
@@ -124,7 +126,8 @@ node.append("circle")
 
 node.append("text")
     .attr("x", -circle_radius/2)
-    .attr("dy", "0.5em")
+    .attr("dx", "-0.1em")
+    .attr("dy", "0.3em")
     .text(function(d) { return d.title; });
 
 node.append("title")
