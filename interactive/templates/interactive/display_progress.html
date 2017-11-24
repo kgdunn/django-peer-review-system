@@ -53,15 +53,14 @@ $(document).ready( function () {
 <br>
 <h2>Overview for {{learner.display_name}}</h2>
 <br>
-<div style="margin-left:auto;  margin-right:auto;"><p>Note: <em>the links at the top of each column are clickable</em></div>
-<br>
 <table class="summaries pr-admin" id="overall_progress">
 <thead><tr>
 <td style="font-size:28">Achievement</td>
 {% for unit in entries %}
     <td style="font-size:20; font-weight: bold">
     {% if unit.full_URL%}
-        <a href="{{unit.full_URL}}">{{unit.LTI_title}}</a>
+        <a href="{{unit.full_URL}}">{{unit.LTI_title}}&nbsp;<i class="fa fa-external-link" aria-hidden="true"></i></a>
+
     {% else %}
         {{unit.LTI_title}}
     {% endif %}
