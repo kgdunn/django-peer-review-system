@@ -75,7 +75,7 @@ $(document).ready( function () {
             {% if achievement.done %}
                 <td class="achieved_dt"><i class="fa fa-check" aria-hidden="true"></i>&nbsp;<br>{{ achievement.when|date:"d M, H:i"}}</td>
             {% else %}
-                <td class="duedate_dt"><i class="fa fa-times" aria-hidden="true"></i>&nbsp;<br>Due: {{achievement.deadline_dt|date:"d M, H:i"}}</td>
+                <td style="{{achievement.deadline_dt|date_urgency_style}}"><i class="fa fa-times" aria-hidden="true"></i>&nbsp;<br>Due: {{achievement.deadline_dt|date:"d M, H:i"}}</td>
             {% endif %}
         {% endwith %}
     {% endfor %}
@@ -86,7 +86,7 @@ $(document).ready( function () {
             {% if achievement.done %}
                 <td class="achieved_dt"><i class="fa fa-check" aria-hidden="true"></i>&nbsp;<br>{{ achievement.when|date:"d M, H:i"}}</td>
             {% else %}
-                <td class="duedate_dt"><i class="fa fa-times" aria-hidden="true"></i>&nbsp;<br>Due: {{achievement.deadline_dt|date:"d M, H:i"}}</td>
+                <td style="{{achievement.deadline_dt|date_urgency_style}}"><i class="fa fa-times" aria-hidden="true"></i>&nbsp;<br>Due: {{achievement.deadline_dt|date:"d M, H:i"}}</td>
             {% endif %}
         {% endwith %}
     {% endfor %}
@@ -97,7 +97,7 @@ $(document).ready( function () {
             {% if achievement.done %}
                 <td class="achieved_dt"><i class="fa fa-check" aria-hidden="true"></i>&nbsp;<br>{{ achievement.when|date:"d M, H:i"}}</td>
             {% else %}
-                <td class="duedate_dt"><i class="fa fa-times" aria-hidden="true"></i>&nbsp;<br>Due: {{achievement.deadline_dt|date:"d M, H:i"}}</td>
+                <td style="{{achievement.deadline_dt|date_urgency_style}}"><i class="fa fa-times" aria-hidden="true"></i>&nbsp;<br>Due: {{achievement.deadline_dt|date:"d M, H:i"}}</td>
             {% endif %}
         {% endwith %}
     {% endfor %}
@@ -108,7 +108,7 @@ $(document).ready( function () {
             {% if achievement.done %}
                 <td class="achieved_dt"><i class="fa fa-check" aria-hidden="true"></i>&nbsp;<br>{{ achievement.when|date:"d M, H:i"}}</td>
             {% else %}
-                <td class="duedate_dt"><i class="fa fa-times" aria-hidden="true"></i>&nbsp;<br>Due: {{achievement.deadline_dt|date:"d M, H:i"}}</td>
+                <td style="{{achievement.deadline_dt|date_urgency_style}}"><i class="fa fa-times" aria-hidden="true"></i>&nbsp;<br>Due: {{achievement.deadline_dt|date:"d M, H:i"}}</td>
             {% endif %}
         {% endwith %}
     {% endfor %}
@@ -120,7 +120,7 @@ $(document).ready( function () {
             {% if achievement.done %}
                 <td class="achieved_dt"><i class="fa fa-check" aria-hidden="true"></i>&nbsp;<br>{{ achievement.when|date:"d M, H:i"}}</td>
             {% else %}
-                <td class="duedate_dt"><i class="fa fa-times" aria-hidden="true"></i>&nbsp;<br>Due: {{achievement.deadline_dt|date:"d M, H:i"}}</td>
+                <td style="{{achievement.deadline_dt|date_urgency_style}}"><i class="fa fa-times" aria-hidden="true"></i>&nbsp;<br>Due: {{achievement.deadline_dt|date:"d M, H:i"}}</td>
             {% endif %}
         {% endwith %}
     {% endfor %}
