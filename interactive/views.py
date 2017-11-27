@@ -2561,7 +2561,10 @@ def csv_summary_download(request):
         rebuttals = learner.evaluator.filter(sort_report='R',
                                              trigger__entry_point=entry_point)
         if rebuttals.count()==1:
-            rebuttal_completed = rebuttals[0].r_actual.completed.strftime('%Y-%m-%d %H:%S')
+            if rebuttals[0].r_actual:
+                rebuttal_completed = rebuttals[0].r_actual.completed.strftime('%Y-%m-%d %H:%S')
+            else:
+                a = 4
 
 
         # ---- Assessments: earned and given
