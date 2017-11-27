@@ -22,6 +22,12 @@ def keyvalue(dictn, key):
 
 @register.filter(name='date_urgency_style')
 def date_urgency_style(value, relative_to=timezone.now):
+    """
+    Formatting style returned by 'urgency' (closeness to another datetime)
+    """
+    if not(isinstance(value, timezone.datetime)):
+        return ''
+
     if isinstance(relative_to, timezone.datetime):
         pass
     elif hasattr(relative_to, '__call__'):
