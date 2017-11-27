@@ -239,7 +239,6 @@ You must vote before {{keytermtask.keyterm.deadline_for_voting|date:"d F Y" }} {
                 </a>
             {% endif %}
 
-
         </figcaption>
         {% if after_voting_deadline %}<h3 class="polaroid-overlay"><span>{{keyterm.number_votes}} vote{{keyterm.number_votes|pluralize}}</span></h3>{% endif %}
     </figure>
@@ -295,7 +294,6 @@ var initPhotoSwipeFromDOM = function(gallerySelector) {
             item.el = figureEl; // save link to element for getThumbBoundsFn
             items.push(item);
         }
-
         return items;
     };
 
@@ -306,12 +304,9 @@ var initPhotoSwipeFromDOM = function(gallerySelector) {
 
     var onVoteClick = function(e){
         // Return with a message: "vote recorded" | "vote withdrawn"
-
-
         e = e || window.event;
         e.preventDefault ? e.preventDefault() : e.returnValue = false;
         var eTarget = e.target || e.srcElement;
-
 
         var postdata = {'csrfmiddlewaretoken': '{{ csrf_token }}',
                         'voting_task': e.target.id,
