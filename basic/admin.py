@@ -5,7 +5,9 @@ try:
 
     task = 'basic.tasks.send_emails__evaluation_and_rebuttal'
     if not(Schedule.objects.filter(func=task)):
-        schedule(func=task, schedule_type=Schedule.HOURLY)
+        #schedule(func=task, schedule_type=Schedule.HOURLY)
+        schedule(func=task, schedule_type=Schedule.MINUTES, minutes=2),
+
 
     task = 'basic.tasks.email__no_reviews_after_submission'
     if not(Schedule.objects.filter(func=task)):
