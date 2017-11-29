@@ -30,7 +30,7 @@ from interactive.models import Trigger
 # (which is assumed to have been created already)
 orig_course = Course.objects.get(label='36957')
 orig_ep = EntryPoint.objects.get(course=orig_course, LTI_id='1931107264')
-targ_course = Course.objects.get(label='49698')
+targ_course = Course.objects.get(label='8388')
 
 target_entries = ['1931107264', '1475539468',   '1499960701',
                   '370183435', '1371427444']
@@ -53,7 +53,7 @@ for target in target_entries:
 #--------------------
 # AIM: Create a new set of achieveConfigs for all courses, and all entry points.
 orig_course = Course.objects.get(label='43639')
-targ_course = Course.objects.get(label='50121')
+targ_course = Course.objects.get(label='8388')
 target_entries = ['1931107264', '1475539468',   '1499960701',
                   '370183435', '1371427444']
 
@@ -93,7 +93,7 @@ for LTI_id in LDs:
     # item templates and option templates that depend on them.
     orig_course = Course.objects.get(label='43639')
     orig_ep = EntryPoint.objects.get(course=orig_course, LTI_id=LTI_id)
-    targ_course = Course.objects.get(label='49698')
+    targ_course = Course.objects.get(label='8388')
     targ_ep = EntryPoint.objects.get(course=targ_course, LTI_id=LTI_id)
     #
     src_templates = [t.title for t in orig_ep.rubrictemplate_set.all()]
