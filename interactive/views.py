@@ -493,7 +493,7 @@ def get_line1(learner, trigger, summaries):
             review.order = idx+1
             review.save()
 
-        status = 'Start your review'
+        status = '<span class="still-to-do">Start your review</span>'
         # What is the status of this review. Cross check with RubricActual
         prior = RubricActual.objects.filter(rubric_code=review.unique_code)
         if prior.count():
