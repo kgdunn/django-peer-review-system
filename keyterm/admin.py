@@ -22,5 +22,6 @@ admin.site.register(KeyTermTask, KeyTermTaskAdmin)
 class ThumbsAdmin(admin.ModelAdmin):
     list_display = ("keytermtask", "voter", "awarded",
                     "last_edited", )
+    list_per_page = 1000
 admin.site.register(Thumbs, ThumbsAdmin)
 
