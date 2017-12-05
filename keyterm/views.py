@@ -233,17 +233,18 @@ def create_preview(keytermtask):
     Creates the keyterm page (PNG file), from the text, image, reference..
     Renders the image; uploads it as a submission.
     """
+    entry_point = keytermtask.keyterm.entry_point
+
     # Settings for creating the image and thumbnail.
     targetWimg = int(1000)   # the pasted image is 1000 pixels wide
-    targetWtxt = int(900)   # the text is 900 pixels wide
+    targetWtxt = int(900)    # the text is 900 pixels wide
     targetW = targetWtxt + targetWimg
     targetHimg = int(1600)
-    start_Lw = targetWtxt # top left width coordinate (distance from left edge)
-                          # of pasted image
+    base_canvas_wh = (targetW, targetHimg)
     start_Lh = 0  # top left height coordinate (distance from top edge) of paste
     thumbWimg = thumbHimg = int(800)
+    L_pad = R_pad = 20   # text padding
 
-    base_image_wh = (targetW, targetHimg)
     bgcolor = "#EEE"
     color = "#000"
     REPLACEMENT_CHARACTER = u'\uFFFD'
@@ -251,11 +252,23 @@ def create_preview(keytermtask):
     fontfullpath = settings.MEDIA_ROOT + 'keyterm/fonts/Lato-Regular.ttf'
     output_extension  = 'png'
 
-    entry_point = keytermtask.keyterm.entry_point
+    # These keyterms we will float the image left (odd numbers ID)
+    if keytermtask.id % 2:
+        start_Lw = 0          # top left width coordinate (distance from left
+                              # edge) of pasted image
+        text_width = targetW
+        L_pad += targetWimg
+
+    # These keyterms will have float the image right
+    else:
+        start_Lw = targetWtxt # top left width coordinate (distance from left
+                              #  edge) of pasted image
+        text_width = targetWtxt
+        L_pad = L_pad         # stays the same ...
 
     # Is the storage space reachable?
     deepest_dir = settings.MEDIA_ROOT + 'uploads/{0}/thumbs/'.format(
-        entry_point.id)
+                                                                 entry_point.id)
 
     try:
         os.makedirs(deepest_dir)
@@ -265,11 +278,16 @@ def create_preview(keytermtask):
                 deepest_dir))
             raise
 
-    img = Image.new("RGB", base_image_wh, bgcolor)
+    img = Image.new("RGB", base_canvas_wh, bgcolor)
     draw = ImageDraw.Draw(img)
     # https://www.snip2code.com/Snippet/1601691/Python-text-to-image-(png)-conversion-wi
     def text2png(text, draw, start_y=0, fontsize=50, leftpadding=3,
                  rightpadding=3, width=2000):
+        """
+        width:        the size of the canvas
+        leftpadding:  the starting point where we write text from
+        rightpadding: the fartherest right edge where we can write text up to
+        """
         #font = ImageFont.load_default()
         font =  ImageFont.truetype(fontfullpath, fontsize)
         text = text.replace('\n\n', NEWLINE_REPLACEMENT_STRING)
@@ -308,37 +326,36 @@ def create_preview(keytermtask):
 
 
     last_y, line_height = text2png(keytermtask.keyterm.keyterm, draw,
-                                   start_y=50, fontsize=75, leftpadding=20)
+                                   start_y=50, fontsize=75, leftpadding=L_pad,
+                                   width=text_width)
 
     last_y, line_height = text2png(keytermtask.definition_text, draw,
                                    start_y=last_y+line_height*1,
-                                   fontsize=32, width=targetWtxt-20*2,
-                                   leftpadding=20, rightpadding=20)
+                                   fontsize=32, width=text_width,
+                                   leftpadding=L_pad, rightpadding=R_pad)
 
     last_y, line_height = text2png('Example/Explanation:', draw,
                                    start_y=last_y+line_height*2,
-                                   fontsize=50, width=targetWtxt-20*2,
-                                   leftpadding=20, rightpadding=20)
+                                   fontsize=50, width=text_width,
+                                   leftpadding=L_pad, rightpadding=R_pad)
 
     last_y, line_height = text2png(keytermtask.explainer_text, draw,
-                                   start_y=last_y, fontsize=28,
-                                   width=targetWtxt-20*2,
-                                   leftpadding=20, rightpadding=20)
+                                   start_y=last_y, fontsize=28, width=text_width,
+                                   leftpadding=L_pad, rightpadding=R_pad)
 
     last_y, line_height = text2png('Reference:', draw,
                                    start_y=last_y+line_height*2,
-                                   fontsize=30, width=targetWtxt-20*2,
-                                   leftpadding=20, rightpadding=20)
+                                   fontsize=30, width=text_width,
+                                   leftpadding=L_pad, rightpadding=R_pad)
 
     last_y, line_height = text2png(keytermtask.reference_text, draw,
-                                   start_y=last_y, fontsize=20,
-                                   width=targetWtxt-20*2,
-                                   leftpadding=20, rightpadding=20)
+                                   start_y=last_y, fontsize=20, width=text_width,
+                                   leftpadding=L_pad, rightpadding=R_pad)
     text = 'Created by: ' + keytermtask.learner.display_name
     last_y, line_height = text2png(text, draw,
-                                   start_y=img.size[1]-2*line_height, fontsize=20,
-                                   width=targetWtxt-20*2,
-                                   leftpadding=20, rightpadding=20)
+                                   start_y=img.size[1]-2*line_height,
+                                   fontsize=20, width=text_width,
+                                   leftpadding=L_pad, rightpadding=R_pad)
 
 
     source = Image.open(keytermtask.image_raw.file_upload)
