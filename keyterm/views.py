@@ -634,7 +634,7 @@ def vote_keyterm(request, learner_hash=''):
             # Undo the prior voting to get the user back to the level allowed
             thumb.awarded = False
             new_state = False
-            valid_vote = 'All votes have been used up.'
+            valid_vote = 'All votes have been used up. '
             html_class = 'warning'
             thumb.save()
 
@@ -645,15 +645,26 @@ def vote_keyterm(request, learner_hash=''):
 
 
 
+    if new_state:
+        short_msg = 'Vote recorded; '
+    else:
+        short_msg = 'Vote withdrawn; '
+    if valid_vote == 'All votes have been used up. ':
+        short_msg = valid_vote
+
     message = 'As of {}: you have '.format(timezone.now().strftime(\
                                                  '%d %B %Y at %H:%M:%S (UTC)'))
     if max_votes == prior_votes.count():
         message += ('no more votes left. You may withdraw prior votes by '
                     'clicking on the icon. ')
+        short_msg += ('Zero votes left. <br><br>Remove prior votes to '
+                    'vote again. ')
     elif (max_votes - prior_votes.count()) == 1:
         message += '1 more vote left. '
+        short_msg += '1 more vote left. '
     else:
         message += '{} more votes left. '.format(max_votes-prior_votes.count())
+        short_msg += '{} more votes left. '.format(max_votes-prior_votes.count())
 
     if valid_vote:
         message += ' <span class="{}">{}</span>'.format(html_class, valid_vote)
@@ -664,6 +675,7 @@ def vote_keyterm(request, learner_hash=''):
 
     response = {'message': message,
                 'new_state': new_state,
-                'task_hash': '#' + lookup_hash}
+                'task_hash': '#' + lookup_hash,
+                'short_msg': short_msg}
 
     return JsonResponse(response)

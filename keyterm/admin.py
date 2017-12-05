@@ -14,6 +14,7 @@ class KeyTermTaskAdmin(admin.ModelAdmin):
     list_display = ("keyterm", "learner", "lookup_hash",
                     "last_edited", "is_in_draft", "is_finalized",
                     "is_submitted", )
+    list_per_page = 1000
 admin.site.register(KeyTermTask, KeyTermTaskAdmin)
 
 

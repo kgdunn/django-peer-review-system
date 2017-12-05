@@ -231,19 +231,19 @@ You must vote before {{keytermtask.keyterm.deadline_for_voting|date:"d F Y" }} {
             {% if not forloop.first or learner.role == 'Admin'%} {# first iteration: user's own submission; can't vote on that#}
                 <a href="">
                 <span style="float:right;margin:5px" class="task-thumbs-up fa-stack">
-                    <i class="fa fa-square fa-stack-2x" style="{% if not keyterm.this_learner_voted_it %}display:none;{% endif %}"></i>
+                    <i class="fa fa-square fa-stack-2x" style="{% if keyterm.this_learner_voted_it %}inline-block;{%else%}display:none;{% endif %}" id="{{keyterm.lookup_hash}}-sibling"></i>
                     {% if not after_voting_deadline or keyterm.this_learner_voted_it %}
                     <i class="fa fa-thumbs-o-up fa-stack-1x {% if keyterm.this_learner_voted_it %}thumb-voted{% endif %}" aria-hidden="true" id="{{keyterm.lookup_hash}}"></i>
+
                     {% endif %}
                 </span>
                 </a>
             {% endif %}
 
         </figcaption>
-        {% if after_voting_deadline %}<h3 class="polaroid-overlay"><span>{{keyterm.number_votes}} vote{{keyterm.number_votes|pluralize}}</span></h3>{% endif %}
+        <h3 class="polaroid-overlay"><span id="{{keyterm.lookup_hash}}-feedback">{% if after_voting_deadline %}{{keyterm.number_votes}} vote{{keyterm.number_votes|pluralize}}{% endif %}</span></h3>
     </figure>
     {% endfor %}
-
 </div> <!--end id=polaroid class=gallery-keyterms-->
 
 
@@ -327,11 +327,14 @@ var initPhotoSwipeFromDOM = function(gallerySelector) {
             if(response.new_state){
                 $(response.task_hash).addClass('thumb-voted');
                 $(response.task_hash).parent().children()[0].style.display = 'inline-block';
+                $(response.task_hash+'-feedback').html(response.short_msg)
+                $(response.task_hash+'-feedback').show().fadeOut(5000);
             }else{
-                $(response.task_hash).removeClass('thumb-voted');
                 $(response.task_hash).parent().children()[0].style.display = 'none'
+                $(response.task_hash).removeClass('thumb-voted');
+                $(response.task_hash+'-feedback').html(response.short_msg);
+                $(response.task_hash+'-feedback').show().fadeOut(5000);
             }
-
         });
 
         return true;
