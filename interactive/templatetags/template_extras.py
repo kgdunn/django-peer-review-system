@@ -36,8 +36,10 @@ def date_urgency_style(value, relative_to=timezone.now):
         relative_to = timezone.now()
 
     deviation = value - relative_to
+
     if deviation.days<0:
-        return 'color: #FF0000; font-weight: 900;'
+        return ('color: #FF0000; font-weight: 900; '
+                'border: red; border-width: 5px;  border-style: solid;')
     elif deviation.days>10:
         return 'color: lightpink; font-weight: 100;'
     elif deviation.days>9:
