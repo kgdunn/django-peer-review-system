@@ -8,6 +8,7 @@ from django.views.decorators.clickjacking import xframe_options_exempt
 # Python import
 import os
 from random import shuffle
+import tempfile
 
 # This app's imports
 from .models import KeyTermSetting, KeyTermTask, Thumbs
@@ -16,6 +17,7 @@ from .forms import UploadFileForm_file_optional, UploadFileForm_file_required
 # 3rd party imports: image rendering
 import PIL
 from PIL import ImageFont, Image, ImageDraw
+from PyPDF2 import PdfFileMerger
 
 # Import from our other apps
 from utils import generate_random_token
@@ -31,6 +33,8 @@ from grades.views import push_grade
 # Logging
 import logging
 logger = logging.getLogger(__name__)
+
+OUTPUT_EXTENSION = 'png'
 
 @csrf_exempt
 def start_keyterm(request, course=None, learner=None, entry_point=None):
@@ -241,16 +245,16 @@ def create_preview(keytermtask):
     targetW = targetWtxt + targetWimg
     targetHimg = int(1600)
     base_canvas_wh = (targetW, targetHimg)
+
     start_Lh = 0  # top left height coordinate (distance from top edge) of paste
     thumbWimg = thumbHimg = int(800)
     L_pad = R_pad = 20   # text padding
-
     bgcolor = "#EEE"
     color = "#000"
     REPLACEMENT_CHARACTER = u'\uFFFD'
     NEWLINE_REPLACEMENT_STRING = ' ' + REPLACEMENT_CHARACTER + ' '
     fontfullpath = settings.MEDIA_ROOT + 'keyterm/fonts/Lato-Regular.ttf'
-    output_extension  = 'png'
+
 
     # These keyterms we will float the image left (odd numbers ID)
     if keytermtask.id % 2:
@@ -377,7 +381,7 @@ def create_preview(keytermtask):
     source = source.resize((width, height))
     img.paste(source, (start_Lw, start_Lh))
 
-    base_name = generate_random_token(token_length=16) + '.' + output_extension
+    base_name = generate_random_token(token_length=16) + '.' + OUTPUT_EXTENSION
     submitted_file_name_django = 'uploads/{0}/{1}'.format(entry_point.id,
                                                           base_name)
     full_path = settings.MEDIA_ROOT + submitted_file_name_django
@@ -561,6 +565,81 @@ def finalize_keyterm(request, course=None, learner=None, entry_point=None):
 
 @csrf_exempt
 @xframe_options_exempt
+def download_term(request, learner_hash=''):
+    """
+    POST request received from user to download a booklet of all the keyterms
+    for a particular page.
+
+    Creates a unique link, delay to compile the document and download it.
+    """
+    'download_task'
+    learner = Person.objects.filter(hash_code=learner_hash)
+    if learner.count() != 1:
+        logger.error('Learner error hash={}; POST=[{}]'.format(learner_hash,
+                                                               request.POST))
+        return JsonResponse({'message': ('Error: could not identify who you '
+                                         'are. Please reload the page.') })
+    else:
+        learner = learner[0]
+
+
+    lookup_id = request.POST.get('download_task', 'keyterm-0')
+    try:
+        lookup_id = int(lookup_id.split('keyterm-')[1])
+    except ValueError:
+        lookup_id = 0
+
+
+    keyterm = KeyTermSetting.objects.filter(id=lookup_id)
+    if keyterm.count() != 1:
+        logger.error('Keyterm not found={}; POST=[{}]'.format(lookup_id,
+                                                                request.POST))
+        return JsonResponse({'message': ('Error: Key term not found.') })
+    else:
+        keyterm = keyterm[0]
+
+    merger = PdfFileMerger(strict=False, )
+    all_terms = keyterm.keytermtask_set.filter(is_finalized=True).order_by('id')
+    append_images = []
+    for term in all_terms:
+
+        outfile = term.image_modified.file.name.split('.'+OUTPUT_EXTENSION)[0]
+        outfile += '.pdf'
+        if not(os.path.isfile(outfile)):
+            img = Image.open(term.image_modified.file)
+            img.save(outfile, 'PDF')
+
+        # Append the PDF
+        merger.append(outfile, import_bookmarks=False)
+
+    # All done
+    merger.addMetadata({'/Title': 'Key term: ' + keyterm.keyterm,
+                        '/Author': 'All students in the course',
+                        '/Creator': 'Keyterms Booklet',
+                        '/Producer': 'Keyterms Booklet'})
+
+    base_file_dir = 'uploads/{0}/tmp/'.format(keyterm.entry_point.id)
+    deepest_dir = settings.MEDIA_ROOT + base_file_dir
+    fd, temp_file_dst = tempfile.mkstemp(prefix=keyterm.keyterm+'--',
+                                         suffix='.pdf', dir=deepest_dir)
+    server_URI = '/{0}{1}'.format(settings.MEDIA_URL,
+                                  temp_file_dst.split(settings.MEDIA_ROOT)[1])
+
+    merger.write(temp_file_dst)
+    merger.close()
+    try:
+        os.close(fd)
+    except OSError:
+        pass
+
+    message = ('Your download is ready now. <a href="{}" target="_blank">'
+               'Click here to open it.</a>').format(server_URI)
+    response = {'message': message}
+    return JsonResponse(response)
+
+
+@csrf_exempt
+@xframe_options_exempt
 def vote_keyterm(request, learner_hash=''):
     """
     POST request recieved when the user votes on an item. In the POST we get the
@@ -575,7 +654,6 @@ def vote_keyterm(request, learner_hash=''):
                              'reload the page.'))
     else:
         learner = learner[0]
-
 
     lookup_hash = request.POST.get('voting_task', None)
     keytermtask = KeyTermTask.objects.filter(lookup_hash=lookup_hash)
@@ -627,7 +705,6 @@ def vote_keyterm(request, learner_hash=''):
                     )
             thumb.save()
 
-
         # One last check (must come after voting!)
         # Too many votes already for others in this same keyterm?
         if prior_votes.count() > max_votes:
@@ -641,9 +718,6 @@ def vote_keyterm(request, learner_hash=''):
     logger.debug('Vote for [{}] by [{}]; new_state: {}'.format(lookup_hash,
                                                                learner_hash,
                                                                new_state))
-
-
-
 
     if new_state:
         short_msg = 'Vote recorded; '

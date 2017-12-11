@@ -4,7 +4,15 @@ from basic import views
 from keyterm import views as keytermviews
 
 urlpatterns = [
-    url(r'^$', views.entry_point_discovery, name='keyterms_entry_point'),
+    url(r'^$',
+        views.entry_point_discovery,
+        name='keyterms_entry_point'),
 
-    url(r'^vote/(?P<learner_hash>\w+)/$', keytermviews.vote_keyterm, name='vote_keyterm'),
+    url(r'^vote/(?P<learner_hash>\w+)/$',
+        keytermviews.vote_keyterm,
+        name='vote_keyterm'),
+
+    url(r'^download/(?P<learner_hash>\w+)',
+        keytermviews.download_term,
+        name='download_term'),
 ]

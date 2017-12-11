@@ -136,7 +136,7 @@ figure, figcaption{ /*add any other html5 elements you use*/
 <h2>Explanations for <span class='keyterm-name'>{{keytermtask.keyterm.keyterm}}</span> submitted by
     {% if learner.role == 'Admin' %}
         all students in this course
-    {% elif learner.rol == 'Learn' %}
+    {% elif learner.role == 'Learn' %}
         you, and your colleagues
     {% endif %}
 </h2>
@@ -151,6 +151,11 @@ You must vote before {{keytermtask.keyterm.deadline_for_voting|date:"d F Y" }} {
 
 {% endif %}
 {% endtimezone %}
+
+
+{% if learner.role == 'Admin' %}
+    <i class="fa fa-file-pdf-o" aria-hidden="true"></i>&nbsp;<a class="admin_download" id="keyterm-{{keytermtask.keyterm.id}}" href="#">Download all as PDF</a>&nbsp;<span id="download-feedback"></span>
+{% endif %}
 
 <!-- Root element of PhotoSwipe. Must have class pswp. -->
 <div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
@@ -248,6 +253,27 @@ You must vote before {{keytermtask.keyterm.deadline_for_voting|date:"d F Y" }} {
 
 
 <script>
+
+$( ".admin_download" ).click(function (event) {
+    var postdata = {'csrfmiddlewaretoken': '{{ csrf_token }}',
+                    'download_task': event.target.id,
+                   };
+    $.ajax({
+        method: "POST",
+        url: '{% url 'download_term' learner_hash=learner.hash_code %}',
+        data: postdata,
+        cache: false,
+        dataType: 'html'
+    })
+    .always(function(json_response) {
+        var response = JSON.parse(json_response);
+        $('#download-feedback').html(response.message);
+    });
+
+}).change();
+
+
+
 var initPhotoSwipeFromDOM = function(gallerySelector) {
 
     // parse slide data (url, title, size ...) from DOM elements
@@ -495,6 +521,8 @@ var initPhotoSwipeFromDOM = function(gallerySelector) {
     if(hashData.pid && hashData.gid) {
         openPhotoSwipe( hashData.pid ,  galleryElements[ hashData.gid - 1 ], true, true );
     }
+
+
 };
 
 // execute above function
