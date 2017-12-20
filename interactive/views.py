@@ -1144,7 +1144,7 @@ class group_graph(object):
         submitters = []
         for group in groups:
 
-            submitter = group.membership_set.filter(role='Submit')
+            submitter = group.membership_set.filter(role='Submit', fixed=True)
             if submitter.count() == 0:
                 continue
             submitters.append(submitter[0])

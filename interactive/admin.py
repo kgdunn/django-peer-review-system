@@ -51,7 +51,10 @@ admin.site.register(GroupConfig, GroupConfigAdmin)
 
 
 class MembershipAdmin(admin.ModelAdmin):
-    list_display = ("group", "learner", "role")
+    list_display = ("group", "learner", "role", )
+    list_per_page = 1000
+    list_filter = ['group__entry_point']
+
 admin.site.register(Membership, MembershipAdmin)
 
 
