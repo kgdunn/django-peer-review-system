@@ -266,7 +266,7 @@ def create_preview(keytermtask):
     # These keyterms will have float the image right
     else:
         start_Lw = targetWtxt # top left width coordinate (distance from left
-                              #  edge) of pasted image
+                              # edge) of pasted image
         text_width = targetWtxt
         L_pad = L_pad         # stays the same ...
 
@@ -376,7 +376,7 @@ def create_preview(keytermtask):
         # Current image has height as the limiting constraint. Set height to target.
         width = int(max(width/height * targetHimg, 1))
         height = targetHimg
-        start_Lw = targetWimg + int((targetWimg-width)/2)
+        start_Lw = start_Lw + int((targetWimg-width)/2)
 
     source = source.resize((width, height))
     img.paste(source, (start_Lw, start_Lh))
