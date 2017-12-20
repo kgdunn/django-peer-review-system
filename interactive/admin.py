@@ -14,6 +14,7 @@ admin.site.register(AchieveConfig, AchieveConfigAdmin)
 
 class AchievementAdmin(admin.ModelAdmin):
     list_display = ("learner", "achieved", "done", "when", "get_ep", "note")
+    list_per_page = 1000
 
     def get_ep(self, obj):
         return str(obj.achieved.entry_point)
