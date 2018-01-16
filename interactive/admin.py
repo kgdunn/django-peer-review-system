@@ -71,6 +71,8 @@ class EvaluationReportAdmin(admin.ModelAdmin):
     list_display = ("evaluator", "peer_reviewer", "unique_code", "prior_code",
                     "sort_report", "submission", "r_actual", "trigger",
                     "created", "last_viewed")
+    list_per_page = 1000
+
 admin.site.register(EvaluationReport, EvaluationReportAdmin)
 
 
