@@ -141,3 +141,24 @@ for LTI_id in LDs:
         # Done with all items
         print('--Done--')
     print('-Klaar-')
+
+
+
+# Fix the uncreated assessment
+# ----------------------------
+from rubric.models import RubricTemplate, RItemTemplate, RItemActual
+from interactive.models import EvaluationReport
+unique_code = 'PQFBfEUzMKdH2Zbc'
+reports = EvaluationReport.objects.filter(unique_code=unique_code)
+report = reports[0]
+
+template=RubricTemplate.objects.get(trigger=report.trigger)
+r_actual = report.r_actual
+
+# Creates the items (rows) associated with an actual rubric
+for r_item in RItemTemplate.objects.filter(r_template=template).order_by('order'):
+    r_item_actual = RItemActual(ritem_template = r_item,
+                                r_actual = r_actual,
+                                comment = '',
+                                submitted = False)
+    r_item_actual.save()
