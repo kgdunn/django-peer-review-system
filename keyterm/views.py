@@ -753,3 +753,82 @@ def vote_keyterm(request, learner_hash=''):
                 'short_msg': short_msg}
 
     return JsonResponse(response)
+
+@csrf_exempt
+def student_downloads(request, course=None, learner=None, entry_point=None):
+    """
+    Generates all the information needed for a student download of the keyterm
+    booklets
+    """
+
+    total_votes = student_votes_given = student_votes_received = 0
+    total_votes = Thumbs.objects.filter(awarded=True).count()
+    n_persons = Person.objects.filter(course=course, role='Learn').count()
+    student_votes_given = learner.thumbs_set.all().count()
+
+    entry_points = course.entrypoint_set.all().order_by('id')
+    all_keyterms = []
+    for term in entry_points:
+        if term != entry_point:
+            all_keyterms.append(KeyTermSetting.objects.get(entry_point=term))
+
+
+
+    merger = PdfFileMerger(strict=False, )
+
+    #cover_page = []
+    #merger.append(cover_page, import_bookmarks=False)
+
+    for keyterm in all_keyterms:
+        this_task = learner.keytermtask_set.filter(keyterm=keyterm,
+                                                   is_finalized=True)
+        if this_task:
+            student_votes_received += this_task[0].thumbs_set.all().count()
+            outfile = this_task[0].image_modified.file.name.split('.' + \
+                                                            OUTPUT_EXTENSION)[0]
+            outfile += '.pdf'
+            if not(os.path.isfile(outfile)):
+                img = Image.open(this_task[0].image_modified.file)
+                img.save(outfile, 'PDF')
+
+            # Append the PDF
+            merger.append(outfile, import_bookmarks=False)
+
+
+    # All done
+    merger.addMetadata({'/Title': 'Key terms for ' + course.name,
+                        '/Author': learner.display_name,
+                        '/Creator': 'Keyterms Booklet',
+                        '/Producer': 'Keyterms Booklet'})
+
+    base_file_dir = 'uploads/{0}/tmp/'.format(entry_point.id)
+    deepest_dir = settings.MEDIA_ROOT + base_file_dir
+
+    try:
+        os.makedirs(deepest_dir)
+    except OSError:
+        if not os.path.isdir(deepest_dir):
+            logger.error('Cannot create directory for downloads: {0}'.format(
+                deepest_dir))
+            raise
+
+    fd, temp_file_dst = tempfile.mkstemp(prefix=learner.display_name+'--',
+                                         suffix='.pdf',
+                                         dir=deepest_dir)
+    server_URI = '/{0}{1}'.format(settings.MEDIA_URL,
+                                  temp_file_dst.split(settings.MEDIA_ROOT)[1])
+
+    merger.write(temp_file_dst)
+    merger.close()
+    try:
+        os.close(fd)
+    except OSError:
+        pass
+
+    ctx = {'learner_download_link': server_URI,
+           'total_votes': total_votes,
+           'n_persons': n_persons,
+           'student_votes_given': student_votes_given,
+           'student_votes_received': student_votes_received,
+           }
+    return render(request, 'keyterm/learner_download.html', ctx)
