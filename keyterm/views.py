@@ -773,7 +773,8 @@ def student_downloads(request, course=None, learner=None, entry_point=None):
             all_keyterms.append(KeyTermSetting.objects.get(entry_point=term))
 
 
-
+    x, y = 50, 200
+    student_name = learner.official_name or learner.display_name
     merger = PdfFileMerger(strict=False, )
 
     #cover_page = []
@@ -797,9 +798,9 @@ def student_downloads(request, course=None, learner=None, entry_point=None):
 
     # All done
     merger.addMetadata({'/Title': 'Key terms for ' + course.name,
-                        '/Author': learner.display_name,
-                        '/Creator': 'Keyterms Booklet',
-                        '/Producer': 'Keyterms Booklet'})
+                       '/Author': learner.official_name or learner.display_name,
+                       '/Creator': 'Keyterms Booklet',
+                       '/Producer': 'Keyterms Booklet'})
 
     base_file_dir = 'uploads/{0}/tmp/'.format(entry_point.id)
     deepest_dir = settings.MEDIA_ROOT + base_file_dir
