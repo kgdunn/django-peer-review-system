@@ -2416,9 +2416,14 @@ def overview_learners(entry_point):
         if reports[learner]['completed_rebuttal']:
             rebuttals = learner.evaluator.filter(sort_report='R',
                                                      trigger__entry_point=entry_point)
+            hyperlink = ''         # Sometimes we have manually overridden the
+                                   # achievement of `completed_rebuttal`, but no
+                                   # actual rebuttal exists. So make the
+                                   # hyperlink is empty.
             if rebuttals.count()==1:
                 hyperlink = '/interactive/rebuttal/{0}'.format(
                         rebuttals[0].r_actual.rubric_code)
+
             reports[learner]['completed_rebuttal'].hyperlink = hyperlink
 
         # ---- Assessments: earned and given
