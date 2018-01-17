@@ -889,8 +889,8 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
         ractual.save()
         try:
             report = EvaluationReport.objects.get(unique_code=ractual.next_code)
-        except EvaluationReport.DoesNotExist:
-            logger.error('EvaluationReport not found. Please correct.')
+        except EvaluationReport.DoesNotExist as e:
+            logger.error('EvaluationReport not found. Please correct:' + str(e))
             ctx_objects['lineA'] = ('',
                                     ("The links to read and evaluate reviewers'"
                                      " feedback are still being generated. "
