@@ -44,6 +44,8 @@ class Person(models.Model):
     email = models.EmailField(blank=True, default='')
     display_name = models.CharField(max_length=400, verbose_name='Display name',
                                    blank=True)
+    official_name = models.CharField(max_length=400,
+                                     verbose_name='Official name', blank=True)
 
     user_ID = models.CharField(max_length=100, blank=True,
                                             verbose_name='User ID from LMS/LTI')
