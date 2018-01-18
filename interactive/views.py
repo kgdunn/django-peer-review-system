@@ -2592,13 +2592,16 @@ def csv_summary_download(request):
 
         given = learner.evaluator.filter(trigger__entry_point=entry_point,
                                          sort_report='A')
-        total_assess_gave = 0.0
+        total_assess_gave = 'NotDone'
         for report in given:
             if report.r_actual is None: # It has not been started yet
                 continue
             else:
                 if report.r_actual.status in ('C', 'L'):
-                    total_assess_gave += report.r_actual.score
+                    try:
+                        total_assess_gave += report.r_actual.score
+                    except TypeError:
+                        total_assess_gave = report.r_actual.score
 
 
         # All finished for this student
