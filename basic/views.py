@@ -100,7 +100,8 @@ def entry_point_discovery(request, course_code=None, entry_code=None):
 
     # Finally, send the user back for another round, now that we have
     # used the session to store the information.
-    if  (course_code is not None) or (entry_code is not None):
+    if  (course_code is not None) or (entry_code is not None) or \
+                                                         (entry_point is None):
         return HttpResponseRedirect('/')
 
     logger.debug('Person is {}, with id={}'.format(person, person.id))
