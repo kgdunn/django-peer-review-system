@@ -781,7 +781,7 @@ def student_downloads(request, course=None, learner=None, entry_point=None):
     n_persons = Person.objects.filter(course=course, role='Learn').count()
     student_votes_given = learner.thumbs_set.all().count()
 
-    entry_points = course.entrypoint_set.all().order_by('id')
+    entry_points = course.entrypoint_set.all().order_by('order')
     all_keyterms = []
     for term in entry_points:
         if term != entry_point:
