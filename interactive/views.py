@@ -2542,13 +2542,16 @@ def csv_summary_download(request):
         # ---- Evaluations: earned and given
         earned = learner.peer_reviewer.filter(trigger__entry_point=entry_point,
                                               sort_report='E')
-        total_eval_earn = 0.0
+        total_eval_earn = 'NotDone'
         for report in earned:
             if report.r_actual is None: # It has not been started yet
                 continue
             else:
                 if report.r_actual.status in ('C', 'L'):
-                    total_eval_earn += report.r_actual.score
+                    try:
+                        total_eval_earn += report.r_actual.score
+                    except TypeError:
+                        total_eval_earn = report.r_actual.score
 
 
         given = learner.evaluator.filter(trigger__entry_point=entry_point,
@@ -2575,13 +2578,16 @@ def csv_summary_download(request):
         # ---- Assessments: earned and given
         earned = learner.peer_reviewer.filter(trigger__entry_point=entry_point,
                                               sort_report='A')
-        total_assess_earn = 0.0
+        total_assess_earn = 'NotDone'
         for report in earned:
             if report.r_actual is None: # It has not been started yet
                 continue
             else:
                 if report.r_actual.status in ('C', 'L'):
-                    total_assess_earn += report.r_actual.score
+                    try:
+                        total_assess_earn += report.r_actual.score
+                    except TypeError:
+                        total_assess_earn = report.r_actual.score
 
 
         given = learner.evaluator.filter(trigger__entry_point=entry_point,
