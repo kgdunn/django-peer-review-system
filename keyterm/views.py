@@ -773,11 +773,9 @@ def student_downloads(request, course=None, learner=None, entry_point=None):
                 deepest_dir))
             raise
 
-
-
+    # Explicitly specify the variables we will use later
     total_votes = student_votes_given = student_votes_received = 0
     submitted_keyterms = draft_keyterms = maximum_keytermtasks = 0
-
 
     total_votes = Thumbs.objects.filter(awarded=True).count()
     n_persons = Person.objects.filter(course=course, role='Learn').count()
@@ -791,6 +789,7 @@ def student_downloads(request, course=None, learner=None, entry_point=None):
 
     maximum_keytermtasks = len(all_keyterms)
 
+    # Settings for text placement
     placement_y = 225
     placement_offset_x = 16
     fontsize = 50
@@ -800,7 +799,7 @@ def student_downloads(request, course=None, learner=None, entry_point=None):
     color = "#FFF"
     bgcolor = "#000"
 
-
+    # Set up the text and placement for the student's name in the template
     student_name = learner.official_name or learner.display_name
     fontfullpath = base_dir + 'keyterm/fonts/Lato-Regular.ttf'
     img = Image.new("RGB", base_canvas_wh, bgcolor)
@@ -814,11 +813,9 @@ def student_downloads(request, course=None, learner=None, entry_point=None):
     x, y = ((image_W - font.getsize(student_name)[0])/2, placement_y)
 
     draw.text( (x+placement_offset_x, y), student_name, color, font=font)
-
     cover_page = deepest_dir + student_name + '.pdf'
     if not(os.path.isfile(cover_page)):
         img.save(cover_page, 'PDF')
-
 
     merger = PdfFileMerger(strict=False, )
     merger.append(cover_page, import_bookmarks=False)
@@ -854,9 +851,13 @@ def student_downloads(request, course=None, learner=None, entry_point=None):
                        '/Creator': 'Keyterms Booklet',
                        '/Producer': 'Keyterms Booklet'})
 
+    # First delete old files
+    for dirpath, dnames, fnames in os.walk(deepest_dir):
+        for f in fnames:
+            if f.startswith(learner.display_name+'--'):
+                os.remove(dirpath + f)
 
-
-
+    # Then save their latest version of the booklet
     fd, temp_file_dst = tempfile.mkstemp(prefix=learner.display_name+'--',
                                          suffix='.pdf',
                                          dir=deepest_dir)
