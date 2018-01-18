@@ -823,10 +823,8 @@ def student_downloads(request, course=None, learner=None, entry_point=None):
     voting = defaultdict(dict)
     for keyterm in all_keyterms:
         this_task = learner.keytermtask_set.filter(keyterm=keyterm)
-        if not(this_task):
-            continue
+        voting[keyterm.keyterm]['url'] = keyterm.entry_point.full_URL
         if this_task[0].is_finalized:
-            voting[keyterm.keyterm]['url'] = keyterm.entry_point.full_URL
             submitted_keyterms += 1
             voting[keyterm.keyterm]['received_votes'] = \
                                       this_task[0].thumbs_set.all().count()
@@ -843,6 +841,7 @@ def student_downloads(request, course=None, learner=None, entry_point=None):
 
         elif this_task[0].is_in_draft:
             # The keyterm was started, but not finalized
+            voting[keyterm.keyterm]['received_votes'] = 'You left this as draft'
             draft_keyterms += 1
 
     # All done
