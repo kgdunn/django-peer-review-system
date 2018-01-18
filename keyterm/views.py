@@ -9,6 +9,7 @@ from django.views.decorators.clickjacking import xframe_options_exempt
 import os
 from random import shuffle
 import tempfile
+from collections import defaultdict
 
 # This app's imports
 from .models import KeyTermSetting, KeyTermTask, Thumbs
@@ -760,8 +761,24 @@ def student_downloads(request, course=None, learner=None, entry_point=None):
     Generates all the information needed for a student download of the keyterm
     booklets
     """
+    # Create place to store and stage files
+    base_dir = settings.MEDIA_ROOT
+    base_file_dir = 'uploads/{0}/tmp/'.format(entry_point.id)
+    deepest_dir = base_dir + base_file_dir
+    try:
+        os.makedirs(deepest_dir)
+    except OSError:
+        if not os.path.isdir(deepest_dir):
+            logger.error('Cannot create directory for PDF download: {0}'.format(
+                deepest_dir))
+            raise
+
+
 
     total_votes = student_votes_given = student_votes_received = 0
+    submitted_keyterms = draft_keyterms = maximum_keytermtasks = 0
+
+
     total_votes = Thumbs.objects.filter(awarded=True).count()
     n_persons = Person.objects.filter(course=course, role='Learn').count()
     student_votes_given = learner.thumbs_set.all().count()
@@ -772,18 +789,50 @@ def student_downloads(request, course=None, learner=None, entry_point=None):
         if term != entry_point:
             all_keyterms.append(KeyTermSetting.objects.get(entry_point=term))
 
+    maximum_keytermtasks = len(all_keyterms)
 
-    x, y = 50, 200
+    placement_y = 225
+    placement_offset_x = 16
+    fontsize = 50
+    image_W, image_H = (1900, 1600)
+    offset_y = 0
+    base_canvas_wh = (image_W, image_H)
+    color = "#FFF"
+    bgcolor = "#000"
+
+
     student_name = learner.official_name or learner.display_name
+    fontfullpath = base_dir + 'keyterm/fonts/Lato-Regular.ttf'
+    img = Image.new("RGB", base_canvas_wh, bgcolor)
+    draw = ImageDraw.Draw(img)
+    cover_page = base_dir + 'keyterm-template-cover.jpg'
+    source = Image.open(cover_page)
+    img.paste(source, (0, 0))
+    font = ImageFont.truetype(fontfullpath, fontsize)
+
+    # The name is centered in the image
+    x, y = ((image_W - font.getsize(student_name)[0])/2, placement_y)
+
+    draw.text( (x+placement_offset_x, y), student_name, color, font=font)
+
+    cover_page = deepest_dir + student_name + '.pdf'
+    if not(os.path.isfile(cover_page)):
+        img.save(cover_page, 'PDF')
+
+
     merger = PdfFileMerger(strict=False, )
+    merger.append(cover_page, import_bookmarks=False)
 
-    #cover_page = []
-    #merger.append(cover_page, import_bookmarks=False)
-
+    voting = defaultdict(dict)
     for keyterm in all_keyterms:
-        this_task = learner.keytermtask_set.filter(keyterm=keyterm,
-                                                   is_finalized=True)
-        if this_task:
+        this_task = learner.keytermtask_set.filter(keyterm=keyterm)
+        if not(this_task):
+            continue
+        if this_task[0].is_finalized:
+            voting[keyterm.keyterm]['url'] = keyterm.entry_point.full_URL
+            submitted_keyterms += 1
+            voting[keyterm.keyterm]['received_votes'] = \
+                                      this_task[0].thumbs_set.all().count()
             student_votes_received += this_task[0].thumbs_set.all().count()
             outfile = this_task[0].image_modified.file.name.split('.' + \
                                                             OUTPUT_EXTENSION)[0]
@@ -795,6 +844,9 @@ def student_downloads(request, course=None, learner=None, entry_point=None):
             # Append the PDF
             merger.append(outfile, import_bookmarks=False)
 
+        elif this_task[0].is_in_draft:
+            # The keyterm was started, but not finalized
+            draft_keyterms += 1
 
     # All done
     merger.addMetadata({'/Title': 'Key terms for ' + course.name,
@@ -802,16 +854,8 @@ def student_downloads(request, course=None, learner=None, entry_point=None):
                        '/Creator': 'Keyterms Booklet',
                        '/Producer': 'Keyterms Booklet'})
 
-    base_file_dir = 'uploads/{0}/tmp/'.format(entry_point.id)
-    deepest_dir = settings.MEDIA_ROOT + base_file_dir
 
-    try:
-        os.makedirs(deepest_dir)
-    except OSError:
-        if not os.path.isdir(deepest_dir):
-            logger.error('Cannot create directory for downloads: {0}'.format(
-                deepest_dir))
-            raise
+
 
     fd, temp_file_dst = tempfile.mkstemp(prefix=learner.display_name+'--',
                                          suffix='.pdf',
@@ -831,5 +875,10 @@ def student_downloads(request, course=None, learner=None, entry_point=None):
            'n_persons': n_persons,
            'student_votes_given': student_votes_given,
            'student_votes_received': student_votes_received,
+           'submitted_keyterms': submitted_keyterms,
+           'draft_keyterms': draft_keyterms,
+           'maximum_keytermtasks': maximum_keytermtasks,
+           'maximum_votes_possible': submitted_keyterms * 3,
+           'voting': dict(voting), # defaultdict->dict, to avoid template issues
            }
     return render(request, 'keyterm/learner_download.html', ctx)

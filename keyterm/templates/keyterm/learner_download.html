@@ -13,7 +13,57 @@
 <p style="font-size: 150%;"><i class="fa fa-long-arrow-right" aria-hidden="true"></i> Click here to download your <a href="{{learner_download_link}}" target="_blank">personalized key terms booklet <i class="fa fa-file-pdf-o" aria-hidden="true"></i></a>.
 
 
-<p>Your key terms received {{student_votes_received}} vote{{student_votes_received|pluralize}}, and you gave out {{student_votes_given}} vote{{student_votes_given|pluralize}} to other learners.
+<div style="color:darkorange">A summary about your key term activity:</div>
+<div style="color:darkgreen">
+<ul>
+<li>You finalized and submitted {{submitted_keyterms}} completed submission{{submitted_keyterms|pluralize}} out of a maximum of {{maximum_keytermtasks}}.
+<li>You however left {{draft_keyterms}} submission{{draft_keyterms|pluralize}} as draft, and therefore {{draft_keyterms|pluralize:"this is,these are"}} incomplete, and ungraded.
+<li>You received {{student_votes_received}} vote{{student_votes_received|pluralize}} for the key terms that you did submit.
+<li>You gave out {{student_votes_given}} vote{{student_votes_given|pluralize}} to other learners, out a maximum possible of {{maximum_votes_possible}} (<i><strong>note: you might still have time left to vote!</i></strong>).
+</ul>
+</div>
+
+<script language="javascript" type="text/javascript">
+$(document).ready( function () {
+
+  $('#voting_overview').DataTable( {
+    paging: false,
+    order: [ [ 1, "des" ],],
+    searching: false,
+    fixedHeader: {
+        header: true,
+        footer: true
+    },
+    bInfo: false,
+    bAutoWidth: true,
+  } );
+} );
+</script>
+
+<table id="voting_overview">
+<thead>
+<tr>
+  <th>Key term hyperlink</th>
+  <th>Votes received</th>
+</tr>
+</thead>
+<tbody>
+
+{% for key, value in voting.items %}
+  <tr>
+    <td><a href="{{value.url}}" target="_blank">{{ key }}</a></td>
+    <td>{{ value.received_votes }}</td>
+  </tr>
+{% endfor %}
+
+</tbody></table>
+
+<hr>
+<h2>Coming soon ...</h2>
+<p>
+<p style="font-size: 150%;"><i class="fa fa-long-arrow-right" aria-hidden="true"></i> Download a PDF booklet with the terms that the received the most votes.
+
+
 
 
 {% endblock %}
