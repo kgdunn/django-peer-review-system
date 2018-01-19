@@ -9,6 +9,7 @@ from django.views.decorators.clickjacking import xframe_options_exempt
 import os
 from random import shuffle
 import tempfile
+import datetime
 from collections import defaultdict
 
 # This app's imports
@@ -824,26 +825,38 @@ def student_downloads(request, course=None, learner=None, entry_point=None):
     for keyterm in all_keyterms:
         this_task = learner.keytermtask_set.filter(keyterm=keyterm)
         voting[keyterm.keyterm]['url'] = keyterm.entry_point.full_URL
+
+        all_tasks = keyterm.keytermtask_set.all()
+        all_votes = [kt.thumbs_set.all().count() for kt in all_tasks]
+        # Don't sort, unless you are debugging and want to preview the ties.
+        #all_votes.sort()
+        #print(all_votes)
+        max_votes = max(all_votes)
+        max_votes_idx = all_votes.index(max_votes)
+        voting[keyterm.keyterm]['top_task'] = all_tasks[max_votes_idx]
         if not(this_task):
             voting[keyterm.keyterm]['received_votes'] = ('You did not attempt '
                                                          'this key term.')
             continue
-        if this_task[0].is_finalized:
+        else:
+            this_task = this_task[0]
+
+        if this_task.is_finalized:
             submitted_keyterms += 1
             voting[keyterm.keyterm]['received_votes'] = \
-                                      this_task[0].thumbs_set.all().count()
-            student_votes_received += this_task[0].thumbs_set.all().count()
-            outfile = this_task[0].image_modified.file.name.split('.' + \
+                                      this_task.thumbs_set.all().count()
+            student_votes_received += this_task.thumbs_set.all().count()
+            outfile = this_task.image_modified.file.name.split('.' + \
                                                             OUTPUT_EXTENSION)[0]
             outfile += '.pdf'
             if not(os.path.isfile(outfile)):
-                img = Image.open(this_task[0].image_modified.file)
+                img = Image.open(this_task.image_modified.file)
                 img.save(outfile, 'PDF')
 
             # Append the PDF
             merger.append(outfile, import_bookmarks=False)
 
-        elif this_task[0].is_in_draft:
+        elif this_task.is_in_draft:
             # The keyterm was started, but not finalized
             voting[keyterm.keyterm]['received_votes'] = ('You left this key '
                                                          'term as draft.')
@@ -870,10 +883,53 @@ def student_downloads(request, course=None, learner=None, entry_point=None):
 
     merger.write(temp_file_dst)
     merger.close()
+    # Then close the temp file
     try:
         os.close(fd)
     except OSError:
         pass
+
+    merger = PdfFileMerger(strict=False, )
+    cover_page = base_dir + 'keyterm-template-most-votes.pdf'
+
+    # Only done once
+    if not(os.path.isfile(cover_page)):
+        img = Image.new("RGB", base_canvas_wh, bgcolor)
+        draw = ImageDraw.Draw(img)
+        source = Image.open(base_dir + 'keyterm-template-most-votes.jpg')
+        img.paste(source, (0, 0))
+        img.save(cover_page, 'PDF')
+
+    # Continue on
+    merger.append(cover_page, import_bookmarks=False)
+    for keyterm in all_keyterms:
+        this_task = voting[keyterm.keyterm]['top_task']
+        if this_task.is_finalized:
+            received_votes = this_task.thumbs_set.all().count()
+            outfile = this_task.image_modified.file.name.split('.' + \
+                                                            OUTPUT_EXTENSION)[0]
+            outfile += '.pdf'
+            if not(os.path.isfile(outfile)):
+                img = Image.open(this_task.image_modified.file)
+                img.save(outfile, 'PDF')
+
+            # Append the PDF
+            merger.append(outfile, import_bookmarks=False)
+    # All done, finish up.
+    timestamp = timezone.now().strftime('%d-%m-%Y-%H-%M-%S')
+    fd, temp_file_dst = tempfile.mkstemp(prefix='Most-voted'+'-'+timestamp+'-',
+                                         suffix='.pdf',
+                                         dir=deepest_dir)
+    most_voted_link = '/{0}{1}'.format(settings.MEDIA_URL,
+                                  temp_file_dst.split(settings.MEDIA_ROOT)[1])
+
+    merger.write(temp_file_dst)
+    merger.close()
+
+    # Pick the last key term for the overall voting deadline
+    show_most_voted_booklet = False
+    if datetime.datetime.now(datetime.timezone.utc) > keyterm.deadline_for_voting:
+        show_most_voted_booklet = True
 
     ctx = {'learner_download_link': server_URI,
            'total_votes': total_votes,
@@ -885,5 +941,7 @@ def student_downloads(request, course=None, learner=None, entry_point=None):
            'maximum_keytermtasks': maximum_keytermtasks,
            'maximum_votes_possible': submitted_keyterms * 3,
            'voting': dict(voting), # defaultdict->dict, to avoid template issues
+           'most_voted_link': most_voted_link,
+           'show_most_voted_booklet': show_most_voted_booklet,
            }
     return render(request, 'keyterm/learner_download.html', ctx)

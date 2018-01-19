@@ -59,11 +59,13 @@ $(document).ready( function () {
 </tbody></table>
 
 <hr>
-<h2>Coming soon ...</h2>
-<p>
-<p style="font-size: 150%;color:darkorange"><i class="fa fa-long-arrow-right" aria-hidden="true"></i> Download a PDF booklet with each term that the received the most votes.
 
-
-
+{% if show_most_voted_booklet %}
+  <p style="font-size: 150%;color:darkorange"><i class="fa fa-long-arrow-right" aria-hidden="true"></i> Download a PDF booklet with
+  <a href="{{most_voted_link}}" target="_blank">each term that the received the most votes <i class="fa fa-file-pdf-o" aria-hidden="true"></i></a>.
+{% else %}
+  <h2>Coming soon ...</h2>
+  <p style="font-size: 150%;color:darkorange"><i class="fa fa-long-arrow-right" aria-hidden="true"></i> Download a PDF booklet with each term that the received the most votes.
+{% endif %}
 
 {% endblock %}
