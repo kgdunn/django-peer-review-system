@@ -813,7 +813,7 @@ def student_downloads(request, course=None, learner=None, entry_point=None):
     x, y = ((image_W - font.getsize(student_name)[0])/2, placement_y)
 
     draw.text( (x+placement_offset_x, y), student_name, color, font=font)
-    cover_page = deepest_dir + student_name + '.pdf'
+    cover_page = deepest_dir + learner.display_name + '.pdf'
     if not(os.path.isfile(cover_page)):
         img.save(cover_page, 'PDF')
 
