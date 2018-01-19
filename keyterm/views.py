@@ -893,12 +893,12 @@ def student_downloads(request, course=None, learner=None, entry_point=None):
     cover_page = base_dir + 'keyterm-template-most-votes.pdf'
 
     # Only done once
-    if not(os.path.isfile(cover_page)):
-        img = Image.new("RGB", base_canvas_wh, bgcolor)
-        draw = ImageDraw.Draw(img)
-        source = Image.open(base_dir + 'keyterm-template-most-votes.jpg')
-        img.paste(source, (0, 0))
-        img.save(cover_page, 'PDF')
+    #if not(os.path.isfile(cover_page)):
+    #    img = Image.new("RGB", base_canvas_wh, bgcolor)
+    #    draw = ImageDraw.Draw(img)
+    #    source = Image.open(base_dir + 'keyterm-template-most-votes.jpg')
+    #    img.paste(source, (0, 0))
+    #    img.save(cover_page, 'PDF')
 
     # Continue on
     merger.append(cover_page, import_bookmarks=False)
