@@ -109,7 +109,9 @@ class Person(models.Model):
 
 
     def __str__(self):
-        return u'[{0}]({1})'.format(self.initials or self.id, self.role)
+        return u'{0}[{1}]({2})'.format(self.id,
+                                       self.initials or self.id,
+                                       self.role)
 
 class Token(models.Model):
     """ Tokens capture time/date and permissions of a user to access.
