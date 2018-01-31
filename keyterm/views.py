@@ -926,7 +926,8 @@ def student_downloads(request, course=None, learner=None, entry_point=None):
     merger.write(temp_file_dst)
     merger.close()
 
-    # Pick the last key term for the overall voting deadline
+    # Pick the last key term from the prior fot loop to figure out what the
+    # overall voting deadline is
     show_most_voted_booklet = False
     if datetime.datetime.now(datetime.timezone.utc) > keyterm.deadline_for_voting:
         show_most_voted_booklet = True

@@ -3,35 +3,31 @@
 <h2 style="display:inline; clear:none;">Learner overview</h2><br>
 
 <style>
+    .link {
+      fill: none;
+      stroke: #aaa;
+      stroke-width: 1.5px;
+      stroke-opacity: 0.6;
+    }
 
-.link {
-  fill: none;
-  stroke: #aaa;
-  stroke-width: 1.5px;
-  stroke-opacity: 0.6;
-}
+    .marker {
+        fill: #AAA;
+        stroke: #aaa;
+        stroke-width: 1.5px;
+        stroke-opacity: 0.6;
+    }
+    .node circle {
+      stroke: #fff;
+      stroke-width: 1.5px;
+    }
 
-.marker {
-    fill: #AAA;
-    stroke: #aaa;
-    stroke-width: 1.5px;
-    stroke-opacity: 0.6;
-}
-.node circle {
-  stroke: #fff;
-  stroke-width: 1.5px;
-}
-
-text {
-  font: 10px sans-serif;
-  pointer-events: none;
-}
-
+    text {
+      font: 10px sans-serif;
+      pointer-events: none;
+    }
 </style>
 <script src="//d3js.org/d3.v3.min.js"></script>
 <script>
-
-
     // TODO:
     // Curved nodes: https://bl.ocks.org/mbostock/4600693
     // Curves?https://stackoverflow.com/questions/16568313/arrows-on-links-in-d3js-force-layout`
@@ -44,27 +40,13 @@ text {
 //nodes.forEach(function(d, i) {
 //  d.x = d.y = width / n * i;
 //});
-
-
 var links = {{graph.links|safe}};
-
 var nodes = {{graph.nodes|safe}};
-nodes.push({"title": "Assessed", "id": 9999999, "achieved": "assessed_rebuttals"},
-           {"title": "Rebutted", "id": 9999999, "achieved": "completed_rebuttal"},
-           {"title": "Evaluated", "id": 9999998, "achieved": "read_and_evaluated_all_reviews"},
-           {"title": "Reviewed", "id": 9999997, "achieved": "completed_all_reviews"},
-           {"title": "Submitted", "id": 9999996, "achieved": "submitted"},
-           {"title": "Withdrawn", "id": 9999995, "achieved": "NOT_FOUND"},
-        );
-
-
 var width = 1000, height = 600;
-var circle_radius = 8;
+var circle_radius = 9;
 var linkDistance = 40; // target distance between linked nodes; optimized during simulation
 var linkStrength = 0.5;
 var charge = -200;
-
-
 var mapper = {"submitted": "#fdae6b",
               "completed_all_reviews": "#cedb9c",
               "read_and_evaluated_all_reviews": "#e7cb94",
@@ -84,7 +66,6 @@ var force = d3.layout.force()
     .alpha(0.5)
     .on("tick", tick)  // runs the animation of the force layout one 'step'; give the force layout diagram it's fluid movement
     .start();
-
 
 var svg = d3.select("body").append("svg")
     .attr("width", width)
@@ -167,6 +148,16 @@ node.append("title")
             toggle = 0;
         }
     }
+function mouseover() {
+  d3.select(this).select("circle").transition()
+      .duration(750)
+      .attr("r", circle_radius*2);
+}
+function mouseout() {
+  d3.select(this).select("circle").transition()
+      .duration(750)
+      .attr("r", circle_radius);
+}
 
 function tick() {
   link
@@ -179,20 +170,77 @@ function tick() {
       .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
 }
 
+var legend_links = [{'source': 9999995, 'target': 9999996, 'weight': 1},
+                    {'source': 9999996, 'target': 9999997, 'weight': 1},
+                    {'source': 9999997, 'target': 9999998, 'weight': 1},
+                    {'source': 9999998, 'target': 9999999, 'weight': 1},
+                    ];
+var legend_nodes = [
+            {"title": "Assessed", "id": 9999999, "achieved": "assessed_rebuttals"},
+            {"title": "Rebutted", "id": 9999998, "achieved": "completed_rebuttal"},
+            {"title": "Evaluated", "id": 9999997, "achieved": "read_and_evaluated_all_reviews"},
+            {"title": "Reviewed", "id": 9999996, "achieved": "completed_all_reviews"},
+            {"title": "Submitted", "id": 9999995, "achieved": "submitted"},
+            {"title": "Withdrawn", "id": 9999994, "achieved": "NOT_FOUND"}];
+var width = 200, height = 600;
+var circle_radius = 15;
+var linkDistance = 40; // target distance between linked nodes; optimized during simulation
+var linkStrength = 0.5;
+var charge = -200;
+var mapper = {"submitted": "#fdae6b",
+              "completed_all_reviews": "#cedb9c",
+              "read_and_evaluated_all_reviews": "#e7cb94",
+              'completed_rebuttal': "#e7969c",
+              'assessed_rebuttals':"#74c476",
+              'NOT_FOUND': "#999999"};
 
-function mouseover() {
-  d3.select(this).select("circle").transition()
-      .duration(750)
-      .attr("r", circle_radius*2);
-}
+var force = d3.layout.force()
+    .nodes(d3.values(legend_nodes))
+    .links(legend_links)
+    .size([width, height])
+    .linkDistance(linkDistance)
+    .linkStrength(linkStrength)
+    .charge(charge)
+    .friction(0.9)
+    .gravity(0.1)
+    .theta(0.8)
+    .alpha(0.5)
+    .on("tick", tick)  // runs the animation of the force layout one 'step'; give the force layout diagram it's fluid movement
+    .start();
 
-function mouseout() {
-  d3.select(this).select("circle").transition()
-      .duration(750)
-      .attr("r", circle_radius);
-}
+var svg = d3.select("body").append("svg")
+    .attr('id', 'legend')
+    .attr("width", width)
+    .attr("height", height);
+
+
+var link = svg.selectAll("#legend.link")
+    .data(force.links())
+  .enter().append("line")
+    .attr("class", "link")
+    .attr("marker-end", "url(#end)");
+
+var node_legend = svg.selectAll("#legend.node")
+    .data(force.nodes())
+  .enter().append("g")
+    .attr("class", "node")
+    .call(force.drag);
+
+node_legend.append("circle")
+    .attr("r", circle_radius)
+    .attr("fill", function(d) { return mapper[d.achieved]; });
+
+node_legend.append("text")
+    .attr("x", -circle_radius/2)
+    .attr("dx", "-0.1em")
+    .attr("dy", "0.3em")
+    .text(function(d) { return d.title; });
+
+node_legend.append("title")
+    .text(function(d) { return "Achieved: " + d.achieved;});
 
 </script>
+
 <p><em>Double-click on a learner node to see their connections. Double-click again to undo.</em>
 
 <!-- ---------------------- -->
