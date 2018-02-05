@@ -2428,7 +2428,7 @@ def overview_learners(entry_point):
             reports[learner]['completed_rebuttal'].hyperlink = hyperlink
 
         # ---- Assessments: earned and given
-        earned = learner.peer_reviewer.filter(trigger__entry_point=entry_point,
+        earned = learner.evaluator.filter(trigger__entry_point=entry_point,
                                               sort_report='A')
         text1 = '<tt>Earn: '
         total = 0.0
@@ -2440,7 +2440,7 @@ def overview_learners(entry_point):
         else:
             text1 += '= <b>{0:+d}</b></tt><br>'.format(int(total))
 
-        given = learner.evaluator.filter(trigger__entry_point=entry_point,
+        given = learner.peer_reviewer.filter(trigger__entry_point=entry_point,
                                         sort_report='A')
         text2 = '<tt>Gave: '
         total = 0.0
@@ -2580,7 +2580,7 @@ def csv_summary_download(request):
 
 
         # ---- Assessments: earned and given
-        earned = learner.peer_reviewer.filter(trigger__entry_point=entry_point,
+        earned = learner.evaluator.filter(trigger__entry_point=entry_point,
                                               sort_report='A')
         total_assess_earn = 'NotDone'
         for report in earned:
@@ -2594,7 +2594,7 @@ def csv_summary_download(request):
                         total_assess_earn = report.r_actual.score
 
 
-        given = learner.evaluator.filter(trigger__entry_point=entry_point,
+        given = learner.peer_reviewer.filter(trigger__entry_point=entry_point,
                                          sort_report='A')
         total_assess_gave = 'NotDone'
         for report in given:

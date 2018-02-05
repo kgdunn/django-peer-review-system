@@ -313,6 +313,8 @@ class EvaluationReport(models.Model):
     #
     # TODO: rename this field to ``submitter`` (since in different sort_report
     #       the word "evaluator" is confusing, e.g. during assessment phase)
+
+    # During Assessment, this is the person seeing the assessment (not doing) it
     evaluator = models.ForeignKey('basic.Person', related_name='evaluator',
                         help_text='The original submitter is the evaluator')
 
