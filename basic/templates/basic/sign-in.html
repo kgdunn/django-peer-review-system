@@ -8,16 +8,18 @@
 
 {% block content %}
 
-<h2>Sign-in</h2>
 
+
+<div id="welcome-message" style="max-width: 800px; padding:20px">
+<h2>Sign-in</h2>
 <p>There are some important points to note about the electronic peer review tool that will be used in this course.
 
 <ol>
 <li> You will upload PDF documents to be reviewed by other students that are also taking this course.
-<li> You will also review your peers, supplying ratings and comments in your reviews, evaluations, rebuttals and assessments.
-<li> You will receive email reminders, at your TU Delft email address, to let you know there is an evaluation due, or an assessment due. We also use that email address for you to sign into the system because <b>we don't use any passwords</b>.
+<li> You will also review your peers, supplying ratings and comments to them.
+<li> You will receive email reminders, at your TU Delft email address, to let you know there is an evaluation due, or an assessment due. We also use that email address for you to sign into the system because <b>we do not use any passwords</b>.
 </ol>
-<p>To use this system you are agreeing to sharing the above information from points 1, 2 and 3 with the website that electronically handles the process. If you prefer not to use the system as described, please contact the module manager in your course. You can also watch a <a href="https://www.youtube.com/watch?v=EDTe5CxJiJE" target="_blank">short video about the review process</a>.
+<p>To use this system you are agreeing to sharing the above information from points 1, 2 and 3 with the website that electronically handles the process. If you prefer not to use the system as described, please contact the module manager in your course.
 
 <form method="post" id="sign-in-popup-form" action="#" name="sign-in-popup-form">
     {% csrf_token %}
@@ -35,8 +37,9 @@
 
         <input id="popup-submit-button" type="submit" data-rel="back" data-inline="true" value="Email me a code to get started!">
         <br>
-        * You must use your TU Delft <span style="color:red">email address</span> (<em style="color:darkgreen; font-weight: bold;">not your NetID</em>), in the form: <tt>A.B.Lastname@student.tudelft.nl</tt>, or sometimes also <tt>FirstnameLastname@student.tudelft.nl</tt>
+        * You must use your TU Delft <span style="color:red">email address</span> (<em style="color:darkgreen; font-weight: bold;">not your NetID</em>), in the form: <tt>A.B.Lastname@student.tudelft.nl</tt>, or sometimes also<br> <tt>FirstnameLastname@student.tudelft.nl</tt>
     </div>
 </form>
+</div>
 
 {% endblock %}

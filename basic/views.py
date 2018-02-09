@@ -305,10 +305,11 @@ def handle_website_sign_in(learner, is_newbie, request):
 
         token = create_token_send_email_check_success(learner, request)
         token.save()
-        return ("An account has been created for you, but must still "
+        return ("<div style='max-width: 200px; padding:40px'>"
+                "An account has been created for you, but must still "
                 "be activated. Please check your email and click on the link "
                 "that was emailed you. <b>Also check your spam folder</b>."
-                "<br>".format(now_time))
+                "<br></div>".format(now_time))
     else:
         # Not a newbie
         token = create_token_send_email_check_success(learner, request)
