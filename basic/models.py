@@ -229,7 +229,9 @@ class EntryPoint(models.Model):
                    'with "/"; eg: /course/12345/98765432'))
 
     def __str__(self):
-        return '[{0}]:{1}'.format(self.course, self.LTI_title[0:17])
+        return '[{0}][{1}]:{2}'.format(self.id,
+                                       self.course,
+                                       self.LTI_title[0:17])
 
     def settings(self, setting_name):
         sttg = self.kwargs.replace('\r','').replace('\n','').replace(' ', '')
