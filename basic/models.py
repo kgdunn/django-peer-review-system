@@ -8,6 +8,7 @@ from django.utils import timezone
 # Our imports
 from utils import generate_random_token
 import hashlib
+import json
 
 
 class Course(models.Model):
@@ -201,7 +202,7 @@ class EntryPoint(models.Model):
     course = models.ForeignKey(Course)
 
     settings = models.TextField(blank=True,
-                    help_text='Comma separated key-value setting pairs')
+            help_text='Dictionary of JSON settings. E.g.: {"num_peers":2}')
 
     uses_groups = models.BooleanField(default=False,
         help_text='Are groups used to restrict reviews?')
@@ -229,6 +230,18 @@ class EntryPoint(models.Model):
 
     def __str__(self):
         return '[{0}]:{1}'.format(self.course, self.LTI_title[0:17])
+
+    def setting(self, setting_name):
+        sttg = self.settings.replace('\r','').replace('\n','').replace(' ', '')
+        if sttg:
+            try:
+                setting_dict = json.loads(sttg)
+            except json.decoder.JSONDecodeError as err:
+                return None
+            else:
+                return setting_dict.get(setting_name, None)
+        else:
+            return None
 
 
 class Email_Task(models.Model):
