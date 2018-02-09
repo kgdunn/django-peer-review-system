@@ -201,7 +201,7 @@ class EntryPoint(models.Model):
 
     course = models.ForeignKey(Course)
 
-    settings = models.TextField(blank=True,
+    kwargs = models.TextField(blank=True,
             help_text='Dictionary of JSON settings. E.g.: {"num_peers":2}')
 
     uses_groups = models.BooleanField(default=False,
@@ -231,8 +231,8 @@ class EntryPoint(models.Model):
     def __str__(self):
         return '[{0}]:{1}'.format(self.course, self.LTI_title[0:17])
 
-    def setting(self, setting_name):
-        sttg = self.settings.replace('\r','').replace('\n','').replace(' ', '')
+    def settings(self, setting_name):
+        sttg = self.kwargs.replace('\r','').replace('\n','').replace(' ', '')
         if sttg:
             try:
                 setting_dict = json.loads(sttg)
