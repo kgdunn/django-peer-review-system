@@ -4,7 +4,7 @@ Glad to have you back in the Peer Review system.
 
 To sign in, please follow these steps:
 1. Click on this link: {{sign_in_URI}}
-2. Get started with your submission, review, evaluation, rebuttal and/or assessment!
+2. Get started with your submissions, peer reviews and evaluations!
 
 Remember: we don't use passwords on this website; we only send an email.
 Once you are logged in, you will be remain signed in for as long as you don't clear out your cookies.
