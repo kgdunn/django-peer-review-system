@@ -141,8 +141,7 @@ def starting_point(request, course=None, learner=None, entry_point=None):
     #    return HttpResponse(error_response)
 
     # Step 2: Call all triggers:
-    triggers = Trigger.objects.filter(entry_point=entry_point,
-                                      is_active=True).order_by('order')
+    triggers = entry_point.trigger_set.filter(is_active=True).order_by('order')
     module = sys.modules[__name__]
     now_time = datetime.datetime.now(datetime.timezone.utc)
 
@@ -229,8 +228,8 @@ def starting_point(request, course=None, learner=None, entry_point=None):
         ctx_objects['global_summary_link'] = global_summary[0].full_URL
 
 
-    html = loader.render_to_string('interactive/landing_page.html',
-                                    ctx_objects)
+    html = loader.render_to_string('interactive/{}'.format(\
+        entry_point.settings('landing_page')), ctx_objects)
     return HttpResponse(html)
 
 
