@@ -200,6 +200,9 @@ class EntryPoint(models.Model):
 
     course = models.ForeignKey(Course)
 
+    settings = models.TextField(blank=True,
+                    help_text='Comma separated key-value setting pairs')
+
     uses_groups = models.BooleanField(default=False,
         help_text='Are groups used to restrict reviews?')
 

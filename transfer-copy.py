@@ -1,45 +1,35 @@
 # SEN Q2: 50121
 # EPA Q2: 49698
 
-
+# SEN Q3: 67173
 
 # ------
-# TO create the entry points
+# 1. Manually create the course in WePeer, and place the label number here.
+course_label = '67173'
+target_entries = ['1931107264', '1475539468', '1499960701', '370183435',
+                  '1371427444']
+
+
+# 2. Create entry points
 from basic.models import EntryPoint, Course
-course = Courses.objects.get(name='Prep MSc')
-for entry in EntryPoint.objects.all():
+
+orig_course = Course.objects.get(label='50121')       # where we will copy from
+targ_course = Course.objects.get(label=course_label)  # where we will copy to
+
+for entry in orig_course.entrypoint_set.all():
     entry.id = None
     entry.save()
-    entry.course=course
+    entry.course=targ_course
     entry.save()
 
+# 3. Manually edit the URL's to have the correct middle section.
 
-
-# ------
-
-# Aim: copy rubric template, items and options from one course to another
-
-
-from rubric.models import RubricTemplate, RItemTemplate
-from basic.models import Course, EntryPoint
-from interactive.models import Trigger
-
-#--------------------
-# AIM: Create a new set of triggers for all courses, and all entry points.
-# Create the course, and the entry_point manually first. Then use this code.
-# (which is assumed to have been created already)
-orig_course = Course.objects.get(label='36957')
+# 4a. Create the Triggers for the course, and all entry points.
 orig_ep = EntryPoint.objects.get(course=orig_course, LTI_id='1931107264')
-targ_course = Course.objects.get(label='8388')
 
-target_entries = ['1931107264', '1475539468',   '1499960701',
-                  '370183435', '1371427444']
-
-for target in target_entries:
-    print('Processing for {}'.format(target))
-    targ_ep = EntryPoint.objects.get(course=targ_course, LTI_id=target)
+for targ_ep in targ_course.entrypoint_set.all():
+    print('Processing for {}'.format(targ_ep))
     assert(targ_ep.trigger_set.all().count() == 0)
-
     count = 0
     for trigger in orig_ep.trigger_set.all():
         trigger.id = None
@@ -47,20 +37,21 @@ for target in target_entries:
         trigger.entry_point = targ_ep
         trigger.save()
         count += 1
-
+    #
     print('Successfully added {} triggers'.format(count))
 
-#--------------------
-# AIM: Create a new set of achieveConfigs for all courses, and all entry points.
-orig_course = Course.objects.get(label='43639')
-targ_course = Course.objects.get(label='8388')
-target_entries = ['1931107264', '1475539468',   '1499960701',
-                  '370183435', '1371427444']
+# 4b. Remove any triggers that are not needed. e.g. for the Progress Overview
+# 4c. Change the dates on the triggers.
 
-for target in target_entries:
-    print('Processing for {}'.format(target))
-    orig_ep = EntryPoint.objects.get(course=orig_course, LTI_id=target)
-    targ_ep = EntryPoint.objects.get(course=targ_course, LTI_id=target)
+# 5. Create a new set of achieveConfigs for all courses, and all entry points.
+from rubric.models import RubricTemplate, RItemTemplate
+from basic.models import Course, EntryPoint
+from interactive.models import Trigger
+
+for target_id in target_entries:
+    print('Processing for {}'.format(target_id))
+    orig_ep = EntryPoint.objects.get(course=orig_course, LTI_id=target_id)
+    targ_ep = EntryPoint.objects.get(course=targ_course, LTI_id=target_id)
     assert(orig_ep.achieveconfig_set.all().count() > 0)
     assert(targ_ep.achieveconfig_set.all().count() == 0)
     count = 0
@@ -73,28 +64,16 @@ for target in target_entries:
     print('Successfully added {} achievements'.format(count))
 #--------------------
 
+# 6. Copy rubric template, items and options from one course to another
+# 7. Adjust the dates for the deadlines when finished
 
-# Now you have the triggers. The next step is to create rubric templates.
-from rubric.models import RubricTemplate, RItemTemplate
-from basic.models import Course, EntryPoint
-from interactive.models import Trigger
-
-
-
-LDs = ['1931107264',
-       '1475539468',
-       '1499960701',
-        '370183435',
-       '1371427444', ]
-
-for LTI_id in LDs:
-    print('Processing LTI {}'.format(LTI_id))
+for target_id in target_entries:
+    print('Processing LTI {}'.format(target_id))
     # These have the added complexity that you have a .trigger, .next_trigger and
     # item templates and option templates that depend on them.
-    orig_course = Course.objects.get(label='43639')
-    orig_ep = EntryPoint.objects.get(course=orig_course, LTI_id=LTI_id)
-    targ_course = Course.objects.get(label='8388')
-    targ_ep = EntryPoint.objects.get(course=targ_course, LTI_id=LTI_id)
+    #
+    orig_ep = EntryPoint.objects.get(course=orig_course, LTI_id=target_id)
+    targ_ep = EntryPoint.objects.get(course=targ_course, LTI_id=target_id)
     #
     src_templates = [t.title for t in orig_ep.rubrictemplate_set.all()]
     print(src_templates)
