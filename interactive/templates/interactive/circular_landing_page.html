@@ -1,0 +1,36 @@
+{% extends "basic/base.html" %}
+<style>
+.start_dt{
+  float:right;
+  margin:5px 0;
+  padding:3px;
+  background: #ddd;
+  width:20%;
+}
+.end_dt{
+  float:right;
+  margin:5px 0;
+  padding:3px;
+  background: #ccc;
+  width:20%;
+}
+</style>
+{% block content %}
+    {{header|safe}}
+    {% if learner.role == 'Learn' %}
+        {{ce_step_1submit|safe}}
+        {{ce_step_2review|safe}}
+        {{ce_step_3eval|safe}}
+        {{step_resubmit|safe}}
+        {{step_feedback|safe}}
+        {{step_grade|safe}}
+        {% include "interactive/summary.html" %}
+
+    {% endif %}
+
+    {# -----------------------------------------------------------------------#}
+    {% if learner.role == 'Admin' %}
+        {{overview_learners|safe}}
+    {% endif %}
+
+{% endblock %}
