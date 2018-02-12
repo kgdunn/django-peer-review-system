@@ -45,7 +45,8 @@ from rubric.models import RubricTemplate, RubricActual
 from grades.models import GradeItem, LearnerGrade
 #from grades.views import push_grade as push_to_gradebook
 from stats.views import create_hit
-from submissions.views import get_submission, upload_submission
+from submissions.views import (get_submission, upload_submission,
+                               is_group_submission)
 from submissions.models import Submission
 from submissions.forms import (UploadFileForm_one_file,
                                UploadFileForm_multiple_file)
@@ -242,8 +243,6 @@ def render_template(trigger, ctx_objects):
     return insert_evaluate_variables(trigger.template, ctx_objects)
 
 
-
-
 # ------------------------------
 # The various trigger functions
 # ------------------------------
@@ -266,19 +265,18 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
     }
 
     """
-    html_text = ''
-
     # Remove the prior submission from the dict, so that PRs that use
     # multiple submission steps get the correct phase's submission
     #ctx_objects.pop('submission', None)
 
     # Get the (prior) submission
-    submission = prior_submission = get_submission(learner, trigger)
+    submission = prior_submission = get_submission(learner,
+                                                   trigger,
+                                                   entry_point)
 
     # What the admin's see
     if learner.role != 'Learn':
         ctx_objects['self'].admin_overview = 'ADMIN TEXT GOES HERE STILL.'
-
 
     if not(getattr(trigger, 'accepted_file_types_comma_separated', False)):
         trigger.accepted_file_types_comma_separated = 'PDF'
@@ -329,11 +327,12 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
 
 
         if isinstance(submit_inst, tuple):
-            # Problem with the upload
+            # Problem with the upload: revert back to the prior.
             submission_error_message = submit_inst[1]
             submission = prior_submission
         else:
-            # Successfully uploaded a document
+            # Successfully uploaded a document. Mark it as submitted for this
+            # learner, as well as their team members.
             submission_error_message = ''
             submission = submit_inst
 
@@ -355,8 +354,15 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
                 member.save()
 
 
-            # Learner has completed this step:
-            completed(learner, 'submitted', entry_point, push_grade=True)
+            # Learner (or their group) has completed this step:
+            learner_s = [learner, ]
+            group_enrolled = is_group_submission(learner, entry_point)
+            if group_enrolled:
+                learner_s.extend(group_enrolled.group_members)
+                learner_s = list(set(learner_s))
+
+            for student in learner_s:
+                completed(student, 'submitted', entry_point, push_grade=True)
 
             # Finished creating a new group.
 
@@ -397,13 +403,16 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
 
     if trigger.submission:
         summary = Summary(date=trigger.submission.datetime_submitted,
-                          action='You successfully submitted your document.',
+                          action='{0} successfully submitted a document.'\
+                        .format(trigger.submission.submitted_by.display_name,),
                           link='<a href="{0}" target="_blank">{1}</a>'.format(\
-                              trigger.submission.file_upload.url, "View"),
+                              trigger.submission.file_upload.url,
+                              "View"),
                           catg='')
         summaries.append(summary)
 
     ctx_objects['submission'] = render_template(trigger, ctx_objects)
+    return trigger # newly added for CE course: to allow us to use fields
 
 
 def your_reviews_of_your_peers(trigger, learner, entry_point=None,
@@ -2619,4 +2628,56 @@ def csv_summary_download(request):
 
     return response
 
+#------
+# Trigger functions for Circular Economy
+#------
+def ce_render_trigger(trigger, ctx_objects):
+    """
+    This renders each trigger for the Circular Economy course
+    """
+    template = trigger.template
+    if trigger.show_dates:
+        template = """{% if self.end_dt %}<div class="end_dt"><b>Ends</b>:
+         {{self.end_dt|date:"D, d F"}} at {{self.end_dt|time:"H:i" }}</div>
+         {% endif %}{% if self.start_dt%} <div class="start_dt"><em>Starts</em>:
+         {{self.start_dt|date:"D, d F"}} at {{self.start_dt|time:"H:i" }}
+        &nbsp;&nbsp;</div>{% endif %}""" + template
 
+    template = Template(template)
+    context = Context(ctx_objects)
+    return template.render(context) + '<hr>'
+
+
+def ce_step_1submit(trigger, learner, entry_point=None, summaries=list(),
+                   ctx_objects=dict(), **kwargs):
+    """
+    Step 1 of the Circular Economy (CE) peer review 2017/2018.
+    Groups of students submit their report.
+    """
+    # Coincidentally, this existing code works just fine, with a slightly
+    # modified rendered return ``trigger``.
+    trigger = get_submission_form(trigger, learner, entry_point, summaries,
+                        ctx_objects, **kwargs)
+
+    ctx_objects['ce_step_1submit'] = ce_render_trigger(trigger, ctx_objects)
+
+
+def ce_step_2review(trigger, learner, entry_point=None, summaries=list(),
+                   ctx_objects=dict(), **kwargs):
+    """
+    Step 2 of the Circular Economy (CE) peer review 2017/2018.
+    Individuals review reports, but ensure they are not reviewing something
+    from their own group.
+    """
+
+    ctx_objects['ce_step_2review'] = ce_render_trigger(trigger, ctx_objects)
+
+def ce_step_3eval(trigger, learner, entry_point=None, summaries=list(),
+                   ctx_objects=dict(), **kwargs):
+    """
+    Step 3 of the Circular Economy (CE) peer review 2017/2018.
+    Groups recieve the reviews back. Each individual in the group must
+    evaluate the review. The average of these evaluations is used as the grade
+    for the group.
+    """
+    ctx_objects['ce_step_3eval'] = ce_render_trigger(trigger, ctx_objects)

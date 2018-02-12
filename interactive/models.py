@@ -130,7 +130,7 @@ class Trigger(models.Model):
     function = models.CharField(max_length=100,
                                 help_text='function from the views.py file')
     kwargs = models.TextField(blank=True,
-                              help_text='Comma separated key-value pairs')
+                help_text='JSON settings. E.g. {"num_peers": 2}')
     template = models.TextField(blank=True,
                help_text='This template will be rendered with the variables.')
 

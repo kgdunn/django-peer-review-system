@@ -10,6 +10,7 @@ from PyPDF2 import PdfFileReader, PdfFileMerger
 
 # Import from our other apps
 from utils import get_IP_address, generate_random_token
+from basic.models import GroupEnrolled
 
 # Imports from this app
 from submissions.models import Submission
@@ -17,6 +18,39 @@ from submissions.models import Submission
 # Logging
 import logging
 logger = logging.getLogger(__name__)
+
+def is_group_submission(learner, entry_point):
+    """
+    Is this for a group submission?
+
+    If so, it also "abuses" the group_enrolled object to add a
+    ``group_members`` field that contains a list of the learner's group members.
+    The learner will also be one of the entries in that list.
+    """
+    # Is this for a group submission?
+    if entry_point.uses_groups and not(entry_point.only_review_within_group):
+        # Very specific type of group formation: students work in groups to
+        # submit their document, but their document is ONLY reviewed by
+        # learners outside their groups.
+        gfp = entry_point.course.group_formation_process_set.all()[0]
+
+        # If this fails it is either becuase the user is not enrolled in a
+        # ``gfp`` for this course
+
+        # NOTE: an error condition can develop if a learner isn't
+        #       allocated into a group, and you are using group submissions.
+        try:
+            group_enrolled = learner.groupenrolled_set.get(is_enrolled=True,
+                                                           group__gfp=gfp)
+            group_enrolled.group_members = [g.person for g in \
+                               group_enrolled.group.groupenrolled_set.all()]
+
+            return group_enrolled
+        except GroupEnrolled.DoesNotExist:
+            return None
+    else:
+        return None
+
 
 def get_submission(learner, trigger, entry_point=None):
 
@@ -26,26 +60,20 @@ def get_submission(learner, trigger, entry_point=None):
     Allow some flexibility in the function signature here, to allow retrieval
     via the ``entry_point`` in the future.
     """
-    # Whether or not we are submitting, we might have a prior submission
-    # to display
-    #grp_info = {}
-    #if phase:
-    #    grp_info = get_group_information(learner, phase.pr.gf_process)
-
-
     submission = None
-    subs = Submission.objects.filter(is_valid=True, trigger=trigger)
+    subs = trigger.submission_set.filter(is_valid=True).\
+                                               order_by('-datetime_submitted')
 
-
-    #if entry_point.uses_groups:  <-- removed this for version 2
-        # NOTE: an error condition can develop if a learner isn't
-        #       allocated into a group, and you are using group submissions.
-
-
-    # Just use this for now.
-    subs = subs.filter(submitted_by=learner).order_by('-datetime_submitted')
-
-
+    if is_group_submission(learner, entry_point):
+        # At this point it means the user is part of a group, so the
+        # document can be overwritten by another member of the group.
+        # So ``subs`` should not be limited to only the learner, but also
+        # all learners in that group.
+        group_enrolled = is_group_submission(learner, entry_point)
+        subs = subs.filter(group_submitted=group_enrolled.group)
+    else:
+        # Just use this for now.
+        subs = subs.filter(submitted_by=learner)
     if subs:
         return subs[0]
     else:
@@ -224,8 +252,14 @@ def upload_submission(request, learner, trigger, no_thumbnail=True):
                          )
         sub.save()
     else:
+        # Default returned by this function is ``None`` if the user is not
+        # enrolled in a group, or if this course simply does not use groups.
+        group_submitted = is_group_submission(learner, entry_point)
+        if is_group_submission(learner, entry_point):
+            group_submitted = group_submitted.group
+
         sub = Submission(submitted_by=learner,
-                             group_submitted=None,
+                             group_submitted=group_submitted,
                              status='S',
                              entry_point=entry_point,
                              trigger=trigger,
@@ -237,12 +271,9 @@ def upload_submission(request, learner, trigger, no_thumbnail=True):
                              )
         sub.save()
 
-
-
     if 'pdf' in trigger.accepted_file_types_comma_separated.lower() and \
                                                          extension in ('pdf',):
         clean_PDF(sub)
-
 
     return sub
 
