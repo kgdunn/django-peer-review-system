@@ -122,6 +122,7 @@ class Trigger(models.Model):
     order = models.PositiveSmallIntegerField(default=0)
     is_active = models.BooleanField(default=False,
                         help_text='If inactive: will skip this trigger.')
+
     name = models.CharField(max_length=100, help_text='For database display')
 
     description = models.TextField(max_length=500, default='',
@@ -140,6 +141,9 @@ class Trigger(models.Model):
     end_dt = models.DateTimeField(default=timezone.now, blank=True, null=True,
             verbose_name='Latest time for this trigger',
             help_text='Trigger will not run after the start date/time')
+    always_run = models.BooleanField(default=False,
+            help_text=('If selected: will always run, no matter waht the dates '
+                       'and times.'))
 
     deadline_dt = models.DateTimeField(default=None, blank=True, null=True,
             verbose_name='Deadline date and time',

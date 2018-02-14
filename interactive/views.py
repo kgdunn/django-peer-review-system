@@ -80,8 +80,6 @@ class GLOBAL_Class(object):
     pass
 GLOBAL = GLOBAL_Class()
 GLOBAL.num_peers = 2
-GLOBAL.min_in_pool_before_grouping_starts = 16
-
 
 def starting_point(request, course=None, learner=None, entry_point=None):
     """
@@ -188,6 +186,9 @@ def starting_point(request, course=None, learner=None, entry_point=None):
             run_trigger = False
         if (trigger.end_dt) and (trigger.end_dt <= now_time):
             run_trigger = False
+        if (trigger.always_run):
+            run_trigger = True
+
         if not(run_trigger):
             continue
 
@@ -545,7 +546,8 @@ def get_line1(learner, trigger, summaries):
             out.append(('', 'You must submit before you can review others.'))
             continue
 
-        if not(valid_subs.count() >= GLOBAL.min_in_pool_before_grouping_starts):
+        mp = trigger.entry_point.settings('min_in_pool_before_grouping_starts')
+        if not(valid_subs.count() >= mp):
             # Simplest case: no reviews are allocated to learner yet
             out.append(('', 'Waiting for a peer to submit their work ...'))
             continue
@@ -553,7 +555,7 @@ def get_line1(learner, trigger, summaries):
     if (allocated_reviews.count()==0) and len(out) != num_peers:
         # This code shouldn't occur, but it is a catch, in the case of
         # inconsistencies in the database.
-        logger.warn(('Code catch around inconsistencies in the allocated '
+        logger.error(('Code catch around inconsistencies in the allocated '
                      'reviews; please investigate.'))
         for idx in range(num_peers):
             out.append(('', 'You must submit before you can review others.'))
@@ -2672,8 +2674,37 @@ def ce_step_2review(trigger, learner, entry_point=None, summaries=list(),
     Individuals review reports, but ensure they are not reviewing something
     from their own group.
     """
+    now_time = datetime.datetime.now(datetime.timezone.utc)
+
+    # If before the time, at least wrap in the date and time, and othe infor.
+    # but return early
+    if (trigger.start_dt > now_time):
+        ctx_objects['ce_step_2review'] = ce_render_trigger(trigger, ctx_objects)
+        return
+
+    # If after the start time, then continue.
+    #
+    # 1. Start review / Continue review / Completed review
+    # 2. Peer has read your review
+    # 3. Peer has evaluated your review
+    ctx_objects['1_class'], ctx_objects['1_message'] = get_line1(learner,
+                                                                 trigger,
+                                                                 summaries)[0]
+
+    ctx_objects['2_class'], ctx_objects['2_message'] = get_line2(learner,
+                                                                 trigger,
+                                                                 summaries)[0]
+
+    ctx_objects['3_class'], ctx_objects['3_message'] = get_line3(learner,
+                                                                 trigger,
+                                                                 summaries)[0]
 
     ctx_objects['ce_step_2review'] = ce_render_trigger(trigger, ctx_objects)
+
+
+
+
+
 
 def ce_step_3eval(trigger, learner, entry_point=None, summaries=list(),
                    ctx_objects=dict(), **kwargs):
