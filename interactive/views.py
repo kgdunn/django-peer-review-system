@@ -418,7 +418,7 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
 def your_reviews_of_your_peers(trigger, learner, entry_point=None,
                          summaries=list(), ctx_objects=dict(), **kwargs):
     """
-    We are filling in this template multiple times; once per GLOBAL.num_peers:
+    We are filling in this template multiple times; once per num_peers:
 
     <span class="you-peer">
         <b>Your review of peer {0}</b>:
@@ -439,7 +439,7 @@ def your_reviews_of_your_peers(trigger, learner, entry_point=None,
     peer['line4'] = get_line4(learner, trigger, summaries)
     peer['line5'] = get_line5(learner, trigger, summaries)
 
-    for idx in range(GLOBAL.num_peers):
+    for idx in range(trigger.entry_point.settings('num_peers')):
         review_to_peers += """
         <span class="you-peer">
         <b>Your review of peer {0}</b>:
@@ -479,6 +479,7 @@ def get_line1(learner, trigger, summaries):
 
     """
     out = []
+    num_peers = trigger.entry_point.settings('num_peers')
 
     # All valid submissions for this EntryPoint
     valid_subs = Submission.objects.filter(entry_point=trigger.entry_point,
@@ -494,7 +495,7 @@ def get_line1(learner, trigger, summaries):
     allocated_reviews = ReviewReport.objects.filter(reviewer=learner,
         entry_point=trigger.entry_point).order_by('-created') # for consistency
 
-    reviews_completed = [False, ] * GLOBAL.num_peers
+    reviews_completed = [False, ] * num_peers
     for idx, review in enumerate(allocated_reviews):
 
         if not(review.order):
@@ -510,7 +511,7 @@ def get_line1(learner, trigger, summaries):
                 reviews_completed[idx] = True
                 summary = Summary(date=prior[0].completed,
                    action='You completed review number {0}; thank you!'\
-                              .format(chr(review.order+64), GLOBAL.num_peers),
+                              .format(chr(review.order+64), num_peers),
                    link=('<a href="/interactive/review/{0}" target="_blank">'
                          'View</a>').format(review.unique_code),
                    catg='rev')
@@ -533,12 +534,12 @@ def get_line1(learner, trigger, summaries):
                              'Waiting for a peer to submit their work ...'))
 
 
-    if sum(reviews_completed) == GLOBAL.num_peers:
+    if sum(reviews_completed) == num_peers:
         completed(learner, 'completed_all_reviews',
                   trigger.entry_point, push_grade=True)
 
 
-    for idx in range(GLOBAL.num_peers-len(out)):
+    for idx in range(num_peers-len(out)):
 
         if not(has(learner, 'submitted', trigger.entry_point)):
             out.append(('', 'You must submit before you can review others.'))
@@ -549,12 +550,12 @@ def get_line1(learner, trigger, summaries):
             out.append(('', 'Waiting for a peer to submit their work ...'))
             continue
 
-    if (allocated_reviews.count()==0) and len(out) != GLOBAL.num_peers:
+    if (allocated_reviews.count()==0) and len(out) != num_peers:
         # This code shouldn't occur, but it is a catch, in the case of
         # inconsistencies in the database.
         logger.warn(('Code catch around inconsistencies in the allocated '
                      'reviews; please investigate.'))
-        for idx in range(GLOBAL.num_peers):
+        for idx in range(num_peers):
             out.append(('', 'You must submit before you can review others.'))
 
     return out
@@ -567,7 +568,7 @@ def get_line2(learner, trigger, summaries):
     allocated_reviews = ReviewReport.objects.filter(reviewer=learner,
         entry_point=trigger.entry_point).order_by('-created') # for consistency
 
-    for idx in range(GLOBAL.num_peers):
+    for idx in range(trigger.entry_point.settings('num_peers')):
         out.append(('future', 'Waiting for peer to read your review'))
 
 
@@ -600,7 +601,7 @@ def get_line3(learner, trigger, summaries):
     allocated_reviews = ReviewReport.objects.filter(reviewer=learner,
         entry_point=trigger.entry_point).order_by('-created') # for consistency
 
-    for idx in range(GLOBAL.num_peers):
+    for idx in range(trigger.entry_point.settings('num_peers')):
         out.append(('future', 'Waiting for peer to evaluate your review'))
 
     # We use ``allocated_reviews`` to ensure consistency of order,
@@ -649,7 +650,7 @@ def get_line4(learner, trigger, summaries):
     Check if a rebuttal is available.
     """
     out = []
-    for idx in range(GLOBAL.num_peers):
+    for idx in range(trigger.entry_point.settings('num_peers')):
         if has(learner, 'completed_all_reviews', trigger.entry_point) or \
                      not(has(learner, 'started_a_review', trigger.entry_point)):
             out.append(('future', "Waiting for peer's rebuttal of your review"))
@@ -688,7 +689,7 @@ def get_line5(learner, trigger, summaries):
     Get the text display related to the rebuttal being assessed.
     """
     out = []
-    for idx in range(GLOBAL.num_peers):
+    for idx in range(trigger.entry_point.settings('num_peers')):
         out.append(('future', "Your assessment of their rebuttal"))
 
     if not(has(learner, 'completed_all_reviews', trigger.entry_point)):
@@ -754,7 +755,7 @@ def get_line5(learner, trigger, summaries):
         summaries.append(summary)
 
 
-    if n_rebuttals_completed == GLOBAL.num_peers:
+    if n_rebuttals_completed == trigger.entry_point.settings('num_peers'):
         completed(learner, 'assessed_rebuttals',
                   trigger.entry_point, push_grade=True)
 
@@ -776,6 +777,7 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
         <li class="peers_to_you {4}" type="a">(c) {5}</li>
     </ul>
     """
+    num_peers = trigger.entry_point.settings('num_peers')
     ctx_objects['peers_to_submitter_header'] = ('You must first submit some '
                                             'work for your peers to review.')
     ctx_objects['lineA'] = ('future',
@@ -795,8 +797,8 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
 
 
     submission = my_submission[0]
-    reports = [False, ] * GLOBAL.num_peers
-    reviews = [False,] * GLOBAL.num_peers
+    reports = [False, ] * num_peers
+    reviews = [False,] * num_peers
     idx = 0
     my_reviews = []
 
@@ -804,7 +806,7 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
     my_reviews = ReviewReport.objects.filter(submission=submission).\
         order_by('created') # to ensure consistency in display
     for report in my_reviews:
-        # There should be at most "GLOBAL.num_peers" reviews.
+        # There should be at most "num_peers" reviews.
 
         # An error occurs here where a review is allocated beyond the number of
         # intended reviews.
@@ -826,14 +828,12 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
         peer{{n_more|pluralize}} to start and complete their review."""
 
     header = insert_evaluate_variables(template, {'n_reviewed': sum(reviews),
-                                              'n_more': GLOBAL.num_peers - \
-                                              sum(reviews)}
-                                     )
+                                        'n_more': num_peers - sum(reviews)})
 
 
     # This strange if statement allows for learners to slip past this gate,
     # in the exceptional cases when they do not have sufficient number of peers.
-    if (sum(reviews) == GLOBAL.num_peers) or has(learner,
+    if (sum(reviews) == num_peers) or has(learner,
                                             'all_reviews_from_peers_completed',
                                             entry_point=entry_point):
         completed(learner, 'all_reviews_from_peers_completed', entry_point)
@@ -911,7 +911,7 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
             if report.r_actual.status in ('C', 'L'):
                 extra = ' (completed)'
 
-        if (idx > 0) and (idx < GLOBAL.num_peers):
+        if (idx > 0) and (idx < num_peers):
             text += ';&nbsp;'
 
         text += ('evaluate <a href="/interactive/evaluate/{0}/" '
@@ -1015,7 +1015,7 @@ def peers_rebuttal_assessment(trigger, learner, entry_point=None,
 
     text = 'Rebuttal status: '
 
-    # There should also be GLOBAL.num_peers reports here
+    # There should also be ``num_peers`` reports here
     assessments = EvaluationReport.objects.filter(trigger=trigger,
                                                   sort_report='A',
                                                   evaluator=learner)
@@ -1091,9 +1091,11 @@ def invite_reviewers(trigger):
     """
     Invites reviewers to start the review process
     """
+    num_peers = trigger.entry_point.settings('num_peers')
     valid_subs = Submission.objects.filter(trigger=trigger, is_valid=True).\
                                                             exclude(status='A')
-    if not(valid_subs.count() >= GLOBAL.min_in_pool_before_grouping_starts):
+    if not(valid_subs.count() >= \
+            trigger.entry_point.settings('min_in_pool_before_grouping_starts')):
         return
 
     # We have enough Submissions instances for the current trigger:
@@ -1114,10 +1116,10 @@ def invite_reviewers(trigger):
         allocated = ReviewReport.objects.filter(entry_point=trigger.entry_point,
                                                 reviewer=learner)
 
-        if allocated.count() == GLOBAL.num_peers:
+        if allocated.count() == num_peers:
             continue
 
-        for idx in range(GLOBAL.num_peers - allocated.count()):
+        for idx in range(num_peers - allocated.count()):
             review = ReviewReport(entry_point=trigger.entry_point,
                                   trigger=trigger,
                                   reviewer=learner)
@@ -1184,7 +1186,7 @@ class group_graph(object):
         #in_degree.sort()
         #next_one = in_degree.pop(0)
 
-        #if next_one[0] <= GLOBAL.num_peers:
+        #if next_one[0] <= num_peers:
             #return potential[next_one[1]]
         #else:
             #return None
@@ -1223,7 +1225,8 @@ class group_graph(object):
             allocate.sort()
 
             next_one = allocate.pop(0)
-            while (next_one[0] <= GLOBAL.num_peers) and (self.graph.has_edge(\
+            num_peers = trigger.entry_point.settings('num_peers')
+            while (next_one[0] <= num_peers) and (self.graph.has_edge(\
                     potential[next_one[2]], exclude_reviewer)):
                 next_one = allocate.pop(0)
 
