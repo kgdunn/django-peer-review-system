@@ -34,7 +34,8 @@ admin.site.register(Course, CourseAdmin)
 
 class PersonAdmin(admin.ModelAdmin):
     list_display = ("user_ID", "display_name", "initials", "is_validated",
-                    "last_lis", "role", "email", "created", "modified")
+                    "course", "last_lis", "role", "email", "created",
+                    "modified")
     list_per_page = 1000
 admin.site.register(Person, PersonAdmin)
 

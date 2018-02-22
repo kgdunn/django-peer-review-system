@@ -2676,7 +2676,7 @@ def ce_step_2review(trigger, learner, entry_point=None, summaries=list(),
     """
     now_time = datetime.datetime.now(datetime.timezone.utc)
 
-    # If before the time, at least wrap in the date and time, and othe infor.
+    # If before the time, at least wrap in the date and time, and other infor.
     # but return early
     if (trigger.start_dt > now_time):
         ctx_objects['ce_step_2review'] = ce_render_trigger(trigger, ctx_objects)
@@ -2715,3 +2715,14 @@ def ce_step_3eval(trigger, learner, entry_point=None, summaries=list(),
     for the group.
     """
     ctx_objects['ce_step_3eval'] = ce_render_trigger(trigger, ctx_objects)
+
+
+
+
+def ce_step_4staff(trigger, learner, entry_point=None, summaries=list(),
+                  ctx_objects=dict(), **kwargs):
+    """
+    Step 4 of the Circular Economy (CE) peer review 2017/2018.
+    Groups submit for staff review.
+    """
+    ctx_objects['ce_step_4eval'] = ce_render_trigger(trigger, ctx_objects)
