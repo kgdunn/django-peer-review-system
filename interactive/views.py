@@ -1305,11 +1305,17 @@ class group_graph(object):
         potential = self.graph.nodes()
 
         # At this point we also want to ensure the ``reviewer`` only sees
-        # reports from their own ``group``
+        # reports from their own ``group``, or only reports outside the group.
         gfp = self.entry_point.gf_process
         reviewer_groups = reviewer.groupenrolled_set.filter(group__gfp=gfp)
         if reviewer_groups:
             reviewer_group = reviewer_groups[0].group
+
+        if (self.entry_point.uses_groups and reviewer_groups.count()==0):
+            logger.error(('Student {0} is NOT enrolled in a group while {1} '
+                          'uses groups'.format(reviewer, gfp)))
+            return None
+
         if self.entry_point.uses_groups:
             all_groups = gfp.group_set.all()
             superset = []
