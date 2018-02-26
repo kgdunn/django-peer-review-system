@@ -2004,9 +2004,9 @@ def create_rebuttal_PDF(r_actual):
     # Once both those are in place, and the admin visits this link for the
     # Evaluation, the system will continue here and generate the PDF document
     # for the rebuttal step.
-    if (n_evaluations < self.entry_point.settings('num_peers')) and \
-            not(has(learner, 'read_and_evaluated_all_reviews',
-                    r_actual.rubric_template.trigger.entry_point)):
+    if (n_evaluations < report.submission.entry_point.settings('num_peers')) \
+                and not(has(learner, 'read_and_evaluated_all_reviews',
+                            r_actual.rubric_template.trigger.entry_point)):
         return
 
 
