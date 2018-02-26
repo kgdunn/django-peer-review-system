@@ -1,5 +1,6 @@
 # Django imports
 from django.conf import settings
+from django.db.models import Q
 
 # Python and 3rd party tool imports
 import os
@@ -223,12 +224,25 @@ def upload_submission(request, learner, trigger, no_thumbnail=True):
                                           is_valid=True
                                         )
     else:
-        prior = Submission.objects.filter(status='S',
-                                          submitted_by=learner,
-                                          entry_point=entry_point,
-                                          trigger=trigger,
-                                          is_valid=True
-                                        )
+        prior_indiv = Q(status='S', submitted_by=learner, entry_point=entry_point,
+                  trigger=trigger, is_valid=True)
+
+        # We need this here, but also for the code later in the next
+        # if (trigger==entry_point) part
+
+        # Default returned by this function is ``None`` if the user is not
+        # enrolled in a group, or if this course simply does not use groups.
+        group_submitted = is_group_submission(learner, entry_point)
+        if is_group_submission(learner, entry_point):
+            group_submitted = group_submitted.group
+
+            prior_group = Q(status='S', group_submitted=group_submitted,
+                            entry_point=entry_point, trigger=trigger,
+                            is_valid=True)
+        else:
+            prior_group = Q()
+
+        prior = Submission.objects.filter(prior_indiv | prior_group)
 
 
     for item in prior:
@@ -252,11 +266,6 @@ def upload_submission(request, learner, trigger, no_thumbnail=True):
                          )
         sub.save()
     else:
-        # Default returned by this function is ``None`` if the user is not
-        # enrolled in a group, or if this course simply does not use groups.
-        group_submitted = is_group_submission(learner, entry_point)
-        if is_group_submission(learner, entry_point):
-            group_submitted = group_submitted.group
 
         sub = Submission(submitted_by=learner,
                              group_submitted=group_submitted,
