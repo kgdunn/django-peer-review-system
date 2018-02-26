@@ -224,8 +224,7 @@ class Membership(models.Model):
     group = models.ForeignKey(GroupConfig, on_delete=models.CASCADE)
     role = models.CharField(choices=ROLES, max_length=6)
 
-    # Note: in practice, we don't use this field. It's always fixed. But leave
-    #       it here for future use
+    # Note: we do use this field to track deactivated students?
     fixed = models.BooleanField(default=False,
             help_text='Once fixed, this membership cannot be changed')
 
