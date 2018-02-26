@@ -76,10 +76,10 @@ class Summary(object):
 
 
 # SHOULD THIS GO TO entry_point instances?
-class GLOBAL_Class(object):
-    pass
-GLOBAL = GLOBAL_Class()
-GLOBAL.num_peers = 2
+#class GLOBAL_Class(object):
+#    pass
+#GLOBAL = GLOBAL_Class()
+#GLOBAL.num_peers = 2
 
 def starting_point(request, course=None, learner=None, entry_point=None):
     """
@@ -341,11 +341,10 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
             # Send an email here, if needed.
 
             # Create a group with this learner as the submitter
-            already_exists = Membership.objects.filter(learner=learner,
-                                            role='Submit',
+            memberships = learner.membership_set.filter(role='Submit',
                                             group__entry_point=entry_point,
-                                            fixed=True).count()
-            if not(already_exists):
+                                            fixed=True)
+            if not(memberships.count()):
                 new_group = GroupConfig(entry_point=trigger.entry_point)
                 new_group.save()
                 member = Membership(learner=learner,
@@ -354,7 +353,6 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
                                     fixed=True)
                 member.save()
 
-
             # Learner (or their group) has completed this step:
             learner_s = [learner, ]
             group_enrolled = is_group_submission(learner, entry_point)
@@ -362,8 +360,14 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
                 learner_s.extend(group_enrolled.group_members)
                 learner_s = list(set(learner_s))
 
+            group_config = memberships[0].group
             for student in learner_s:
                 completed(student, 'submitted', entry_point, push_grade=True)
+                member, _ = Membership.objects.get_or_create(learner=student,
+                                                             group=group_config,
+                                                             role='Submit',
+                                                             fixed=True)
+
 
             # Finished creating a new group.
 
@@ -1105,18 +1109,28 @@ def invite_reviewers(trigger):
     #
     # The number of Submissions should be equal to the nubmer of nodes in graph:
     graph = group_graph(trigger.entry_point)
-    if len(valid_subs) != graph.graph.order():
-        logger.warn(('Number of valid subs [{0}] is not equal to graph '
-                'order [{1}]'.format(len(valid_subs), graph.graph.order())))
-        # Rather return; fix it up and then come back later
 
-        return
+    # This is not true anymore when we have groups submitting.
+    valid_submissions = 0
+    for sub in valid_subs:
+        if sub.group_submitted:
+            valid_submissions += len(is_group_submission(sub.submitted_by,
+                                            trigger.entry_point).group_members)
 
-    for learner in graph.graph.nodes():
+
+
+    #if len(valid_subs) != graph.graph.order():
+    #    logger.warn(('Number of valid subs [{0}] is not equal to graph '
+    #            'order [{1}]'.format(len(valid_subs), graph.graph.order())))
+    # Rather return; fix it up and then come back later
+    #
+    #    return
+
+    for student in graph.graph.nodes():
         # These ``Persons`` have a valid submission. Invite them to review.
         # Has a reviewer been allocated this submission yet?
         allocated = ReviewReport.objects.filter(entry_point=trigger.entry_point,
-                                                reviewer=learner)
+                                                reviewer=student)
 
         if allocated.count() == num_peers:
             continue
@@ -1124,7 +1138,7 @@ def invite_reviewers(trigger):
         for idx in range(num_peers - allocated.count()):
             review = ReviewReport(entry_point=trigger.entry_point,
                                   trigger=trigger,
-                                  reviewer=learner)
+                                  reviewer=student)
             review.save()
 
 
@@ -1141,7 +1155,7 @@ class group_graph(object):
     3. Edges are directed. From a submitter, to a reviewer.
     4. An edge is only created if the reviewer has opened (therefore seen) the
        allocated review.
-       A review is allocated in real time, when the reviewer wants to start.o
+       A review is allocated in real time, when the reviewer wants to start.
     5. The edge contains a ``Submission`` instance.
     """
     def __init__(self, entry_point):
@@ -1154,21 +1168,17 @@ class group_graph(object):
 
         self.graph = nx.DiGraph()
         self.entry_point = entry_point
-        submitters = []
         for group in groups:
-
-            submitter = group.membership_set.filter(role='Submit', fixed=True)
-            if submitter.count() == 0:
-                continue
-            submitters.append(submitter[0])
-            self.graph.add_node(submitter[0].learner)
-
             reviewers = group.membership_set.filter(role='Review', fixed=True)
-            for reviewer in reviewers:
-                self.graph.add_node(reviewer.learner)
-                self.graph.add_edge(submitter[0].learner,
-                                    reviewer.learner,
-                                    weight=1)
+            submitters = group.membership_set.filter(role='Submit', fixed=True)
+            for submitter in submitters:
+                self.graph.add_node(submitter.learner)
+
+                for reviewer in reviewers:
+                    self.graph.add_node(reviewer.learner)
+                    self.graph.add_edge(submitter.learner,
+                                        reviewer.learner,
+                                        weight=1)
 
 
     #def get_next_review(self, exclude=None):
@@ -1194,104 +1204,105 @@ class group_graph(object):
             #return None
 
 
-    def get_submitter_to_review_old(self, exclude_reviewer):
-        """
-        Get the next submitter's work to review. You must specify the
-        reviewer's Person instance (``exclude_reviewer``), to ensure they are
-        excluded as a potential submission to evaluate.
+    #def get_submitter_to_review_old(self, exclude_reviewer):
+        #"""
+        #Get the next submitter's work to review. You must specify the
+        #reviewer's Person instance (``exclude_reviewer``), to ensure they are
+        #excluded as a potential submission to evaluate.
 
-        Rules:
-        1. Arrows go FROM the submitter, and TO the reviewer.
-        2. Avoid an arrow back to the submitter
-        3. If unavoidable, go to the person with the least number of allocated
-           reviews (incoming arrows)
-        4. After that, assign randomly.
+        #Rules:
+        #1. Arrows go FROM the submitter, and TO the reviewer.
+        #2. Avoid an arrow back to the submitter
+        #3. If unavoidable, go to the person with the least number of allocated
+           #reviews (incoming arrows)
+        #4. After that, assign randomly.
 
-            potential = self.graph.nodes()
-            if exclude_reviewer:
-                index = potential.index(exclude_reviewer)
-                potential.pop(index)
+            #potential = self.graph.nodes()
+            #if exclude_reviewer:
+                #index = potential.index(exclude_reviewer)
+                #potential.pop(index)
 
-            # Important to shuffle here, so the indices are randomized
-            shuffle(potential)
+            ## Important to shuffle here, so the indices are randomized
+            #shuffle(potential)
 
-            # tuple-order: (outdegree, indegree, node_index)
-            allocate = []
-            for idx, node in enumerate(potential):
-                allocate.append((self.graph.out_degree(node),
-                                 self.graph.in_degree(node),
-                                 idx))
+            ## tuple-order: (outdegree, indegree, node_index)
+            #allocate = []
+            #for idx, node in enumerate(potential):
+                #allocate.append((self.graph.out_degree(node),
+                                 #self.graph.in_degree(node),
+                                 #idx))
 
-            # Even now when we sort, we are sorting on indices that have been
-            # randomly allocated
-            allocate.sort()
+            ## Even now when we sort, we are sorting on indices that have been
+            ## randomly allocated
+            #allocate.sort()
 
-            next_one = allocate.pop(0)
-            num_peers = trigger.entry_point.settings('num_peers')
-            while (next_one[0] <= num_peers) and (self.graph.has_edge(\
-                    potential[next_one[2]], exclude_reviewer)):
-                next_one = allocate.pop(0)
+            #next_one = allocate.pop(0)
+            #num_peers = trigger.entry_point.settings('num_peers')
+            #while (next_one[0] <= num_peers) and (self.graph.has_edge(\
+                    #potential[next_one[2]], exclude_reviewer)):
+                #next_one = allocate.pop(0)
 
-            return potential[next_one[2]]
+            #return potential[next_one[2]]
 
-        Revised version:
+        #Revised version:
 
-        1. Arrows go FROM the submitter, and TO the reviewer.
-        2. Exclude/prevent the review from possibly happening a second time!!
-        2. Exclude nodes which are saturated: in = out = Nmax
-        2. Score the nodes as: deg(in) - deg(out). Therefore 0 is a balanced
-           node, and negative means that the node's work has gone out more
-           times than the person self has reviewed others.
-        3. Add small (+/- 0.1 amounts of random (normal distributed) noise to
-           the score.
-        4. Subtract (Nmax-0.5) from the score if the the current
-           ``exclude_reviewer`` already has their work reviewed by the person.
-           This avoids a back-arrow, but doesn't make it impossible.
-        """
-        potential = self.graph.nodes()
-        if exclude_reviewer:
-            index = potential.index(exclude_reviewer)
-            potential.pop(index)
+        #1. Arrows go FROM the submitter, and TO the reviewer.
+        #2. Exclude/prevent the review from possibly happening a second time!!
+        #2. Exclude nodes which are saturated: in = out = Nmax
+        #2. Score the nodes as: deg(in) - deg(out). Therefore 0 is a balanced
+           #node, and negative means that the node's work has gone out more
+           #times than the person self has reviewed others.
+        #3. Add small (+/- 0.1 amounts of random (normal distributed) noise to
+           #the score.
+        #4. Subtract (Nmax-0.5) from the score if the the current
+           #``exclude_reviewer`` already has their work reviewed by the person.
+           #This avoids a back-arrow, but doesn't make it impossible.
+        #"""
+        #potential = self.graph.nodes()
+        #if exclude_reviewer:
+            #index = potential.index(exclude_reviewer)
+            #potential.pop(index)
 
-        # Important to shuffle here, so the indices are randomized
-        shuffle(potential)
+        ## Important to shuffle here, so the indices are randomized
+        #shuffle(potential)
 
-        scores = []  # of tuples: (score, node_index)
-        for idx, node in enumerate(potential):
-            # The learner (``exclude_reviewer``) has already reviewed ``node``
-            if self.graph.has_edge(node, exclude_reviewer):
-                continue
+        #scores = []  # of tuples: (score, node_index)
+        #for idx, node in enumerate(potential):
+            ## The learner (``exclude_reviewer``) has already reviewed ``node``
+            #if self.graph.has_edge(node, exclude_reviewer):
+                #continue
 
-            if self.graph.out_degree(node) >= GLOBAL.num_peers:
-                # We cannot over-review a node, so ensure its out degree is not
-                # too high. Keep working through the scores till you find one.
-                continue
+            #if self.graph.out_degree(node) >= \
+                                         #self.entry_point.settings('num_peers'):
+                ## We cannot over-review a node, so ensure its out degree is not
+                ## too high. Keep working through the scores till you find one.
+                #continue
 
-            bias = random.normalvariate(mu=0, sigma=0.1)
-            if self.graph.has_edge(exclude_reviewer, node):
-                bias = bias - (GLOBAL.num_peers-0.5)
+            #bias = random.normalvariate(mu=0, sigma=0.1)
+            #if self.graph.has_edge(exclude_reviewer, node):
+                #bias = bias - (self.entry_point.settings('num_peers')-0.5)
 
-            score = self.graph.in_degree(node) \
-                    - self.graph.out_degree(node) \
-                    + bias
+            #score = self.graph.in_degree(node) \
+                    #- self.graph.out_degree(node) \
+                    #+ bias
 
-            scores.append((score, idx))
+            #scores.append((score, idx))
 
-        # Sort from low to high, and next we pop off the last value (highest)
-        scores.sort()
-        try:
-            next_one = scores.pop()
-        except IndexError:
-            logger.error(('No more nodes to pop out for next reviewer. '
-                          'learner={}\n----{}\n----{}').format(exclude_reviewer,
-                                                             self.graph.nodes(),
-                                                             self.graph.edges()
-                                                            ))
-            # Only to prevent failure, but this is serious.
-            return None
+        ## Sort from low to high, and next we pop off the last value (highest)
+        #scores.sort()
+        #try:
+            #next_one = scores.pop()
+        #except IndexError:
+            #logger.error(('No more nodes to pop out for next reviewer. '
+                          #'learner={}\n----{}\n----{}').format(exclude_reviewer,
+                                                             #self.graph.nodes(),
+                                                             #self.graph.edges()
+                                                            #))
+            ## Only to prevent failure, but this is serious.
+            #return None
 
 
-        return potential[next_one[1]]
+        #return potential[next_one[1]]
 
     def get_submitter_for(self, reviewer):
         """
@@ -1371,7 +1382,8 @@ class group_graph(object):
             #elif self.graph.has_edge(reviewer, node):
             #    a=2
 
-            elif self.graph.out_degree(node) >= GLOBAL.num_peers:
+            elif self.graph.out_degree(node) >= \
+                                        self.entry_point.settings('num_peers'):
                 # 3: We cannot over-review a node, so ensure its out degree is
                 #    not too high. Keep working through the scores till you find
                 #    one.
@@ -1475,10 +1487,24 @@ def review(request, unique_code=None):
                              'review after one of your peers uploads. '))
 
 
-    valid_subs = Submission.objects.filter(is_valid=True,
-                                    entry_point=report.entry_point,
-                                    trigger=report.trigger,
-                                    submitted_by=submitter).exclude(status='A')
+    subs = report.trigger.submission_set.filter(entry_point=report.entry_point,
+                                            is_valid=True).exclude(status='A')
+
+    # The ``submitter``: are they part of a group? The ``submitter`` might not
+    # have been the person that actually submitted, so look for a report
+    # from that perons's group.
+    group_enrolled_sub = is_group_submission(submitter, report.entry_point)
+    if group_enrolled_sub:
+        # At this point it means the user is part of a group, so if needed,
+        # also filter by group submitted
+        valid_subs = subs.filter(group_submitted=group_enrolled_sub.group)
+    else:
+        valid_subs = subs.filter(submitted_by=submitter)
+
+        # Original filter:
+        # (is_valid=True, entry_point=report.entry_point,
+        # trigger=report.trigger, submitted_by=submitter).exclude(status='A')
+
     if valid_subs.count() != 1:
         logger.error(('Found more than 1 valid Submission for {} in entry '
                       'point "{}". Or a prior error occured'.format(valid_subs,
@@ -1493,17 +1519,31 @@ def review(request, unique_code=None):
     report.submission = submission
     report.save()
 
-    # 2. Prevent the document from being re-uploaded by submitter
-    completed(report.submission.submitted_by,
-              'work_has_started_to_be_reviewed',
-              report.entry_point)
+    # 2. Prevent the document from being re-uploaded by submitter/submitting grp
+    if group_enrolled_sub:
+        for student in group_enrolled_sub.group_members:
+            completed(student, 'work_has_started_to_be_reviewed',
+                      report.entry_point)
+    else:
+        completed(report.submission.submitted_by,
+                  'work_has_started_to_be_reviewed',
+                  report.entry_point)
 
 
-    # 3. Prevent the learner also from resubmitting
+    # 3. Indicate that this person has started a review (not necessarily their
+    #    group members)
     completed(report.reviewer, 'started_a_review', report.entry_point)
-    completed(report.reviewer,
-              'work_has_started_to_be_reviewed',
-              report.entry_point)
+
+    # 3. Also prevent the learner/learner's group from resubmitting their report
+    group_enrolled_review = is_group_submission(report.reviewer,
+                                                report.entry_point)
+    if group_enrolled_review:
+        for student in group_enrolled_review.group_members:
+            completed(student, 'work_has_started_to_be_reviewed',
+                      report.entry_point)
+    else:
+        completed(report.reviewer, 'work_has_started_to_be_reviewed',
+                          report.entry_point)
 
     # Update the Membership, which will update the graph.
 
@@ -1964,7 +2004,7 @@ def create_rebuttal_PDF(r_actual):
     # Once both those are in place, and the admin visits this link for the
     # Evaluation, the system will continue here and generate the PDF document
     # for the rebuttal step.
-    if (n_evaluations < GLOBAL.num_peers) and \
+    if (n_evaluations < self.entry_point.settings('num_peers')) and \
             not(has(learner, 'read_and_evaluated_all_reviews',
                     r_actual.rubric_template.trigger.entry_point)):
         return
@@ -2693,6 +2733,9 @@ def ce_step_2review(trigger, learner, entry_point=None, summaries=list(),
     # 1. Start review / Continue review / Completed review
     # 2. Peer has read your review
     # 3. Peer has evaluated your review
+    #
+    # We don't need to loop here, since it is 1 review per student. Only grab
+    # the first [0]th entry from the return function.
     ctx_objects['1_class'], ctx_objects['1_message'] = get_line1(learner,
                                                                  trigger,
                                                                  summaries)[0]

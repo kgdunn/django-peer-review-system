@@ -8,6 +8,7 @@ from .models import ROptionTemplate, ROptionActual
 class RubricTemplateAdmin(admin.ModelAdmin):
     list_display = ("title", "entry_point", "trigger", "maximum_score",
                     "show_order", "hook_function", )
+    ordering = ['-entry_point', ]
     list_max_show_all = 500
     list_per_page = 500
 admin.site.register(RubricTemplate, RubricTemplateAdmin)
