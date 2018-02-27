@@ -23,9 +23,9 @@ from collections import namedtuple, OrderedDict
 import networkx as nx
 from networkx.readwrite import json_graph
 from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, PageBreak
-from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.styles import ParagraphStyle, ListStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
-from reportlab.lib.colors import black
+from reportlab.lib.colors import black, darkblue
 from reportlab.platypus import Paragraph, Spacer, ListFlowable, ListItem
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
@@ -338,40 +338,37 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
             submission = submit_inst
 
 
-            # Send an email here, if needed.
+            # TODO: Send an email here, if needed.
 
             # Create a group with this learner as the submitter
-            memberships = learner.membership_set.filter(role='Submit',
-                                            group__entry_point=entry_point,
-                                            fixed=True)
-            if not(memberships.count()):
-                new_group = GroupConfig(entry_point=trigger.entry_point)
-                new_group.save()
-                member = Membership(learner=learner,
-                                    group=new_group,
-                                    role='Submit',
-                                    fixed=True)
-                member.save()
-
-            # Learner (or their group) has completed this step:
             learner_s = [learner, ]
             group_enrolled = is_group_submission(learner, entry_point)
             if group_enrolled:
                 learner_s.extend(group_enrolled.group_members)
                 learner_s = list(set(learner_s))
 
-            group_config = memberships[0].group
             for student in learner_s:
-                completed(student, 'submitted', entry_point, push_grade=True)
-                member, _ = Membership.objects.get_or_create(learner=student,
-                                                             group=group_config,
-                                                             role='Submit',
-                                                             fixed=True)
 
+
+                # First, learner (or their group) has completed this step:
+                completed(student, 'submitted', entry_point, push_grade=True)
+
+                # Check if the membership has been created. If not, create a
+                # new GroupConfig, and make the student a member.
+                memberships = student.membership_set.filter(role='Submit',
+                                                group__entry_point=entry_point,
+                                                fixed=True)
+
+                if not(memberships.count()):
+                    new_group = GroupConfig(entry_point=trigger.entry_point)
+                    new_group.save()
+                    member = Membership(learner=student,
+                                        group=new_group,
+                                        role='Submit',
+                                        fixed=True)
+                    member.save()
 
             # Finished creating a new group.
-
-
 
     else:
         submission = prior_submission
@@ -512,7 +509,11 @@ def get_line1(learner, trigger, summaries):
         prior = RubricActual.objects.filter(rubric_code=review.unique_code)
         if prior.count():
             if prior[0].status in ('C', 'L'):
-                status = 'Completed'
+                extra = ''
+                if prior[0].status in ('C',):
+                    extra = (' <span class="still-to-do">(you can still make '
+                             'changes)</span>')
+                status = 'Completed' + extra
                 reviews_completed[idx] = True
                 summary = Summary(date=prior[0].completed,
                    action='You completed review number {0}; thank you!'\
@@ -1174,11 +1175,11 @@ class group_graph(object):
             for submitter in submitters:
                 self.graph.add_node(submitter.learner)
 
-                for reviewer in reviewers:
-                    self.graph.add_node(reviewer.learner)
-                    self.graph.add_edge(submitter.learner,
-                                        reviewer.learner,
-                                        weight=1)
+            for reviewer in reviewers:
+                self.graph.add_node(reviewer.learner)
+                self.graph.add_edge(submitter.learner,
+                                    reviewer.learner,
+                                    weight=1)
 
 
     #def get_next_review(self, exclude=None):
@@ -1382,8 +1383,10 @@ class group_graph(object):
             #elif self.graph.has_edge(reviewer, node):
             #    a=2
 
-            elif self.graph.out_degree(node) >= \
+
+            if self.graph.out_degree(node) >= \
                                         self.entry_point.settings('num_peers'):
+
                 # 3: We cannot over-review a node, so ensure its out degree is
                 #    not too high. Keep working through the scores till you find
                 #    one.
@@ -1795,6 +1798,20 @@ def reportlab_styles():
         alignment=TA_LEFT,
         textColor=black,
     )
+    styles['list_default'] = ListStyle('list_default',
+        leftIndent=18,
+        rightIndent=0,
+        spaceBefore=0,
+        #spaceAfter=0,
+        bulletAlign='left',
+        bulletType='1',
+        bulletColor=darkblue,
+        bulletFontName='Helvetica',
+        bulletFontSize=10,
+        bulletOffsetY=0,
+        bulletDedent='auto',
+        bulletDir='ltr',
+    )
     return styles
 
 styles = reportlab_styles()
@@ -1807,24 +1824,6 @@ def report_render_rubric(r_actual, flowables):
     Continues the rendering of the body of the report, using the rubric
     ``r_actual``, and the supplied list of flowables which are appended to.
     """
-    def formatted_options(options):
-        out = []
-        for idx, option in enumerate(options):
-
-            if option.rubric_item.option_type in ('DropD', 'Chcks', 'Radio'):
-                if hasattr(option, 'selected'):
-                    out.append(Paragraph(('<strong>{0}</strong>'
-                            '').format(option.criterion), default))
-                else:
-                    out.append(Paragraph('<font color="lightgrey">{0}</font>'.\
-                                            format(option.criterion), default))
-            elif option.rubric_item.option_type == 'LText':
-                out.append(Paragraph(option.prior_text.replace('\n','<br />\n'),
-                                     default))
-
-        return out
-
-
     styles = reportlab_styles()
     review_items, _ = r_actual.report()
     for item in review_items:
@@ -1833,12 +1832,40 @@ def report_render_rubric(r_actual, flowables):
                                    styles['header']))
         flowables.append(Spacer(1, 3))
 
+        # A single option is not put into a list, it is likely a text box.
+        if len(item.options) == 1:
+            # if item.options[0].rubric_item.option_type
+            text = item.options[0].prior_text
+            flowables.append(Paragraph(text.replace('\n','<br />\n'), default))
 
-        flowables.append(ListFlowable(formatted_options(item.options),
-                                      bulletType='bullet',
-                                      bulletFontSize=8,
-                                      bulletOffsetY=0,
-                                      start='circle'))
+        else:
+            for idx, option in enumerate(item.options):
+                out = []
+                leftIndent = 18
+                firstLineIndent = 10
+                if hasattr(option, 'selected'):
+                    leftIndent = 8
+                    firstLineIndent = 0
+                    if option.criterion:
+                        out.append(Paragraph(('&larr; <strong>{0}</strong>'
+                                        '').format(option.criterion), default))
+                    else:
+                        out.append(Paragraph(('&larr; <strong><em>This in-between '
+                                'option was selected for a score of {:d} points'
+                                '</em></strong>').format(int(option.score)),
+                                             default))
+                else:
+                    if option.criterion:
+                        out.append(Paragraph('<font color="grey">{0}</font>'.\
+                                            format(option.criterion), default))
+
+                flowables.append(ListFlowable(out,
+                                 start='{:d}'.format(int(option.score)),
+                                 leftIndent=leftIndent,
+                                 firstLineIndent=firstLineIndent,
+                                 style=styles['list_default'],))
+
+
         flowables.append(Spacer(1, 6))
 
 
