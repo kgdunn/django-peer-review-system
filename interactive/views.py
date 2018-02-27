@@ -199,10 +199,15 @@ def starting_point(request, course=None, learner=None, entry_point=None):
         else:
             kwargs = {}
 
+
+        # Some default attributes for the Trigger
+        setattr(trigger, 'show_dates', False) # unless overwritten
+
         # Push these ``kwargs`` into trigger (getattr, settattr)
         for key, value in kwargs.items():
             if not(getattr(trigger, key, False)):
                 setattr(trigger, key, value)
+
 
         # Add self to ctx_objects
         ctx_objects['self'] = trigger
@@ -2793,12 +2798,28 @@ def ce_step_3eval(trigger, learner, entry_point=None, summaries=list(),
     ctx_objects['ce_step_3eval'] = ce_render_trigger(trigger, ctx_objects)
 
 
+def ce_step_4resubmit(trigger, learner, entry_point=None, summaries=list(),
+                   ctx_objects=dict(), **kwargs):
+    """
+    Step 4 of the Circular Economy (CE) peer review 2017/2018.
+    Groups submit for staff review.
+    """
+    ctx_objects['ce_step_4resubmit'] = ce_render_trigger(trigger, ctx_objects)
 
 
-def ce_step_4staff(trigger, learner, entry_point=None, summaries=list(),
+def ce_step_5staff(trigger, learner, entry_point=None, summaries=list(),
                   ctx_objects=dict(), **kwargs):
     """
     Step 4 of the Circular Economy (CE) peer review 2017/2018.
     Groups submit for staff review.
     """
-    ctx_objects['ce_step_4eval'] = ce_render_trigger(trigger, ctx_objects)
+    ctx_objects['ce_step_5staff'] = ce_render_trigger(trigger, ctx_objects)
+
+
+def ce_step_6grades(trigger, learner, entry_point=None, summaries=list(),
+                  ctx_objects=dict(), **kwargs):
+    """
+    Step 5 of the Circular Economy (CE) peer review 2017/2018.
+    Get/show grades.
+    """
+    ctx_objects['ce_step_6grades'] = ce_render_trigger(trigger, ctx_objects)
