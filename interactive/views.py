@@ -2783,10 +2783,6 @@ def ce_step_2review(trigger, learner, entry_point=None, summaries=list(),
     ctx_objects['ce_step_2review'] = ce_render_trigger(trigger, ctx_objects)
 
 
-
-
-
-
 def ce_step_3eval(trigger, learner, entry_point=None, summaries=list(),
                    ctx_objects=dict(), **kwargs):
     """
@@ -2798,28 +2794,36 @@ def ce_step_3eval(trigger, learner, entry_point=None, summaries=list(),
     ctx_objects['ce_step_3eval'] = ce_render_trigger(trigger, ctx_objects)
 
 
-def ce_step_4resubmit(trigger, learner, entry_point=None, summaries=list(),
+def ce_step_4process(trigger, learner, entry_point=None, summaries=list(),
+                  ctx_objects=dict(), **kwargs):
+    """
+    Step 4 of the Circular Economy (CE) peer review 2017/2018.
+    """
+    ctx_objects['ce_step_4process'] = ce_render_trigger(trigger, ctx_objects)
+
+
+def ce_step_5resubmit(trigger, learner, entry_point=None, summaries=list(),
                    ctx_objects=dict(), **kwargs):
     """
     Step 4 of the Circular Economy (CE) peer review 2017/2018.
     Groups submit for staff review.
     """
-    ctx_objects['ce_step_4resubmit'] = ce_render_trigger(trigger, ctx_objects)
+    ctx_objects['ce_step_5resubmit'] = ce_render_trigger(trigger, ctx_objects)
 
 
-def ce_step_5staff(trigger, learner, entry_point=None, summaries=list(),
+def ce_step_6staff(trigger, learner, entry_point=None, summaries=list(),
                   ctx_objects=dict(), **kwargs):
     """
-    Step 4 of the Circular Economy (CE) peer review 2017/2018.
+    Step 6 of the Circular Economy (CE) peer review 2017/2018.
     Groups submit for staff review.
     """
-    ctx_objects['ce_step_5staff'] = ce_render_trigger(trigger, ctx_objects)
+    ctx_objects['ce_step_6staff'] = ce_render_trigger(trigger, ctx_objects)
 
 
-def ce_step_6grades(trigger, learner, entry_point=None, summaries=list(),
+def ce_step_7grades(trigger, learner, entry_point=None, summaries=list(),
                   ctx_objects=dict(), **kwargs):
     """
-    Step 5 of the Circular Economy (CE) peer review 2017/2018.
+    Step 7 of the Circular Economy (CE) peer review 2017/2018.
     Get/show grades.
     """
-    ctx_objects['ce_step_6grades'] = ce_render_trigger(trigger, ctx_objects)
+    ctx_objects['ce_step_7grades'] = ce_render_trigger(trigger, ctx_objects)
