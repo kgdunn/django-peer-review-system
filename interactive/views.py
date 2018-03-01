@@ -498,8 +498,8 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
         submission_trigger = None
 
     # Not guaranteed that this object is passed in
+    can_be_done = True
     if ctx_objects:
-        can_be_done = True
         if ctx_objects['now_time'] > trigger.deadline_dt:
             can_be_done = False
 
