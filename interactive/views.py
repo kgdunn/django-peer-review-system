@@ -475,7 +475,7 @@ def your_reviews_of_your_peers(trigger, learner, entry_point=None,
     ctx_objects['review_to_peers'] = render_template(trigger, ctx_objects)
 
 
-def get_line1(learner, trigger, summaries):
+def get_line1(learner, trigger, summaries, ctx_objects=None):
     """
     Fills in line 1 of the template:
         > Waiting for a peer to submit their work ...
@@ -497,6 +497,14 @@ def get_line1(learner, trigger, summaries):
     else:
         submission_trigger = None
 
+    # Not guaranteed that this object is passed in
+    if ctx_objects:
+        can_be_done = True
+        if ctx_objects['now_time'] > trigger.deadline_dt:
+            can_be_done = False
+
+
+
 
     # All ReviewReport that have been Allocated for Review to this learner
     allocated_reviews = ReviewReport.objects.filter(reviewer=learner,
@@ -515,9 +523,10 @@ def get_line1(learner, trigger, summaries):
         if prior.count():
             if prior[0].status in ('C', 'L'):
                 extra = ''
-                if prior[0].status in ('C',):
+                if prior[0].status in ('C',) and can_be_done:
                     extra = (' <span class="still-to-do">(you can still make '
                              'changes)</span>')
+
                 status = 'Completed' + extra
                 reviews_completed[idx] = True
                 summary = Summary(date=prior[0].completed,
@@ -531,6 +540,15 @@ def get_line1(learner, trigger, summaries):
             elif prior[0].status in ('P', 'V'):
                 status = ('<span class="still-to-do">Start/continue</span> '
                           'your review')
+
+
+        if not(can_be_done):
+            status = ('<span class="still-to-do">Deadline has passed</span> '
+                          'to complete your review.')
+            if prior.count():
+                prior[0].status = 'L'
+                prior[0].save()
+
 
         # We have a potential review
         out.append(('', ('<a href="/interactive/review/{1}" target="_blank">'
@@ -837,7 +855,8 @@ def peers_read_evaluate_feedback(trigger, learner, entry_point=None,
     # This message is overridden later for the case when everyone is completed.
     template = """{{n_reviewed}} peer{{ n_reviewed|pluralize:" has,s have" }}
      completely reviewed your work. Waiting for {{n_more}} more
-        peer{{n_more|pluralize}} to start and complete their review."""
+        peer{{n_more|pluralize}} to start and complete their
+        review{{n_more|pluralize}}."""
 
     header = insert_evaluate_variables(template, {'n_reviewed': sum(reviews),
                                         'n_more': num_peers - sum(reviews)})
@@ -1849,7 +1868,7 @@ def report_render_rubric(r_actual, flowables):
                 leftIndent = 18
                 firstLineIndent = 10
                 if hasattr(option, 'selected'):
-                    leftIndent = 8
+                    leftIndent = 10
                     firstLineIndent = 0
                     if option.criterion:
                         out.append(Paragraph(('&larr; <strong>{0}</strong>'
@@ -2770,7 +2789,8 @@ def ce_step_2review(trigger, learner, entry_point=None, summaries=list(),
     # the first [0]th entry from the return function.
     ctx_objects['1_class'], ctx_objects['1_message'] = get_line1(learner,
                                                                  trigger,
-                                                                 summaries)[0]
+                                                                 summaries,
+                                                                 ctx_objects)[0]
 
     ctx_objects['2_class'], ctx_objects['2_message'] = get_line2(learner,
                                                                  trigger,
@@ -2790,7 +2810,162 @@ def ce_step_3eval(trigger, learner, entry_point=None, summaries=list(),
     Groups recieve the reviews back. Each individual in the group must
     evaluate the review. The average of these evaluations is used as the grade
     for the group.
+
+    {{self.peers_to_submitter_header}}
+
+    <span class="indent">
+        <ul>
+            {% for peer_to_evaluate in self.eval_peers%}
+                <li class="peers_to_you" type="a">(a) {{peer_to_evaluate}}</li>
+            {% endfor %}
+        </ul>
+    </span>
     """
+    num_peers = trigger.entry_point.settings('num_peers')
+    ctx_objects['peers_to_submitter_header'] = ('There are not enough documents'
+                                                ' in the system for this step '
+                                                'to start. Please wait.')
+
+    ctx_objects['eval_peers'] = []
+    ctx_objects['lineA'] = ('future',
+                            "Read and evaluate reviewers' feedback")
+
+    # Render what we have so far, in case we need to return for error cases
+    ctx_objects['ce_step_3eval'] = ce_render_trigger(trigger, ctx_objects)
+
+
+
+    valid_subs = Submission.objects.filter(entry_point=entry_point,
+                                           is_valid=True).exclude(status='A')
+    if not(valid_subs.count() >= \
+           trigger.entry_point.settings('min_in_pool_before_grouping_starts')):
+        return
+
+    group_enrolled_sub = is_group_submission(learner, entry_point)
+    if group_enrolled_sub:
+        # At this point it means the user is part of a group, so if needed,
+        # also filter by group submitted
+        valid_subs = valid_subs.filter(group_submitted=group_enrolled_sub.group)
+
+        # Assuming it is balanced (every group member receives a review)
+        num_evals = len(group_enrolled_sub.group_members)
+    else:
+        valid_subs = valid_subs.filter(submitted_by=learner)
+        num_evals = num_peers
+
+    ctx_objects['peers_to_submitter_header'] = ('You cannot evaluate and see '
+                                                'reviews if you yourself have '
+                                                'not reviewed. Sorry.')
+    ctx_objects['ce_step_3eval'] = ce_render_trigger(trigger, ctx_objects)
+    if not(has(learner, 'submitted', entry_point)) or valid_subs.count()==0:
+        return
+
+    submission = valid_subs[0]
+    reviews = []
+    n_reviewed = 0
+    for report in ReviewReport.objects.filter(submission=submission).\
+                                                            order_by('created'):
+        try:
+            rubric = RubricActual.objects.get(rubric_code=report.unique_code)
+        except RubricActual.DoesNotExist:
+            continue
+        if rubric.submitted:
+            reviews.append(rubric)
+            n_reviewed += 1
+        else:
+            reviews.append(None)
+
+    # This message is overridden later for the case when everyone is completed.
+    template = """{{n_reviewed}} peer{{ n_reviewed|pluralize:" has,s have" }}
+     completely reviewed your work. Waiting for {{n_more}} more
+        peer{{n_more|pluralize}} to start and complete their
+        review{{n_more|pluralize}}."""
+
+    header = insert_evaluate_variables(template, {'n_reviewed': n_reviewed,
+                                            'n_more': num_evals - n_reviewed})
+
+
+    # This strange if statement allows for learners to slip past this gate,
+    # in the exceptional cases when they do not have sufficient number of peers.
+    if (n_reviewed == num_evals) or has(learner,
+                                          'all_reviews_from_peers_completed',
+                                            entry_point=entry_point):
+        completed(learner, 'all_reviews_from_peers_completed', entry_point)
+        header = "All peers have completely reviewed your work."
+
+    ctx_objects['peers_to_submitter_header'] = header
+
+    # From the perspective of the learner, we should always order the peers
+    # is the same way. Use the ``created`` field for that.
+    rubrics = RubricActual.objects.filter(submission=submission)\
+        .order_by('created')
+    for idx, ractual in enumerate(rubrics):
+        summary = Summary(date=ractual.created, link='', catg='sub',
+                    action='Peer {} began a review of your work.'.format(idx+1))
+        summaries.append(summary)
+
+        if ractual.status in ('C', 'L') and ractual.submitted:
+            summary = Summary(date=ractual.completed, link='', catg='sub',
+                action='Peer {} completed a review of your work.'.format(idx+1))
+            summaries.append(summary)
+
+    # Render what we have so far, in case we need to return for error cases
+    ctx_objects['ce_step_3eval'] = ce_render_trigger(trigger, ctx_objects)
+
+    if n_reviewed == 0:
+        # There is no point to go further if there are no reviews completed
+        # of the learner's work.
+        return
+
+    if not(has(learner, 'started_a_review', entry_point)):
+        # The learner hasn't reviewed other's work; so they are not in state
+        # to evaluate others yet either.
+        ctx_objects['lineA'] = ('', ('Please complete a review first, before '
+                                     'evaluating their reviews.'))
+        return
+
+    # We cannot go further, unless all the reviews by the learner's peers are
+    # completed.
+    if not(has(learner, 'all_reviews_from_peers_completed', entry_point)):
+        return
+
+
+    # If we have reached this point it is because the submitter can now
+    # view their feedback. Therefore we only iterate over the COMPLETED rubrics.
+    #
+    # 1/ Set the r_actual review to be locked (read-only)
+    # 2/ Create a rubric for evaluation of the review
+
+    text = 'Read and evaluate their feedback: '
+    for idx, ractual in enumerate(rubrics):
+        ractual.status = 'L'
+        ractual.save()
+        try:
+            report = EvaluationReport.objects.get(unique_code=ractual.next_code)
+        except EvaluationReport.DoesNotExist as e:
+            logger.error('EvaluationReport not found. Please correct:[{0}:{1}]'\
+                         .format(ractual.id, ractual))
+            ctx_objects['lineA'] = ('',
+                                    ("The links to read and evaluate reviewers'"
+                                     " feedback are still being generated. "
+                                     "Please wait."))
+            return
+
+        extra = ' <span class="still-to-do">(still to do)</span>'
+        if hasattr(report.r_actual, 'status'):
+            if report.r_actual.status in ('C', 'L'):
+                extra = ' (completed)'
+
+        if (idx > 0) and (idx < num_evals):
+            text += ';&nbsp;'
+
+        text += ('evaluate <a href="/interactive/evaluate/{0}/" '
+                 'target="_blank">peer {1}</a>{2}').format(report.unique_code,
+                                                           idx+1, extra)
+
+    text += '.'
+    ctx_objects['lineA'] = ('', text)
+
     ctx_objects['ce_step_3eval'] = ce_render_trigger(trigger, ctx_objects)
 
 
