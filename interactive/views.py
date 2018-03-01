@@ -503,9 +503,6 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
         if ctx_objects['now_time'] > trigger.deadline_dt:
             can_be_done = False
 
-
-
-
     # All ReviewReport that have been Allocated for Review to this learner
     allocated_reviews = ReviewReport.objects.filter(reviewer=learner,
         entry_point=trigger.entry_point).order_by('-created') # for consistency
@@ -2827,8 +2824,6 @@ def ce_step_3eval(trigger, learner, entry_point=None, summaries=list(),
                                                 'to start. Please wait.')
 
     ctx_objects['eval_peers'] = []
-    ctx_objects['lineA'] = ('future',
-                            "Read and evaluate reviewers' feedback")
 
     # Render what we have so far, in case we need to return for error cases
     ctx_objects['ce_step_3eval'] = ce_render_trigger(trigger, ctx_objects)
@@ -2891,7 +2886,8 @@ def ce_step_3eval(trigger, learner, entry_point=None, summaries=list(),
                                           'all_reviews_from_peers_completed',
                                             entry_point=entry_point):
         completed(learner, 'all_reviews_from_peers_completed', entry_point)
-        header = "All peers have completely reviewed your work."
+        header = "All {:d} peers have completely reviewed your work.".format(\
+                                                     n_reviewed)
 
     ctx_objects['peers_to_submitter_header'] = header
 
@@ -2920,8 +2916,9 @@ def ce_step_3eval(trigger, learner, entry_point=None, summaries=list(),
     if not(has(learner, 'started_a_review', entry_point)):
         # The learner hasn't reviewed other's work; so they are not in state
         # to evaluate others yet either.
-        ctx_objects['lineA'] = ('', ('Please complete a review first, before '
-                                     'evaluating their reviews.'))
+        ctx_objects['peers_to_submitter_header'] = ('Please complete a review '
+                                    'first, before evaluating their reviews.')
+        ctx_objects['ce_step_3eval'] = ce_render_trigger(trigger, ctx_objects)
         return
 
     # We cannot go further, unless all the reviews by the learner's peers are
@@ -2936,7 +2933,7 @@ def ce_step_3eval(trigger, learner, entry_point=None, summaries=list(),
     # 1/ Set the r_actual review to be locked (read-only)
     # 2/ Create a rubric for evaluation of the review
 
-    text = 'Read and evaluate their feedback: '
+    ctx_objects['lineA'] = 'Read and evaluate their feedback: '
     for idx, ractual in enumerate(rubrics):
         ractual.status = 'L'
         ractual.save()
@@ -2945,26 +2942,18 @@ def ce_step_3eval(trigger, learner, entry_point=None, summaries=list(),
         except EvaluationReport.DoesNotExist as e:
             logger.error('EvaluationReport not found. Please correct:[{0}:{1}]'\
                          .format(ractual.id, ractual))
-            ctx_objects['lineA'] = ('',
-                                    ("The links to read and evaluate reviewers'"
-                                     " feedback are still being generated. "
-                                     "Please wait."))
+            ctx_objects['lineA'] = ("The links to read and evaluate reviewers'"
+                            " feedback are still being generated. "
+                            "Please come back later and refresh this page.")
             return
 
         extra = ' <span class="still-to-do">(still to do)</span>'
         if hasattr(report.r_actual, 'status'):
             if report.r_actual.status in ('C', 'L'):
                 extra = ' (completed)'
-
-        if (idx > 0) and (idx < num_evals):
-            text += ';&nbsp;'
-
-        text += ('evaluate <a href="/interactive/evaluate/{0}/" '
-                 'target="_blank">peer {1}</a>{2}').format(report.unique_code,
-                                                           idx+1, extra)
-
-    text += '.'
-    ctx_objects['lineA'] = ('', text)
+        ctx_objects['eval_peers'].append(('evaluate <a href="/interactive/'
+                'evaluate/{0}/" target="_blank">peer {1}</a>{2}').format(\
+                    report.unique_code, idx+1, extra))
 
     ctx_objects['ce_step_3eval'] = ce_render_trigger(trigger, ctx_objects)
 
