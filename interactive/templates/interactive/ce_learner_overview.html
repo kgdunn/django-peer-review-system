@@ -1,0 +1,82 @@
+{% load template_extras %}
+
+<h2 style="display:inline; clear:none;">Learner overview</h2><br>
+
+
+{% comment  %}
+<div style="clear:all">
+<span style="float: left; padding-left: 0.5em"><a href="{% url 'csv_summary_download' %}">Download data (CSV) for all {{learners.count}} learners</a></span>
+{% if global_summary_link %}
+<span style="float: right; padding-right: 0.5em"><a href="{{global_summary_link}}">Links to all deliverables</a></span>
+{% endif %}
+</div>
+{% endcomment %}
+
+<div id="pr_graph"></div>
+
+<script language="javascript" type="text/javascript">
+$(document).ready( function () {
+
+  $('#class_overview').DataTable( {
+    paging: false,
+    order: [ [ 2, "asc" ], [ 1, "asc" ], [ 0, "asc" ], ],
+    searching: true,
+    fixedHeader: {
+        header: true,
+        footer: true
+    },
+    bInfo: false,
+    bAutoWidth: true,
+  } );
+} );
+</script>
+
+<b>Note:</b> only students that have activated their accounts are shown here.
+<table class="summaries pr-admin" id="class_overview">
+<thead>
+<tr>
+  <th>Initials</th>
+  <th>Learner</th>
+  <th>Group</th>
+  <!--<th>Reviewed by <br><tt>(Earn)</tt></th>-->
+  <!--<th>Reviewer of <br><tt>(Gave)</tt></th>-->
+  <!--<th>Reviews <br>completed</th>-->
+  <!--<th>Evaluate</th>-->
+  <!--<th>Rebut</th>-->
+  <!--<th>Assess</th>-->
+</tr>
+
+</thead>
+<tbody>
+{% for learner in learners %}
+<tr>
+  <td>{{learner.get_initials}}</td>
+  <td>{{learner.display_name}}<br><span style="color:#999; font-size:80%">{{learner.email|slice:"@student.tudelft.nl"}}</span></td>
+  <td>{{learner.show_group}}</td>
+
+    {% comment "not used for now" %}
+    {% with report=reports|keyvalue:learner %}
+      {% for key in report.keys %}
+        {% if not key|startswith:'_' %}
+            {% with item=report|keyvalue:key%}
+              <td data-order="{{item.when.timestamp}}">
+                {% if item.when %}
+                    {% if item.hyperlink %}
+                      <a target="_blank" href="{{item.hyperlink}}">{{item.when|date:"d M"}} {{item.when|date:"H:i"}}</a>
+                    {% else %}
+                      {{item.when|date:"d M"}} {{item.when|date:"H:i"}}
+                    {% endif %}
+                {% else %}
+                    {% if item %}
+                      {{item|safe}}
+                    {%endif%}
+                {%endif%}
+              </td>
+            {% endwith %}
+        {% endif %}
+      {% endfor %} {#  keys in ``report`` #}
+    {% endwith %}
+    {% endcomment %}
+</tr>
+{% endfor %}
+</tbody></table>

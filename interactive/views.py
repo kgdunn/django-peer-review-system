@@ -2422,6 +2422,26 @@ def overview(request, course=None, learner=None, entry_point=None):
     html = loader.render_to_string('interactive/display_progress.html', ctx)
     return HttpResponse(html)
 
+def overview_learners_circular(entry_point):
+    """
+    Provides a learner overview for the circular economy course.
+    """
+    ctx = {}
+
+    # Not the most robust way to group students; will fall apart if a student
+    # uses this system in more than 1 course
+    learners = entry_point.course.person_set.filter(role='Learn',
+                                    is_validated=True).order_by('-created')
+    ctx['learners'] = learners
+    #ctx['graph'] = group_graph(entry_point).graph_json(reports)
+    #ctx['reports'] = reports
+    #global_summary = entry_point.course.entrypoint_set.filter(order=0)
+    #if global_summary:
+    #    ctx['global_summary_link'] = global_summary[0].full_URL
+
+    return loader.render_to_string('interactive/ce_learner_overview.html', ctx)
+
+
 def overview_learners(entry_point):
     """
     Provides an overview to the instructor of what is going on
@@ -2437,6 +2457,9 @@ def overview_learners(entry_point):
 
             else:
                 return text, total
+
+    if entry_point.course.label == '66765':
+        return overview_learners_circular(entry_point)
 
     ctx = {}
     # Not the most robust way to group students; will fall apart if a student
@@ -2935,8 +2958,8 @@ def ce_step_3eval(trigger, learner, entry_point=None, summaries=list(),
     if not(has(learner, 'started_a_review', entry_point)):
         # The learner hasn't reviewed other's work; so they are not in state
         # to evaluate others yet either.
-        ctx_objects['peers_to_submitter_header'] = ('Please complete a review '
-                                    'first, before evaluating their reviews.')
+        ctx_objects['peers_to_submitter_header'] = ('You must complete a review '
+                'first before seeing and evaluating other reviews.')
         ctx_objects['ce_step_3eval'] = ce_render_trigger(trigger, ctx_objects)
         return
 
@@ -2945,6 +2968,9 @@ def ce_step_3eval(trigger, learner, entry_point=None, summaries=list(),
     if not(has(learner, 'all_reviews_from_peers_completed', entry_point)):
         return
 
+    # If the start time is not reached, then also don't show the review links
+    if trigger.start_dt > ctx_objects['now_time']:
+        return
 
     # If we have reached this point it is because the submitter can now
     # view their feedback. Therefore we only iterate over the COMPLETED rubrics.
