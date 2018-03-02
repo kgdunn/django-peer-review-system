@@ -69,6 +69,17 @@ def date_urgency_style(value, relative_to=timezone.now):
 def getfield(obj, field):
     return getattr(obj, field, default='')
 
+@register.filter('slicestr')
+def getfield(value, sliceamount):
+    """ Returns the fraction of the string, specified in ``sliceamount``.
+
+    {{some_string|slicestr:"5:9"}}
+
+    will return `onar` if ``some_string`` was "dictionary"
+
+    """
+    start, end = sliceamount.split(':')
+    return value[int(start):int(end)]
 
 
 @register.filter('startswith')

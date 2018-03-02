@@ -52,7 +52,7 @@ $(document).ready( function () {
 <tr>
   <td>{{learner.get_initials}}</td>
   <td>{{learner.display_name}}<br><span style="color:#999; font-size:80%">{{learner.email|slice:"@student.tudelft.nl"}}</span></td>
-  <td>{{learner.show_group}}</td>
+  <td>{{learner.show_group|slicestr:"7:9"}}</td>
 
     {% comment "not used for now" %}
     {% with report=reports|keyvalue:learner %}
