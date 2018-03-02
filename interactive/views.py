@@ -487,6 +487,10 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
     """
     out = []
     num_peers = trigger.entry_point.settings('num_peers')
+    try:
+        show_review_numbers = trigger.show_review_numbers
+    except AttributeError:
+        show_review_numbers = True
 
     # All valid submissions for this EntryPoint
     valid_subs = Submission.objects.filter(entry_point=trigger.entry_point,
@@ -526,12 +530,17 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
 
                 status = 'Completed' + extra
                 reviews_completed[idx] = True
-                summary = Summary(date=prior[0].completed,
-                   action='You completed review number {0}; thank you!'\
-                              .format(chr(review.order+64), num_peers),
-                   link=('<a href="/interactive/review/{0}" target="_blank">'
-                         'View</a>').format(review.unique_code),
-                   catg='rev')
+                if show_review_numbers:
+                    action = 'You completed review number {0}; thank you!'\
+                                                .format(chr(review.order+64))
+                else:
+                    action = 'You completed a review; thank you!'
+
+                summary = Summary(date=prior[0].completed, action=action,
+                        link=('<a href="/interactive/review/{0}" '
+                         'target="_blank">View</a>').format(review.unique_code),
+                        catg='rev')
+
                 summaries.append(summary)
 
             elif prior[0].status in ('P', 'V'):
