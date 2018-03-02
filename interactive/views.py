@@ -523,9 +523,10 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
         # What is the status of this review. Cross check with RubricActual
         prior = RubricActual.objects.filter(rubric_code=review.unique_code)
         if prior.count():
-            if prior[0].status in ('C', 'L'):
+            prior_rubric = prior[0]
+            if prior_rubric.status in ('C', 'L'):
                 extra = ''
-                if prior[0].status in ('C',) and can_be_done:
+                if prior_rubric.status in ('C',) and can_be_done:
                     extra = (' <span class="still-to-do">(you can still make '
                              'changes)</span>')
 
@@ -537,24 +538,22 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
                 else:
                     action = 'You completed a review; thank you!'
 
-                summary = Summary(date=prior[0].completed, action=action,
+                summary = Summary(date=prior_rubric.completed, action=action,
                         link=('<a href="/interactive/review/{0}" '
                          'target="_blank">View</a>').format(review.unique_code),
                         catg='rev')
 
                 summaries.append(summary)
 
-            elif prior[0].status in ('P', 'V'):
+            elif prior_rubric.status in ('P', 'V'):
                 status = ('<span class="still-to-do">Start/continue</span> '
                           'your review')
 
 
-        if not(can_be_done):
-            status = ('<span class="still-to-do">Deadline has passed</span> '
-                          'to complete your review.')
-            if prior.count():
-                prior[0].status = 'L'
-                prior[0].save()
+            if not(can_be_done):
+                status = 'Deadline has passed to complete your review.'
+                prior_rubric.status = 'L'
+                prior_rubric.save()
 
 
         # We have a potential review
