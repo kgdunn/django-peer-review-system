@@ -51,7 +51,8 @@ from submissions.models import Submission
 from submissions.forms import (UploadFileForm_one_file,
                                UploadFileForm_multiple_file)
 
-from utils import send_email, insert_evaluate_variables, generate_random_token
+from utils import (send_email, insert_evaluate_variables, generate_random_token,
+                   load_kwargs)
 
 # Logging
 import logging
@@ -201,7 +202,9 @@ def starting_point(request, course=None, learner=None, entry_point=None):
 
 
         # Some default attributes for the Trigger
-        setattr(trigger, 'show_dates', False) # unless overwritten
+        setattr(trigger, 'show_dates', False)         # don't show dates in UI
+        setattr(trigger, 'show_review_numbers', True) # show "Peer A" in docs
+
 
         # Push these ``kwargs`` into trigger (getattr, settattr)
         for key, value in kwargs.items():
@@ -487,6 +490,7 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
     """
     out = []
     num_peers = trigger.entry_point.settings('num_peers')
+
     try:
         show_review_numbers = trigger.show_review_numbers
     except AttributeError:
@@ -1906,6 +1910,8 @@ def create_evaluation_PDF(r_actual):
     that contains a SINGLE review (``r_actual``).
     """
     report = ReviewReport.objects.get(unique_code=r_actual.rubric_code)
+    load_kwargs(report.trigger)
+
     # From the perspective of the submitter, which peer am I?
     rubrics = RubricActual.objects.filter(submission=report.submission)\
                                                             .order_by('created')
@@ -1926,8 +1932,12 @@ def create_evaluation_PDF(r_actual):
 
 
     flowables = []
-    flowables.append(Paragraph("Review from peer number {}".format(\
-                chr(peer_number)), styles['title']))
+    if report.trigger.show_review_numbers:
+        flowables.append(Paragraph("Review from peer number {}".format(\
+                                         chr(peer_number)), styles['title']))
+    else:
+        flowables.append(Paragraph("Review from a peer", styles['title']))
+
     flowables.append(Spacer(1, 6))
     flowables.append(Paragraph(("The option in bold represents the one selected"
                                 " by your reviewer."), default))

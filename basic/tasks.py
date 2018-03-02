@@ -52,6 +52,11 @@ def send_emails__evaluation_and_rebuttal():
     from django.db.models import Q
 
     entry_points = EntryPoint.objects.all()
+
+    # Exclude, for now, the Circular Economy course entry points
+    entry_points = entry_points.exclude(course__label='66765')
+
+
     for entry_point in entry_points:
 
         course = entry_point.course

@@ -14,12 +14,34 @@ from django_q.models import Schedule
 
 import re
 import os
+import json
 import errno
 import logging
 import datetime
 
 email_from = settings.DEFAULT_FROM_EMAIL
 logger = logging.getLogger(__name__)
+
+
+def load_kwargs(obj):
+    """
+    Loads the ``kwargs`` attribute, if it exists, and makes the JSON dictionary
+    atributes of the ``obj``.
+
+    It will NEVER overwrite an existing attribute, so you can only do this
+    once. Downside is that it cannot update an attribute.
+
+    TODO: allow a ``force=False`` function input to override this downside.
+    """
+    if obj.kwargs:
+        kwargs = json.loads(obj.kwargs.replace('\r','').replace('\n',''))
+    else:
+        kwargs = {}
+
+    # Push these ``kwargs`` into ``obj`` (getattr, settattr)
+    for key, value in kwargs.items():
+        if not(getattr(obj, key, False)):
+            setattr(obj, key, value)
 
 
 def ensuredir(path):
