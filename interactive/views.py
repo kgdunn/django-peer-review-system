@@ -201,16 +201,18 @@ def starting_point(request, course=None, learner=None, entry_point=None):
             kwargs = {}
 
 
-        # Some default attributes for the Trigger
-        setattr(trigger, 'show_dates', False)         # don't show dates in UI
-        setattr(trigger, 'show_review_numbers', True) # show "Peer A" in docs
-
-
         # Push these ``kwargs`` into trigger (getattr, settattr)
         for key, value in kwargs.items():
-            if not(getattr(trigger, key, False)):
+            try:
+                getattr(trigger, key)
+            except AttributeError:
                 setattr(trigger, key, value)
 
+        # Some default attributes for the Trigger
+        if not(hasattr(trigger, 'show_dates')):
+            setattr(trigger, 'show_dates', False)   # don't show dates in UI
+        if not(hasattr(trigger, 'show_review_numbers')):
+            setattr(trigger, 'show_review_numbers', True) # show "Peer A" in docs
 
         # Add self to ctx_objects
         ctx_objects['self'] = trigger
@@ -491,11 +493,6 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
     out = []
     num_peers = trigger.entry_point.settings('num_peers')
 
-    try:
-        show_review_numbers = trigger.show_review_numbers
-    except AttributeError:
-        show_review_numbers = True
-
     # All valid submissions for this EntryPoint
     valid_subs = Submission.objects.filter(entry_point=trigger.entry_point,
                             is_valid=True).exclude(status='A')
@@ -534,7 +531,7 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
 
                 status = 'Completed' + extra
                 reviews_completed[idx] = True
-                if show_review_numbers:
+                if trigger.show_review_numbers:
                     action = 'You completed review number {0}; thank you!'\
                                                 .format(chr(review.order+64))
                 else:
