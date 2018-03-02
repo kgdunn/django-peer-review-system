@@ -1911,6 +1911,11 @@ def create_evaluation_PDF(r_actual):
     """
     report = ReviewReport.objects.get(unique_code=r_actual.rubric_code)
     load_kwargs(report.trigger)
+    try:
+        show_review_numbers = report.trigger.show_review_numbers
+    except AttributeError:
+        show_review_numbers = True
+
 
     # From the perspective of the submitter, which peer am I?
     rubrics = RubricActual.objects.filter(submission=report.submission)\
@@ -1929,10 +1934,8 @@ def create_evaluation_PDF(r_actual):
                             token + '.pdf')
     dst = base_dir_for_file_uploads + filename
 
-
-
     flowables = []
-    if report.trigger.show_review_numbers:
+    if show_review_numbers:
         flowables.append(Paragraph("Review from peer number {}".format(\
                                          chr(peer_number)), styles['title']))
     else:
