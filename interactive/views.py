@@ -2196,7 +2196,7 @@ def create_assessment_PDF(r_actual):
     flowables.append(Paragraph("Rebuttal", styles['title']))
     flowables.append(Spacer(1, 6))
     flowables.append(Paragraph(("The rebuttal is a point-by-point response to "
-                                "reviewers’ comments. This single rebuttal text"
+                                "reviewer' comments. This single rebuttal text"
                                 " is sent to all reviewers, so not all comments"
                                 " might apply to you."), default))
     flowables.append(Paragraph(("The original submission, with all peer reviews"

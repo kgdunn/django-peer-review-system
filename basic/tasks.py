@@ -58,6 +58,8 @@ def email__no_reviews_after_submission():
             if not(trigger):
                 continue
 
+        logger.info(str(trigger))
+
         all_learners = course.person_set.filter(role='Learn') # is_validated=True
         for learner in all_learners:
 
@@ -75,7 +77,7 @@ def email__no_reviews_after_submission():
             if allocated_reviews.count() == 0:
                 continue
 
-            logger.info(str(trigger) + str(learner) + str(allocated_reviews))
+
 
             for review in allocated_reviews:
                 prior = RubricActual.objects.filter(rubric_code=review.unique_code)
