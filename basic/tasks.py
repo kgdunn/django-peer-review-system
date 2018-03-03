@@ -34,6 +34,93 @@ def email__no_reviews_after_submission():
     Send email to learners that have waited more than 24 hours since uploading
     a valid submission, but haven't yet started a review
     """
+    subject = 'Start your peer review'
+
+    import time
+    import datetime
+    from basic.models import EntryPoint
+    from interactive.views import has, group_graph
+    from rubric.models import RubricActual
+    from utils import send_email
+    from django.conf import settings as DJANGO_SETTINGS
+    from django.template import loader
+
+    entry_points = EntryPoint.objects.all()
+    idx = 0
+    for entry_point in entry_points:
+
+        course = entry_point.course
+        # All valid submissions for this EntryPoint
+        valid_subs = entry_point.submission_set.filter(is_valid=True)\
+                                                    .exclude(status='A')
+        if valid_subs.count():
+            trigger = valid_subs[0].trigger
+            if not(trigger):
+                continue
+
+        all_learners = course.person_set.filter(role='Learn') # is_validated=True
+        for learner in all_learners:
+
+            now_time = datetime.datetime.now(datetime.timezone.utc)
+            # Find triggers that have just had a deadline that has passed.
+            if hasattr(trigger, 'deadline_dt') and now_time < trigger.deadline_dt:
+                continue
+
+            if has(learner, 'started_a_review', entry_point=entry_point):
+                continue
+
+            # All ReviewReport that have been Allocated for Review to this learner
+            allocated_reviews = entry_point.reviewreport_set.filter(reviewer=learner)\
+                .order_by('-created') # for consistency
+            if allocated_reviews.count() == 0:
+                continue
+
+            for review in allocated_reviews:
+                prior = RubricActual.objects.filter(rubric_code=review.unique_code)
+
+                if prior.count() == 0:
+                    graph = group_graph(entry_point)
+                    potential_submitter = graph.get_submitter_for(reviewer=learner)
+                    if potential_submitter is None:
+                        logger.info('No sub to review for {} in {}'.format(\
+                            learner, entry_point))
+
+                        # Stop here if there are no potential submitters
+                        continue
+
+
+            # OK, if we get this far, we likely need to send an email:
+            # but, let's not spam the learner.
+            if learner.email_task_set.filter(entry_point=entry_point,
+                                             subject=subject).count():
+                continue
+
+            platform_link = '{0}/{1}'.format(DJANGO_SETTINGS.BASE_URL,
+                                             entry_point.full_URL)
+            platform_link = platform_link.replace('//', '/')
+            ctx_dict = {'platform_link': platform_link,
+                        'course': course.name,
+                        'deliverable': entry_point.LTI_title,}
+            messages = loader.render_to_string(\
+                'basic/email_outstanding_reviews_to_start.txt',
+                                                  ctx_dict)
+            to_addresses = [learner.email, ]
+
+
+            logger.debug("Will send email to: {} | {}".format(to_addresses,
+                                                              messages))
+            send_email(to_addresses, subject, messages)
+
+            email_task = Email_Task(learner=learner,
+                                    message=messages,
+                                    entry_point=entry_point,
+                                    subject=subject
+                                    )
+            email_task.save()
+
+            # Let's wait some time before each email is sent out
+            time.sleep(13)
+
     logger.info('email__no_reviews_after_submission: success')
 
 
@@ -42,6 +129,7 @@ def send_emails__evaluation_and_rebuttal():
     Send emails for the Evaluation step: i.e. when two reviews are returned,
     are ready to be evaluated.
     """
+    subject = 'Interactive Peer Review: start evaluating ...'
     import time
     from basic.models import EntryPoint
     from interactive.models import EvaluationReport
@@ -75,10 +163,11 @@ def send_emails__evaluation_and_rebuttal():
                 continue
 
 
-            if learner.email_task_set.filter(entry_point=entry_point):
+            if learner.email_task_set.filter(entry_point=entry_point,
+                                             subject=subject):
                 continue
 
-            # This is the submisison by the learner
+            # This is the submission by the learner
             submission = all_subs[0]
             crit1 = Q(status='C')
             crit2 = Q(status='L')
@@ -101,7 +190,7 @@ def send_emails__evaluation_and_rebuttal():
                 'basic/email_outstanding_evaluations_to_read_evaluate.txt',
                                                   ctx_dict)
             to_addresses = [learner.email, ]
-            subject = 'Interactive Peer Review: start evaluating ...'
+
 
 
             logger.debug("Will send email to: {} | {}".format(to_addresses,
@@ -109,9 +198,9 @@ def send_emails__evaluation_and_rebuttal():
             send_email(to_addresses, subject, messages)
 
             email_task = Email_Task(learner=learner,
-                                    message = messages,
-                                    entry_point = entry_point,
-                                    subject = subject
+                                    message=messages,
+                                    entry_point=entry_point,
+                                    subject=subject
                                     )
             email_task.save()
 

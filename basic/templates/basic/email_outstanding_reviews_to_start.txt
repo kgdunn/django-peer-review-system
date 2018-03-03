@@ -1,0 +1,18 @@
+Hi there,
+
+This is to inform you that there is a peer review for you to start in the course: {{course}}.
+This is in regards to the deliverable: "{{deliverable}}".
+
+You, and others in the course have submitted documents for review. Let's start reviewing!
+
+1. Write your review (if you haven't done so already), so that you can see the incoming review(s).
+2. Once you have finished you are also required to evaluate the reviews you receive.
+3. Please don't delay. The document to review can be lengthy, and cannot be properly reviewed if you leave it until just before the deadline.
+
+You should use this link: {{platform_link}} (you may have to copy and paste it manually, in the case your email software blocks it).
+
+Remember: we don't use passwords, so you might first have to sign-in with a
+valid email address for the above link to work.
+
+Best regards,
+The Peer Review System
