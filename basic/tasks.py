@@ -75,6 +75,8 @@ def email__no_reviews_after_submission():
             if allocated_reviews.count() == 0:
                 continue
 
+            logger.info(str(trigger) + str(learner) + str(allocated_reviews))
+
             for review in allocated_reviews:
                 prior = RubricActual.objects.filter(rubric_code=review.unique_code)
 
