@@ -5,6 +5,7 @@ from django.template.context_processors import csrf
 from django.views.decorators.clickjacking import xframe_options_exempt
 from django.utils import timezone
 from django.conf import settings
+from django.db.models import Q
 
 
 # Python and 3rd party imports
@@ -185,9 +186,9 @@ def submit_peer_review_feedback(request, ractual_code):
         word_count += words
 
     # All done with storing the results. Did the user fill everything in?
-
-    words = [r.word_count for r in RubricActual.objects.filter(status='C',
-                                    rubric_template=r_actual.rubric_template)]
+    filled_in = RubricActual.objects.filter(Q(status='C') | Q(status='L'),
+                                    rubric_template=r_actual.rubric_template)
+    words = [r.word_count for r in filled_in]
     words = np.array(words)
     median_words = np.round(np.median(words[words!=0]))  # to avoid 160.5 words
     if np.isnan(median_words):
