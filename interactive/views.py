@@ -1526,11 +1526,11 @@ def review(request, unique_code=None):
     # 2. Can this still be completed?
     now_time = datetime.datetime.now(datetime.timezone.utc)
 
-    if now_time > report.trigger.deadline_dt:
-        logger.warn(report.trigger)
-        logger.warn('Late review to start: {}'.format(str(report)))
-        return HttpResponse(("The deadline for this step has passed; you "
-                             "cannot start/continue on anymore."))
+    #if now_time > report.trigger.deadline_dt:
+    #    logger.warn(report.trigger)
+    #    logger.warn('Late review to start: {}'.format(str(report)))
+    #    return HttpResponse(("The deadline for this step has passed; you "
+    #                         "cannot start/continue on anymore."))
 
 
     graph = group_graph(report.entry_point)
