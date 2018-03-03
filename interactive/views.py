@@ -621,10 +621,15 @@ def get_line2(learner, trigger, summaries):
         for report in evalrep:
             if report.r_actual:
                 out[idx] = ('', 'Peer has read your review')
-
-                summaries.append(Summary(date=report.r_actual.created,
+                if trigger.show_review_numbers:
+                    summaries.append(Summary(date=report.r_actual.created,
                             action='Peer {0} read your review.'.format(\
                                 chr(idx+65)), link='', catg='rev')
+                        )
+                else:
+                    summaries.append(Summary(date=report.r_actual.created,
+                            action='A peer has read your review.',
+                            link='', catg='rev')
                         )
 
     return out
@@ -1985,14 +1990,24 @@ def create_evaluation_PDF(r_actual):
     # The ``dst`` is not needed once we have saved the instance.
     os.unlink(dst)
 
-    # DELETE ANY PRIOR ATTEMPTS FOR THIS trigger/submitted_by combination.
-    prior_evals = EvaluationReport.objects.filter(
-                            trigger=r_actual.rubric_template.next_trigger,
-                            peer_reviewer=r_actual.graded_by,
-                            sort_report='E',
-                            evaluator=r_actual.submission.submitted_by
-                        )
-    prior_evals.delete()
+    learner = r_actual.submission.submitted_by
+    entry_point = r_actual.rubric_template.entry_point
+    group_enrolled = is_group_submission(learner, entry_point)
+    learner_s = [r_actual.submission.submitted_by,]
+    if group_enrolled:
+        learner_s.extend(group_enrolled.group_members)
+        learner_s = list(set(learner_s))
+
+        for student in learner_s:
+
+            # DELETE ANY PRIOR ATTEMPTS FOR THIS trigger/submitted_by combination.
+            prior_evals = EvaluationReport.objects.filter(
+                                    trigger=r_actual.rubric_template.next_trigger,
+                                    peer_reviewer=r_actual.graded_by,
+                                    sort_report='E',
+                                    evaluator=student,  # <-- key part
+                                )
+            prior_evals.delete()
 
     # Now we create here the link between the EvaluationReport
     # and the original submission's review (r_actual.next_code).
@@ -2002,18 +2017,23 @@ def create_evaluation_PDF(r_actual):
     r_actual.next_code = token
     r_actual.save()
 
-    review_back_to_submitter = EvaluationReport(
-                                submission=new_sub,
-                                trigger=r_actual.rubric_template.next_trigger,
-                                unique_code=token,
-                                sort_report='E',
-                                peer_reviewer=r_actual.graded_by,
-                                evaluator=r_actual.submission.submitted_by,
-                            )
-    review_back_to_submitter.save()
+    prior_token = token
 
+    for student in learner_s:
+        if student == r_actual.submission.submitted_by:
+            token = prior_token
+        else:
+            token = generate_random_token(token_length=16)
 
-
+        review_back_to_submitter = EvaluationReport(
+            submission=new_sub,
+            trigger=r_actual.rubric_template.next_trigger,
+            unique_code=token,
+            sort_report='E',
+            peer_reviewer=r_actual.graded_by,
+            evaluator=student,
+        )
+        review_back_to_submitter.save()
 
 def create_rebuttal_PDF(r_actual):
     """
@@ -2978,26 +2998,29 @@ def ce_step_3eval(trigger, learner, entry_point=None, summaries=list(),
     # 2/ Create a rubric for evaluation of the review
 
     ctx_objects['lineA'] = 'Read and evaluate their feedback: '
-    for idx, ractual in enumerate(rubrics):
-        ractual.status = 'L'
-        ractual.save()
-        try:
-            report = EvaluationReport.objects.get(unique_code=ractual.next_code)
-        except EvaluationReport.DoesNotExist as e:
-            logger.error('EvaluationReport not found. Please correct:[{0}:{1}]'\
-                         .format(ractual.id, ractual))
-            ctx_objects['lineA'] = ("The links to read and evaluate reviewers'"
-                            " feedback are still being generated. "
-                            "Please come back later and refresh this page.")
-            return
+
+    eval_trigger = rubrics[0].rubric_template.next_trigger
+
+    # Immediately set these to read-only, so the original submitter of the
+    # review cannot alter them.
+    for ractual in rubrics:
+        if ractual.status not in ('L',):
+            ractual.status = 'L'
+            ractual.save()
+
+    # Now generate links for the evaluation reports:
+    for idx, eval_report in enumerate(EvaluationReport.objects.filter(\
+                                                    sort_report='E',
+                                                    evaluator=learner,
+                                                    trigger=eval_trigger)):
 
         extra = ' <span class="still-to-do">(still to do)</span>'
-        if hasattr(report.r_actual, 'status'):
-            if report.r_actual.status in ('C', 'L'):
+        if hasattr(eval_report.r_actual, 'status'):
+            if eval_report.r_actual.status in ('C', 'L'):
                 extra = ' (completed)'
         ctx_objects['eval_peers'].append(('evaluate <a href="/interactive/'
                 'evaluate/{0}/" target="_blank">peer {1}</a>{2}').format(\
-                    report.unique_code, idx+1, extra))
+                    eval_report.unique_code, idx+1, extra))
 
     ctx_objects['ce_step_3eval'] = ce_render_trigger(trigger, ctx_objects)
 
