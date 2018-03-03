@@ -507,6 +507,8 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
     if ctx_objects:
         if ctx_objects['now_time'] > trigger.deadline_dt:
             can_be_done = False
+            status = 'The time to start your peer review has passed.'
+
 
     # All ReviewReport that have been Allocated for Review to this learner
     allocated_reviews = ReviewReport.objects.filter(reviewer=learner,
@@ -517,9 +519,11 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
 
         if not(review.order):
             review.order = idx+1
-            review.save()
+            review.save
 
-        status = '<span class="still-to-do">Start</span> your review'
+        if can_be_done:
+            status = '<span class="still-to-do">Start</span> your review'
+
         # What is the status of this review. Cross check with RubricActual
         prior = RubricActual.objects.filter(rubric_code=review.unique_code)
         if prior.count():
@@ -569,9 +573,16 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
                              'Waiting for a peer to submit their work ...'))
 
 
+        if not(can_be_done):
+            # This branch will only be caught if after the deadline, and
+            # `status` will be "The time to start your peer review has passed."
+            out[idx] = (('future', status))
+
     if sum(reviews_completed) == num_peers:
         completed(learner, 'completed_all_reviews',
                   trigger.entry_point, push_grade=True)
+
+
 
 
     for idx in range(num_peers-len(out)):
@@ -1511,6 +1522,13 @@ def review(request, unique_code=None):
             return r_actual
         else:
             return handle_review(request, unique_code)
+
+    # 2. Can this still be completed?
+    now_time = datetime.datetime.now(datetime.timezone.utc)
+    if now_time > report.trigger.deadline_dt:
+        logger.warn('Late review to start: {}'.format(str(report)))
+        return HttpResponse(("The deadline for this step has passed; you "
+                             "cannot start/continue on anymore."))
 
 
     graph = group_graph(report.entry_point)
