@@ -101,7 +101,7 @@ def email__no_reviews_after_submission():
 
             platform_link = '{0}/{1}'.format(DJANGO_SETTINGS.BASE_URL,
                                              entry_point.full_URL)
-            platform_link = platform_link.replace('//', '/')
+            #platform_link = platform_link.replace('//', '/')
             ctx_dict = {'platform_link': platform_link,
                         'course': course.name,
                         'deliverable': entry_point.LTI_title,}
@@ -185,7 +185,7 @@ def send_emails__evaluation_and_rebuttal():
 
             platform_link = '{0}/{1}'.format(DJANGO_SETTINGS.BASE_URL,
                                              entry_point.full_URL)
-            platform_link = platform_link.replace('//', '/')
+            #platform_link = platform_link.replace('//', '/')
             ctx_dict = {'platform_link': platform_link,
                         'course': course.name,
                         'deliverable': entry_point.LTI_title,
