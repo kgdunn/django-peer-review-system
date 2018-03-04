@@ -1482,7 +1482,8 @@ class group_graph(object):
             node['title'] = node['id'].get_initials()
 
             if reports.get(node['id'], False):
-                node['achieved'] = reports[node['id']]['_highest_achievement']
+                node['achieved'] = \
+                          reports[node['id']].get('_highest_achievement', None)
             else:
                 node['achieved'] = 'NOT_FOUND'
 
@@ -2461,6 +2462,22 @@ def overview(request, course=None, learner=None, entry_point=None):
     html = loader.render_to_string('interactive/display_progress.html', ctx)
     return HttpResponse(html)
 
+
+def format_text_overview(r_actual, text, total, url=''):
+    """
+    Formats text for the learner overview
+    """
+    if r_actual is None: # It has not been started yet
+        return text, total
+    else:
+        if r_actual.status in ('C', 'L'):
+            score = int(r_actual.score)
+            return '{0}<a href="{1}" target="_blank">{2:+d}</a> '.format(text,
+                     url+r_actual.rubric_code, score), total+score
+
+        else:
+            return text, total
+
 def overview_learners_circular(entry_point):
     """
     Provides a learner overview for the circular economy course.
@@ -2472,12 +2489,111 @@ def overview_learners_circular(entry_point):
     learners = entry_point.course.person_set.filter(role='Learn',
                                     is_validated=True).order_by('-created')
     ctx['learners'] = learners
-    #ctx['graph'] = group_graph(entry_point).graph_json(reports)
-    #ctx['reports'] = reports
-    #global_summary = entry_point.course.entrypoint_set.filter(order=0)
-    #if global_summary:
-    #    ctx['global_summary_link'] = global_summary[0].full_URL
+    reports = {}
+    filters = ('submitted',
+               'completed_all_reviews',
+               #'read_and_evaluated_all_reviews'
+               )
+    for learner in learners:
+        reports[learner], _ = filtered_overview(learner,
+                                                entry_point,
+                                                filters)
 
+        # ---- Submissions
+        if isinstance(reports[learner]['submitted'], Achievement):
+            sub = learner.submission_set.filter(is_valid=True,
+                                entry_point=entry_point).exclude(status='A')
+            if sub:
+                reports[learner]['submitted'].hyperlink = '/{}'.format(\
+                                                        sub[0].file_upload.url)
+
+        # ---- Reviewed by ...
+        temp = ''
+        learner_group = learner.membership_set.filter(role='Submit',
+                                                          group__entry_point=entry_point)
+        if learner_group:
+            members = learner_group[0].group.membership_set.filter\
+                    (role='Review')
+            for member in members:
+                report = ReviewReport.objects.filter(reviewer=member.learner,
+                                                         entry_point=entry_point,
+                                                         submission__submitted_by=learner)
+
+                code = ''
+                if report:
+                    rubric = RubricActual.objects.get(\
+                            rubric_code=report[0].unique_code)
+                    code = report[0].unique_code
+
+                initials = member.learner.get_initials()
+                if code:
+                    hlink = (' <a href="/interactive/review/{0}" target="_blank">'
+                                 '{1}</a> [{2:3.1f}] {3:4d} words<br>').format(code,
+                                                                               initials,
+                            rubric.score/rubric.rubric_template.maximum_score*10,
+                            rubric.word_count,)
+                else:
+                    hlink = ' {}<br>'.format(initials)
+
+                temp += hlink
+
+        reports[learner]['reviewed_by'] = '<tt>{}</tt>'.format(temp[0:-4])
+
+        # ---- Reviewer of ...
+        reviewer_of = learner.reviewreport_set.filter(entry_point=entry_point)
+        temp = ''
+        for review in reviewer_of:
+
+            code = review.unique_code
+            ractual = RubricActual.objects.filter(rubric_code=code)
+            if ractual.count() == 0:
+                logger.error('MISSING REVIEW: {}'.format(code))
+                continue
+            else:
+                ractual = ractual[0]
+
+            initials = ractual.submission.submitted_by.get_initials()
+            hlink = (' <a href="/interactive/review/{0}" target="_blank">'
+                     '{1}</a> [{2:3.1f}] {3:4d} words<br>').format(code,
+                        initials,
+                        ractual.score/ractual.rubric_template.maximum_score*10,
+                        ractual.word_count)
+            temp += hlink
+
+        reports[learner]['reviewer_of'] = '<tt>{}</tt>'.format(temp[0:-1])
+
+        # ---- Evaluations: earned and given
+        earned = learner.peer_reviewer.filter(trigger__entry_point=entry_point,
+                                                  sort_report='E')
+        text1 = '<tt>Earn: '
+        total = 0.0
+        for report in earned:
+            text1, total = format_text_overview(report.r_actual, text1, total,
+                                           url='/interactive/evaluate/')
+        if text1 == '<tt>Earn: ':
+            text1 = ''
+        else:
+            text1 += '= <b>{0:+d}</b></tt><br>'.format(int(total))
+
+        given = learner.evaluator.filter(trigger__entry_point=entry_point,
+                                             sort_report='E')
+        text2 = '<tt>Gave: '
+        total = 0.0
+        for report in given:
+            text2, total = format_text_overview(report.r_actual, text2, total,
+                                           url='/interactive/evaluate/')
+
+        if text2 == '<tt>Gave: ':
+            text2 = ''
+        else:
+            text2 += '= <b>{0:+d}</b></tt>'.format(int(total))
+
+        reports[learner]['read_and_evaluated_all_reviews'] = text1 + text2
+
+
+
+    ctx['graph'] = group_graph(entry_point).graph_json(reports)
+    ctx['reports'] = reports
     return loader.render_to_string('interactive/ce_learner_overview.html', ctx)
 
 
@@ -2506,9 +2622,15 @@ def overview_learners(entry_point):
     learners = entry_point.course.person_set.filter(role='Learn',
                                     is_validated=True).order_by('-created')
     reports = {}
+    filters = ('submitted',
+               'completed_all_reviews',
+               'read_and_evaluated_all_reviews',
+               'completed_rebuttal',
+               'assessed_rebuttals')
     for learner in learners:
         reports[learner], highest_achievement = filtered_overview(learner,
-                                                                  entry_point)
+                                                                  entry_point,
+                                                                  filters)
 
         # ---- Submissions
         if isinstance(reports[learner]['submitted'], Achievement):
@@ -2672,15 +2794,12 @@ def overview_learners(entry_point):
     return loader.render_to_string('interactive/learner_overview.html', ctx)
 
 
-def filtered_overview(learner, entry_point):
+def filtered_overview(learner, entry_point, filters):
     """
-    Takes the report card and adds supplement
+    Takes the report card and adds supplemental information to it for the
+    learner. Also returns the highest achievement found in the input
+    list/set of ``filters``.
     """
-    filters = ('submitted',
-               'completed_all_reviews',
-               'read_and_evaluated_all_reviews',
-               'completed_rebuttal',
-               'assessed_rebuttals')
     report = OrderedDict()
     highest_achievement = ''
     for name in filters:
@@ -3078,3 +3197,25 @@ def ce_step_7grades(trigger, learner, entry_point=None, summaries=list(),
     Get/show grades.
     """
     ctx_objects['ce_step_7grades'] = ce_render_trigger(trigger, ctx_objects)
+
+def update_completions_and_grades(r_actual):
+    """
+    Only runs via a hook function; to clean up after the CE evaluations.
+    """
+    trigger = r_actual.rubric_template.trigger
+    entry_point = trigger.entry_point
+    learner = r_actual.graded_by
+
+    n_evaluations = RubricActual.objects.filter(graded_by=r_actual.graded_by,
+                            rubric_template=r_actual.rubric_template).count()
+
+    if (n_evaluations < entry_point.settings('num_peers')) \
+                and not(has(learner, 'read_and_evaluated_all_reviews',
+                            entry_point)):
+        return
+
+
+    # Only continue to generate this report if it is the last review
+    completed(learner, 'read_and_evaluated_all_reviews', entry_point)
+
+
