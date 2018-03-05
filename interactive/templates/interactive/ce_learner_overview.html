@@ -31,32 +31,9 @@ text {
 <script src="//d3js.org/d3.v3.min.js"></script>
 <script>
 
-
-    // TODO:
-    // Curved nodes: https://bl.ocks.org/mbostock/4600693
-    // Curves?https://stackoverflow.com/questions/16568313/arrows-on-links-in-d3js-force-layout`
-    // legend
-
-    // General: http://www.d3noob.org/2013/03/d3js-force-directed-graph-example-basic.html
-
-    // Initialize the layout consistently:  https://github.com/d3/d3-3.x-api-reference/blob/master/Force-Layout.md
-//var n = nodes.length;
-//nodes.forEach(function(d, i) {
-//  d.x = d.y = width / n * i;
-//});
-
-
 var links = {{graph.links|safe}};
 
 var nodes = {{graph.nodes|safe}};
-nodes.push({"title": "Assessed", "id": 9999999, "achieved": "assessed_rebuttals"},
-           {"title": "Rebutted", "id": 9999999, "achieved": "completed_rebuttal"},
-           {"title": "Evaluated", "id": 9999998, "achieved": "read_and_evaluated_all_reviews"},
-           {"title": "Reviewed", "id": 9999997, "achieved": "completed_all_reviews"},
-           {"title": "Submitted", "id": 9999996, "achieved": "submitted"},
-           {"title": "Withdrawn", "id": 9999995, "achieved": "NOT_FOUND"},
-        );
-
 
 var width = 1000, height = 600;
 var circle_radius = 8;
@@ -64,13 +41,7 @@ var linkDistance = 40; // target distance between linked nodes; optimized during
 var linkStrength = 0.5;
 var charge = -200;
 
-
-var mapper = {"submitted": "#fdae6b",
-              "completed_all_reviews": "#cedb9c",
-              "read_and_evaluated_all_reviews": "#e7cb94",
-              'completed_rebuttal': "#e7969c",
-              'assessed_rebuttals':"#74c476",
-              'NOT_FOUND': "#999999"};
+var mapper = {"None": "#fdae6b"};
 var force = d3.layout.force()
     .nodes(d3.values(nodes))
     .links(links)
@@ -242,7 +213,7 @@ $(document).ready( function () {
 {% for learner in learners %}
 <tr>
   <td>{{learner.get_initials}}</td>
-  <td><span style="color:{% if learner.is_validated%}black{% else %}darkorange{% endif %}">{{learner.display_name}}</span><br><span style="color:#999; font-size:80%">{{learner.email|slice:"@student.tudelft.nl"}}</span></td>
+  <td><span style="color:{% if learner.is_validated%}black">{% else %}darkorange">*{% endif %}{{learner.display_name}}</span><br><span style="color:#999; font-size:80%">{{learner.email|slice:"@student.tudelft.nl"}}</span></td>
   <td>{{learner.show_group|slicestr:"7:9"}}</td>
 
 
@@ -250,12 +221,12 @@ $(document).ready( function () {
       {% for key in report.keys %}
         {% if not key|startswith:'_' %}
             {% with item=report|keyvalue:key%}
-              <td data-order="{{item.when.timestamp}}">
-                {% if item.when %}
+              <td data-order="{{item.last.timestamp}}">
+                {% if item.last %}
                     {% if item.hyperlink %}
-                      <a target="_blank" href="{{item.hyperlink}}">{{item.when|date:"d M"}} {{item.when|date:"H:i"}}</a>
+                      <a target="_blank" href="{{item.hyperlink}}">{{item.last|date:"d M"}} {{item.last|date:"H:i"}}</a>
                     {% else %}
-                      {{item.when|date:"d M"}} {{item.when|date:"H:i"}}
+                      {{item.last|date:"d M"}} {{item.last|date:"H:i"}}
                     {% endif %}
                 {% else %}
                     {% if item %}

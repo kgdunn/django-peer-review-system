@@ -2386,10 +2386,13 @@ def completed(learner, achievement, entry_point, push_grade=False,
     else:
         completed = possible[0]
 
-    if not(completed.done):
-        # Only write to the DB if absolutely necessary.
-        completed.done = True
-        completed.save()
+    #if not(completed.done):
+    ## Only write to the DB if absolutely necessary.
+
+    # CHANGE: update this anyway, since we likely want it to
+    # record the most recent date/time that this happened.
+    completed.done = True
+    completed.save()
 
         #if push_grade:
         #    if not(score_override):
@@ -2503,6 +2506,8 @@ def overview_learners_circular(entry_point):
         if isinstance(reports[learner]['submitted'], Achievement):
             sub = learner.submission_set.filter(is_valid=True,
                                 entry_point=entry_point).exclude(status='A')
+            if sub.count()>1:
+                assert(False)
             if sub:
                 reports[learner]['submitted'].hyperlink = '/{}'.format(\
                                                         sub[0].file_upload.url)
