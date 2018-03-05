@@ -2492,6 +2492,7 @@ def overview_learners_circular(entry_point):
     learners = entry_point.course.person_set.filter(role='Learn')\
         .order_by('-created')
     ctx['learners'] = learners
+    graph = group_graph(entry_point)
     reports = {}
     filters = ('submitted',
                'completed_all_reviews',
@@ -2548,14 +2549,19 @@ def overview_learners_circular(entry_point):
         reviewer_of = learner.reviewreport_set.filter(entry_point=entry_point)
         temp = ''
         for review in reviewer_of:
+            # Not strictly needed: there is only 1 review per person:
+            # But helps with the logic in the ``continue`` and ``temp``
 
             code = review.unique_code
             ractual = RubricActual.objects.filter(rubric_code=code)
+
             if ractual.count() == 0:
-                logger.error('MISSING REVIEW: {}'.format(code))
                 continue
             else:
                 ractual = ractual[0]
+                group_member = learner.membership_set.filter(role='Review')[0]
+                submitter = group_member.group.membership_set.filter(role='Submit')[0]
+                submitter = submitter.learner
 
             initials = ractual.submission.submitted_by.get_initials()
             hlink = (' <a href="/interactive/review/{0}" target="_blank">'
@@ -2597,7 +2603,7 @@ def overview_learners_circular(entry_point):
 
 
 
-    ctx['graph'] = group_graph(entry_point).graph_json(reports)
+    ctx['graph'] = graph.graph_json(reports)
     ctx['reports'] = reports
     return loader.render_to_string('interactive/ce_learner_overview.html', ctx)
 
