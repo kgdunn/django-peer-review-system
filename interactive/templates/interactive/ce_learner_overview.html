@@ -223,7 +223,7 @@ $(document).ready( function () {
 } );
 </script>
 
-<b>Note:</b> only students that have activated their accounts are shown here.
+<b>Note:</b> students that have NOT activated their accounts are shown in orange.
 <table class="summaries pr-admin" id="class_overview">
 <thead>
 <tr>
@@ -234,7 +234,7 @@ $(document).ready( function () {
   <th>Reviewed by <br><tt>(Earn)</tt></th>
   <th>Reviewer of <br><tt>(Gave)</tt></th>
   <th>Reviews <br>completed</th>
-  <th>Evaluate</th>
+  <th>Evaluations</th>
 </tr>
 
 </thead>
@@ -242,7 +242,7 @@ $(document).ready( function () {
 {% for learner in learners %}
 <tr>
   <td>{{learner.get_initials}}</td>
-  <td>{{learner.display_name}}<br><span style="color:#999; font-size:80%">{{learner.email|slice:"@student.tudelft.nl"}}</span></td>
+  <td><span style="color:{% if learner.is_validated%}black{% else %}darkorange{% endif %}">{{learner.display_name}}</span><br><span style="color:#999; font-size:80%">{{learner.email|slice:"@student.tudelft.nl"}}</span></td>
   <td>{{learner.show_group|slicestr:"7:9"}}</td>
 
 

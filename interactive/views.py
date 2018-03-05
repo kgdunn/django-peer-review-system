@@ -2486,8 +2486,8 @@ def overview_learners_circular(entry_point):
 
     # Not the most robust way to group students; will fall apart if a student
     # uses this system in more than 1 course
-    learners = entry_point.course.person_set.filter(role='Learn',
-                                    is_validated=True).order_by('-created')
+    learners = entry_point.course.person_set.filter(role='Learn')\
+        .order_by('-created')
     ctx['learners'] = learners
     reports = {}
     filters = ('submitted',
