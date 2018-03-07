@@ -36,10 +36,10 @@ var links = {{graph.links|safe}};
 var nodes = {{graph.nodes|safe}};
 
 var width = 1000, height = 600;
-var circle_radius = 8;
+var circle_radius = 7;
 var linkDistance = 40; // target distance between linked nodes; optimized during simulation
 var linkStrength = 0.5;
-var charge = -200;
+var charge = -100;
 
 var mapper = {"None": "#ababab"};
 var force = d3.layout.force()
