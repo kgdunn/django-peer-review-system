@@ -1205,9 +1205,10 @@ class group_graph(object):
        A review is allocated in real time, when the reviewer wants to start.
     5. The edge contains a ``Submission`` instance.
     """
-    def __init__(self, entry_point):
+    def __init__(self, entry_point, trigger=None):
 
-        groups = GroupConfig.objects.filter(entry_point=entry_point)
+        groups = GroupConfig.objects.filter(entry_point=entry_point,
+                                            trigger=trigger)
 
         # Added these two lines, so the graphs are always created randomly
         groups = list(groups)
@@ -2496,7 +2497,6 @@ def overview_learners_circular(entry_point):
     ctx['learners'] = learners
     graph = group_graph(entry_point)
     ctx['n_reviews_allocated'] = len(graph.graph.edges())
-    graph = group_graph(entry_point)
     reports = {}
     filters = ('submitted',
                'completed_all_reviews',

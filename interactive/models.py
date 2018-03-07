@@ -162,7 +162,7 @@ class GroupConfig(models.Model):
     Contains the configuration of the internal groups during the review process.
     """
     class Meta:
-        unique_together = (('group_name', 'entry_point'), )
+        unique_together = (('group_name', 'entry_point', 'trigger'), )
 
     group_name = models.CharField(max_length=100,
                                   help_text='If empty, will be auto-generated',
