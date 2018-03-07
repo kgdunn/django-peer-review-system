@@ -2493,6 +2493,8 @@ def overview_learners_circular(entry_point):
         .order_by('-created')
     ctx['learners'] = learners
     graph = group_graph(entry_point)
+    ctx['n_reviews_allocated'] = len(graph.graph.edges())
+    graph = group_graph(entry_point)
     reports = {}
     filters = ('submitted',
                'completed_all_reviews',
@@ -2521,9 +2523,13 @@ def overview_learners_circular(entry_point):
             members = learner_group[0].group.membership_set.filter\
                     (role='Review')
             for member in members:
+
+                # Ensure this is also in our graph
+                assert(graph.graph.has_successor(learner, member.learner))
+
                 report = ReviewReport.objects.filter(reviewer=member.learner,
-                                                         entry_point=entry_point,
-                                                         submission__submitted_by=learner)
+                                                     entry_point=entry_point)
+                                            # submission__submitted_by=learner)
 
                 code = ''
                 if report:
@@ -2534,10 +2540,10 @@ def overview_learners_circular(entry_point):
                 initials = member.learner.get_initials()
                 if code:
                     hlink = (' <a href="/interactive/review/{0}" target="_blank">'
-                                 '{1}</a> [{2:3.1f}] {3:4d} words<br>').format(code,
-                                                                               initials,
-                            rubric.score/rubric.rubric_template.maximum_score*10,
-                            rubric.word_count,)
+                        '{1}</a> [{2:3.1f}] {3:4d} words<br>').format(code,
+                                                                      initials,
+                        rubric.score/rubric.rubric_template.maximum_score*10,
+                        rubric.word_count,)
                 else:
                     hlink = ' {}<br>'.format(initials)
 
@@ -2562,6 +2568,7 @@ def overview_learners_circular(entry_point):
                 group_member = learner.membership_set.filter(role='Review')[0]
                 submitter = group_member.group.membership_set.filter(role='Submit')[0]
                 submitter = submitter.learner
+                assert(graph.graph.has_successor(submitter, learner))
 
             initials = ractual.submission.submitted_by.get_initials()
             hlink = (' <a href="/interactive/review/{0}" target="_blank">'
