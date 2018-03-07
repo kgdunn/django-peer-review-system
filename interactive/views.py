@@ -7,6 +7,7 @@ from django.core.files import File
 from django.conf import settings
 from django.utils import timezone
 from django.utils.text import slugify
+from django.db.models import Q
 
 # Python and 3rd party imports
 import os
@@ -554,7 +555,7 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
                           'your review')
 
 
-            if not(can_be_done):
+            if not(can_be_done) and prior_rubric.status not in ('C', 'L'):
                 status = 'Deadline has passed to complete your review.'
                 prior_rubric.status = 'L'
                 prior_rubric.save()
@@ -573,7 +574,7 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
                              'Waiting for a peer to submit their work ...'))
 
 
-        if not(can_be_done):
+        if not(can_be_done) and prior_rubric.status in ('P', 'V'):
             # This branch will only be caught if after the deadline, and
             # `status` will be "The time to start your peer review has passed."
             out[idx] = (('future', status))
@@ -3362,16 +3363,23 @@ def update_completions_and_grades(r_actual):
     entry_point = trigger.entry_point
     learner = r_actual.graded_by
 
-    n_evaluations = RubricActual.objects.filter(graded_by=r_actual.graded_by,
-                            rubric_template=r_actual.rubric_template).count()
+    evaluations = RubricActual.objects.filter(graded_by=r_actual.graded_by,
+                            rubric_template=r_actual.rubric_template)
+    evaluations_complete = evaluations.filter(Q(status='L')|Q(status='C'))
+    n_evaluations = evaluations_complete.count()
 
-    if (n_evaluations < entry_point.settings('num_peers')) \
-                and not(has(learner, 'read_and_evaluated_all_reviews',
-                            entry_point)):
+    group_enrolled = is_group_submission(learner, entry_point)
+    if group_enrolled:
+        num_peers = len(group_enrolled.group_members)
+    else:
+        num_peers = entry_point.settings('num_peers')
+
+    if (n_evaluations < num_peers) \
+                         and not(has(learner, 'read_and_evaluated_all_reviews',
+                                     entry_point)):
         return
 
-
-    # Only continue to generate this report if it is the last review
+    # Only continue to mark this as completed if this is the last review
     completed(learner, 'read_and_evaluated_all_reviews', entry_point)
 
 
