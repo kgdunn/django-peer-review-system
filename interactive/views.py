@@ -3006,7 +3006,7 @@ def ce_step_2review(trigger, learner, entry_point=None, summaries=list(),
                                                                  summaries,
                                                                  ctx_objects)[0]
 
-    ctx_objects['2_class'], ctx_objects['2_message'] = get_line2(learner,
+    ctx_objects['2_class'], ctx_objects['2_message'] = get_line2_circular(learner,
                                                                  trigger,
                                                                  summaries)[0]
 
@@ -3103,8 +3103,8 @@ def ce_step_3eval(trigger, learner, entry_point=None, summaries=list(),
                                           'all_reviews_from_peers_completed',
                                             entry_point=entry_point):
         completed(learner, 'all_reviews_from_peers_completed', entry_point)
-        header = "All {:d} peers have completely reviewed your work.".format(\
-                                                     n_reviewed)
+        header = ("All {:d} peers have completely reviewed your group's work."
+                  '').format(n_reviewed)
 
     ctx_objects['peers_to_submitter_header'] = header
 
@@ -3171,11 +3171,15 @@ def ce_step_3eval(trigger, learner, entry_point=None, summaries=list(),
                                                     trigger=eval_trigger)):
 
         extra = ' <span class="still-to-do">(still to do)</span>'
+        verb = 'Start your evaluation for'
         if hasattr(eval_report.r_actual, 'status'):
+            if eval_report.r_actual.status in ('V'):
+                verb = 'Continue your evaluation for'
             if eval_report.r_actual.status in ('C', 'L'):
+                verb = 'View your evaluation for'
                 extra = ' (completed)'
-        ctx_objects['eval_peers'].append(('evaluate <a href="/interactive/'
-                'evaluate/{0}/" target="_blank">peer {1}</a>{2}').format(\
+        ctx_objects['eval_peers'].append(('{0} <a href="/interactive/'
+                'evaluate/{1}/" target="_blank">peer {2}</a>{3}').format(verb,
                     eval_report.unique_code, idx+1, extra))
 
     ctx_objects['ce_step_3eval'] = ce_render_trigger(trigger, ctx_objects)
@@ -3236,3 +3240,45 @@ def update_completions_and_grades(r_actual):
     completed(learner, 'read_and_evaluated_all_reviews', entry_point)
 
 
+def get_line2_circular(learner, trigger, summaries):
+    """
+    Get the Summary and text display related to the evaluation being read.
+
+    We know there is only 1 peer in the CE course, so we use the "0"
+    subscript here intentionally.
+    """
+    out = []
+    incoming_evaluations = EvaluationReport.objects.filter(trigger=trigger,
+                                    peer_reviewer=learner).order_by('-created')
+
+    for idx in range(trigger.entry_point.settings('num_peers')):
+        out.append(('future', 'Waiting for peer to read your review'))
+
+
+    # We use ``incoming_evaluations`` to ensure consistency of order,
+    # but we jump from that, and we pick up the r_actual, and look at the
+    # dates and times on it.
+    how_many = 0
+    which_ones = ''
+    for idx, review in enumerate(incoming_evaluations):
+        if review.r_actual:
+            which_ones += chr(idx+65) + ','
+            how_many += 1
+            status = 'read'
+            if review.r_actual.status in ('C', 'L'):
+                status = 'has read and evaluated'
+            else:
+                status = 'has started reading'
+
+            # Now add the summary line
+            summaries.append(Summary(date=review.r_actual.created,
+                    action='Peer {} from the group {} your review.'.format(\
+                                    chr(idx+65), status), link='', catg='rev'))
+    if how_many==1:
+        out[0] = ('', ('Peer {} from the group has read/evaluated your '
+                       'review'.format(which_ones[0:-1])))
+    if how_many>1:
+        out[0] = ('', ('{:d} peers ({}) from the group have read/evaluated your'
+                       ' review').format(how_many, which_ones[0:-1]))
+
+    return out
