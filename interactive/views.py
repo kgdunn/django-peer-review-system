@@ -3318,11 +3318,11 @@ def ce_step_5resubmit(trigger, learner, entry_point=None, summaries=list(),
     else:
         trigger.allow_submit = True
 
-    if learner.role in ('admin',):
-        trigger.allow_submit = False  # prevent issues with instructor's upload
-
+    if trigger.start_dt and (trigger.start_dt >=timezone.now()):
+        trigger.allow_submit = False  # prevent late submissions
     if trigger.deadline_dt and (trigger.deadline_dt < timezone.now()):
         trigger.allow_submit = False  # prevent late submissions
+
 
     if trigger.submission:
         summary = Summary(date=trigger.submission.datetime_submitted,
