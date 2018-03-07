@@ -171,6 +171,8 @@ class GroupConfig(models.Model):
     # Must specify the entry point, because in different entry points, the
     # group names will be different, and used for different purposes.
     entry_point = models.ForeignKey('basic.EntryPoint', null=True, blank=True)
+    trigger = models.ForeignKey('interactive.Trigger', null=True, blank=True)
+
     members = models.ManyToManyField('basic.Person',
                                      through='Membership',
                                      )
@@ -186,7 +188,8 @@ class GroupConfig(models.Model):
             super(GroupConfig, self).save(*args, **kwargs)
             return
 
-        prior_groups = GroupConfig.objects.filter(entry_point=self.entry_point)
+        prior_groups = GroupConfig.objects.filter(entry_point=self.entry_point,
+                                                  trigger=self.trigger)
         highest_number = 0
         for item in prior_groups:
             parts = item.group_name.lower().split('group ')
@@ -202,13 +205,16 @@ class GroupConfig(models.Model):
 
         highest_number += 1
         prior_groups = GroupConfig.objects.filter(entry_point=self.entry_point,
+                                                  trigger=self.trigger,
                                                   group_name='Group {}'.format(
                                                         highest_number))
         while prior_groups.count() > 0:
             highest_number += 1
             prior_groups = GroupConfig.objects.filter(\
-                                entry_point=self.entry_point,
-                                group_name='Group {}'.format(highest_number))
+                            entry_point=self.entry_point,
+                            trigger=self.trigger,
+                            group_name='Group {}'.format(highest_number))
+
         self.group_name = 'Group {}'.format(highest_number)
         super(GroupConfig, self).save(*args, **kwargs)
 
