@@ -41,7 +41,7 @@ var linkDistance = 40; // target distance between linked nodes; optimized during
 var linkStrength = 0.5;
 var charge = -200;
 
-var mapper = {"None": "#fdae6b"};
+var mapper = {"None": "#ababab"};
 var force = d3.layout.force()
     .nodes(d3.values(nodes))
     .links(links)
@@ -223,7 +223,7 @@ $(document).ready( function () {
       {% for key in report.keys %}
         {% if not key|startswith:'_' %}
             {% with item=report|keyvalue:key%}
-              <td data-order="{{item.last.timestamp}}">
+              <td data-order="{{item|sortorder}}">
                 {% if item.last %}
                     {% if item.hyperlink %}
                       <a target="_blank" href="{{item.hyperlink}}">{{item.last|date:"d M"}} {{item.last|date:"H:i"}}</a>

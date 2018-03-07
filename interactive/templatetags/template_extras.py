@@ -2,6 +2,7 @@ from django import template
 register = template.Library()
 
 from django.utils import timezone
+from html.parser import HTMLParser
 
 @register.filter(name='keyvalue')
 def keyvalue(dictn, key):
@@ -87,3 +88,34 @@ def startswith(text, starts):
     if isinstance(text, str):
         return text.startswith(starts)
     return False
+
+
+class MLStripper(HTMLParser):
+    def __init__(self):
+        self.reset()
+        self.strict = False
+        self.convert_charrefs= True
+        self.fed = []
+    def handle_data(self, d):
+        self.fed.append(d)
+    def get_data(self):
+        return ''.join(self.fed)
+
+
+def strip_tags(html):
+    s = MLStripper()
+    s.feed(html)
+    return s.get_data()
+
+
+@register.filter('sortorder')
+def sortorder(obj):
+    """
+    Trys to smartly determine the sort order for this object ``obj``
+    """
+    if hasattr(obj, 'last'):
+        return obj.last.timestamp
+    if isinstance(obj, str):
+        return strip_tags(obj).strip()
+
+    return None

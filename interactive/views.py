@@ -1483,7 +1483,8 @@ class group_graph(object):
 
             if reports.get(node['id'], False):
                 node['achieved'] = \
-                          reports[node['id']].get('_highest_achievement', None)
+                          reports[node['id']].get('_highest_achievement',
+                                                  'NOT_FOUND')
             else:
                 node['achieved'] = 'NOT_FOUND'
 
@@ -2570,7 +2571,7 @@ def overview_learners_circular(entry_point):
                 submitter = submitter.learner
                 assert(graph.graph.has_successor(submitter, learner))
 
-            initials = ractual.submission.submitted_by.get_initials()
+            initials = submitter.get_initials()
             hlink = (' <a href="/interactive/review/{0}" target="_blank">'
                      '{1}</a> [{2:3.1f}] {3:4d} words<br>').format(code,
                         initials,
@@ -2607,8 +2608,6 @@ def overview_learners_circular(entry_point):
             text2 += '= <b>{0:+d}</b></tt>'.format(int(total))
 
         reports[learner]['read_and_evaluated_all_reviews'] = text1 + text2
-
-
 
     ctx['graph'] = graph.graph_json(reports)
     ctx['reports'] = reports
