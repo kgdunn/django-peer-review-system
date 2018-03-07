@@ -2381,6 +2381,7 @@ def completed(learner, achievement, entry_point, push_grade=False,
             logger.error(('CRITICAL: create this achievement "{0}" for '
                           'entry_point: {1}').format(achievement,
                                                      entry_point))
+            assert(False)
 
         completed = Achievement(learner=learner,
                                 achieved=achieve_config)
@@ -3196,9 +3197,143 @@ def ce_step_4process(trigger, learner, entry_point=None, summaries=list(),
 def ce_step_5resubmit(trigger, learner, entry_point=None, summaries=list(),
                    ctx_objects=dict(), **kwargs):
     """
-    Step 4 of the Circular Economy (CE) peer review 2017/2018.
+    Step 5 of the Circular Economy (CE) peer review 2017/2018.
     Groups submit for staff review.
     """
+    # Would have liked to use the existing code, like in step 1, but the
+    # staff review must ignore the prior submission.
+    # Remove the prior submission from the dict, so that PRs that use
+    # multiple submission steps get the correct phase's submission
+    #ctx_objects.pop('submission', None)
+
+    # Get the (prior) submission
+    submission = prior_submission = get_submission(learner,
+                                                   trigger,
+                                                   entry_point)
+
+    if not(getattr(trigger, 'accepted_file_types_comma_separated', False)):
+        trigger.accepted_file_types_comma_separated = 'PDF'
+
+    if not(getattr(trigger, 'max_file_upload_size_MB', False)):
+        trigger.max_file_upload_size_MB = 5
+
+    file_upload_form = UploadFileForm_one_file()
+    submission_error_message = ''
+    if kwargs['request'].FILES and \
+                          not(has(learner, 'work_has_started_staff_reviewed',
+                                  entry_point)):
+
+        submit_inst = upload_submission(kwargs['request'],
+                                        learner,
+                                        trigger)
+
+        # One final check: has a reviewer been allocated to this review
+        # from this entry_point AND trigger? This is a distinct difference from
+        # step 1 submission: here we filter on Trigger also.        #
+        group_submitter = Membership.objects.filter(role='Submit',
+                                            learner=learner,
+                                            group__entry_point=entry_point,
+                                            group__trigger=trigger)
+
+        if group_submitter.count():
+            group = group_submitter[0].group
+            reviewers = Membership.objects.filter(role='Review',
+                                                  group=group,
+                                                  fixed=True)
+
+            if (reviewers.count() and prior_submission):
+
+                logger.debug(('New submission set to False: {0} as item has '
+                          'just started review.'.format(submit_inst)))
+                submit_inst.is_valid = False
+                submit_inst.save()
+
+                prior_submission.is_valid = True
+                prior_submission.save()
+
+                submit_inst = (submit_inst, ('Your submission has been refused;'
+                               ' a peer has just started reviewing your work.'))
+
+
+        if isinstance(submit_inst, tuple):
+            # Problem with the upload: revert back to the prior.
+            submission_error_message = submit_inst[1]
+            submission = prior_submission
+        else:
+            # Successfully uploaded a document. Mark it as submitted for this
+            # learner, as well as their team members.
+            submission_error_message = ''
+            submission = submit_inst
+
+            # Create a group with this learner as the submitter
+            learner_s = [learner, ]
+            group_enrolled = is_group_submission(learner, entry_point)
+            if group_enrolled:
+                learner_s.extend(group_enrolled.group_members)
+                learner_s = list(set(learner_s))
+
+            for student in learner_s:
+
+                # First, learner (or their group) has completed this step:
+                completed(student, 'submitted_staff_review', entry_point)
+
+                # Check if the membership has been created. If not, create a
+                # new GroupConfig, and make the student a member.
+                # NOTE here again, as compared to step 1, we filter on
+                # ``Trigger`` also.
+                memberships = student.membership_set.filter(role='Submit',
+                                                group__entry_point=entry_point,
+                                                group__trigger=trigger,
+                                                fixed=True)
+
+                if not(memberships.count()):
+                    new_group = GroupConfig(entry_point=trigger.entry_point,
+                                            trigger=trigger)
+                    new_group.save()
+                    member = Membership(learner=student,
+                                        group=new_group,
+                                        role='Submit',
+                                        fixed=True)
+                    member.save()
+
+            # Finished creating a new group.
+
+    else:
+        submission = prior_submission
+
+
+    # Whether a new submission or not, create the reviews
+    #invite_reviewers(trigger)
+
+    # Store some fields on the ``trigger`` for rendering in the template
+    trigger.submission = submission
+    trigger.submission_error_message = submission_error_message
+    trigger.file_upload_form = ctx_objects['file_upload_form'] = \
+        file_upload_form
+
+    # Note: if the learner's work is started to being reviewed by staff
+    #       then the original submitter cannot resubmit.
+    if has(learner, 'work_has_started_staff_reviewed', entry_point):
+        trigger.allow_submit = False  # False, if no more submissions allowed
+    else:
+        trigger.allow_submit = True
+
+    if learner.role in ('admin',):
+        trigger.allow_submit = False  # prevent issues with instructor's upload
+
+    if trigger.deadline_dt and (trigger.deadline_dt < timezone.now()):
+        trigger.allow_submit = False  # prevent late submissions
+
+    if trigger.submission:
+        summary = Summary(date=trigger.submission.datetime_submitted,
+                          action='{0} successfully submitted a document.'\
+                        .format(trigger.submission.submitted_by.display_name,),
+                          link='<a href="{0}" target="_blank">{1}</a>'.format(\
+                              trigger.submission.file_upload.url,
+                              "View"),
+                          catg='')
+        summaries.append(summary)
+
     ctx_objects['ce_step_5resubmit'] = ce_render_trigger(trigger, ctx_objects)
 
 
