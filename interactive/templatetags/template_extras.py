@@ -3,6 +3,7 @@ register = template.Library()
 
 from django.utils import timezone
 from html.parser import HTMLParser
+import re
 
 @register.filter(name='keyvalue')
 def keyvalue(dictn, key):
@@ -91,6 +92,10 @@ def startswith(text, starts):
 
 
 class MLStripper(HTMLParser):
+    """
+    From:
+    https://stackoverflow.com/questions/11061058/using-htmlparser-in-python-3-2
+    """
     def __init__(self):
         self.reset()
         self.strict = False
@@ -100,7 +105,6 @@ class MLStripper(HTMLParser):
         self.fed.append(d)
     def get_data(self):
         return ''.join(self.fed)
-
 
 def strip_tags(html):
     s = MLStripper()
@@ -116,6 +120,11 @@ def sortorder(obj):
     if hasattr(obj, 'last'):
         return obj.last.timestamp
     if isinstance(obj, str):
-        return strip_tags(obj).strip()
+        # Assume it is of the form
+        #   AB [N.M]   PPP words'
+        try:
+            return float(obj.split('[')[1].split(']')[0])
+        except (IndexError,):
+            return strip_tags(obj).strip()
 
     return None
