@@ -3397,7 +3397,7 @@ def get_line2_circular(learner, trigger, summaries):
         # Assuming it is balanced (every group member receives a review)
         num_evals = len(group_enrolled_sub.group_members)
     else:
-        num_evals = num_peers
+        num_evals = trigger.entry_point.settings('num_peers')
 
 
     incoming_evaluations = EvaluationReport.objects.filter(trigger=trigger,
