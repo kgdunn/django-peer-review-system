@@ -573,6 +573,7 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
                 out[idx] = (('future',
                              'Waiting for a peer to submit their work ...'))
 
+        # TODO: ``prior_rubric`` is not guaranteed to exist here.
 
         if not(can_be_done) and prior_rubric.status in ('P', 'V'):
             # This branch will only be caught if after the deadline, and
@@ -1486,7 +1487,7 @@ class group_graph(object):
             if reports.get(node['id'], False):
                 node['achieved'] = \
                           reports[node['id']].get('_highest_achievement',
-                                                  'NOT_FOUND')
+                            node['id'].groupenrolled_set.all()[0].group.id)
             else:
                 node['achieved'] = 'NOT_FOUND'
 
@@ -3391,6 +3392,14 @@ def get_line2_circular(learner, trigger, summaries):
     subscript here intentionally.
     """
     out = []
+    group_enrolled_sub = is_group_submission(learner, trigger.entry_point)
+    if group_enrolled_sub:
+        # Assuming it is balanced (every group member receives a review)
+        num_evals = len(group_enrolled_sub.group_members)
+    else:
+        num_evals = num_peers
+
+
     incoming_evaluations = EvaluationReport.objects.filter(trigger=trigger,
                                     peer_reviewer=learner).order_by('-created')
 
@@ -3419,9 +3428,13 @@ def get_line2_circular(learner, trigger, summaries):
                                     chr(idx+65), status), link='', catg='rev'))
     if how_many==1:
         out[0] = ('', ('Peer {} from the group has read/evaluated your '
-                       'review'.format(which_ones[0:-1])))
+                       'review so far'.format(which_ones[0:-1])))
+
+    suffix = ''
+    if how_many < num_evals:
+        suffix = 'so far'
     if how_many>1:
         out[0] = ('', ('{:d} peers ({}) from the group have read/evaluated your'
-                       ' review').format(how_many, which_ones[0:-1]))
+                       ' review {}').format(how_many, which_ones[0:-1], suffix))
 
     return out
