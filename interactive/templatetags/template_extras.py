@@ -118,7 +118,8 @@ def sortorder(obj):
     Trys to smartly determine the sort order for this object ``obj``
     """
     if hasattr(obj, 'last'):
-        return obj.last.timestamp
+        return obj.last.timestamp()
+
     if isinstance(obj, str):
         # Assume it is of the form
         #   AB [N.M]   PPP words'
