@@ -51,7 +51,15 @@ def handle_review(request, ractual_code):
     # NOTE: it is not always the reviewer getting this report!
     #report = get_peer_grading_data(reviewer, feedback_phase)
 
-    # Intentionally put the order_by here, to ensure that any errors in the
+
+    # TODO: FUTURE:
+
+    # Use either this code, or the code in models.py, under
+    # RubricActual.reports()
+    #
+    # Right now there is duplicated code.
+
+        # Intentionally put the order_by here, to ensure that any errors in the
     # next part of the code (zip-ordering) are highlighted
     r_item_actuals = r_actual.ritemactual_set.all().order_by('-modified')
 
@@ -66,19 +74,26 @@ def handle_review(request, ractual_code):
 
     has_prior_answers = False
     for item in r_item_actuals:
+        item.results = {'score': None, 'max_score': None}
         item_template = item.ritem_template
 
-        item.options = ROptionTemplate.objects.filter(\
-                                 rubric_item=item_template).order_by('order')
+        #item.options = ROptionTemplate.objects.filter(\
+        #                         rubric_item=item_template).order_by('order')
+        item.options = item_template.roptiontemplate_set.all().order_by('order')
 
         for option in item.options:
-            prior_answer = ROptionActual.objects.filter(roption_template=option,
-                                                        ritem_actual=item,
-                                                        submitted=True)
+            #prior_answer = ROptionActual.objects.filter(roption_template=option,
+            #                                            ritem_actual=item,
+            #                                            submitted=True)
+            prior_answer = option.roptionactual_set.filter(submitted=True,
+                                                          ritem_actual=item)
+
             if prior_answer.count():
                 has_prior_answers = True
                 if item_template.option_type in ('DropD', 'Chcks', 'Radio'):
                     option.selected = True
+                    item.results['score'] = option.score
+                    item.results['max_score'] = item_template.max_score
                 elif item_template.option_type == 'LText':
                     option.prior_text = prior_answer[0].comment
 
@@ -87,11 +102,15 @@ def handle_review(request, ractual_code):
         # template to display the feedback.
         #item.results = report.get(item_template, [[], None, None, None, []])
 
+
         # Randomize the comments and numerical scores before returning.
         #shuffle(item.results[0])
         #if item_template.option_type == 'LText':
         #    item.results[0] = '\n----------------------\n'.join(item.results[0])
         #    item.results[4] = '\n'.join(item.results[4])
+
+
+    #review_items, _ = r_actual.report()
 
 
     if has_prior_answers and (show_feedback == False):

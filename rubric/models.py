@@ -150,22 +150,29 @@ class RubricActual(models.Model):
         zipped = list(zip(r_item_actuals, r_item_template_order))
         r_item_actuals, _ = list(zip(*(sorted(zipped, key=lambda x: x[1]))))
 
-
         has_prior_answers = False
         for item in r_item_actuals:
+            item.results = {'score': None, 'max_score': None}
             item_template = item.ritem_template
 
-            item.options = ROptionTemplate.objects.filter(\
-                                     rubric_item=item_template).order_by('order')
+
+            item.options = item_template.roptiontemplate_set.all()\
+                                                             .order_by('order')
+            #item.options = ROptionTemplate.objects.filter(\
+            #                         rubric_item=item_template).order_by('order')
 
             for option in item.options:
-                prior_answer = ROptionActual.objects.filter(roption_template=option,
-                                                            ritem_actual=item,
-                                                            submitted=True)
+                #prior_answer = ROptionActual.objects.filter(roption_template=option,
+                #                                            ritem_actual=item,
+                #                                            submitted=True)
+                prior_answer = option.roptionactual_set.filter(submitted=True,
+                                                              ritem_actual=item)
                 if prior_answer.count():
                     has_prior_answers = True
                     if item_template.option_type in ('DropD', 'Chcks', 'Radio'):
                         option.selected = True
+                        item.results['score'] = option.score
+                        item.results['max_score'] = item_template.max_score
                     elif item_template.option_type == 'LText':
                         option.prior_text = prior_answer[0].comment
 
@@ -175,6 +182,15 @@ class RubricActual(models.Model):
             # Store the peer- or self-review results in the item; to use in the
             # template to display the feedback.
             #item.results = report.get(item_template, [[], None, None, None, []])
+
+
+            # Each key/value in the dictionary stores a list. The list has 5
+            # elements:
+            #   1. [list of raw scores] {or comments from peers}
+            #   2. the maximum for this item,
+            #   3. the average for this learner for this item
+            #   4. the class average (not used at the moment)
+            #   5. the comments from the instructor or TA (if any)
 
             # Randomize the comments and numerical scores before returning.
             #shuffle(item.results[0])
