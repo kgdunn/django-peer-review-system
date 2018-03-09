@@ -2516,8 +2516,6 @@ def overview_learners_circular(entry_point):
         if isinstance(reports[learner]['submitted'], Achievement):
             sub = learner.submission_set.filter(is_valid=True,
                                 entry_point=entry_point).exclude(status='A')
-            if sub.count()>1:
-                assert(False)
             if sub:
                 reports[learner]['submitted'].hyperlink = '/{}'.format(\
                                                         sub[0].file_upload.url)
