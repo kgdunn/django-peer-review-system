@@ -2602,7 +2602,10 @@ def overview_learners_circular(entry_point):
             text1 = ''
         else:
             text1 += '= <b>{0:+d}</b></tt><br>'.format(int(total))
-            text1 = text1.format(total/loops)
+            if loops == 0:
+                text1 = text1.format(0)
+            else:
+                text1 = text1.format(total/loops)
 
         given = learner.evaluator.filter(trigger__entry_point=entry_point,
                                              sort_report='E')
@@ -2623,6 +2626,10 @@ def overview_learners_circular(entry_point):
         else:
             text2 += '= <b>{0:+d}</b></tt>'.format(int(total))
             text2 = text2.format(total/loops)
+            if loops == 0:
+                text2 = text2.format(0)
+            else:
+                text2 = text2.format(total/loops)
 
 
         reports[learner]['read_and_evaluated_all_reviews'] = text1 + text2
