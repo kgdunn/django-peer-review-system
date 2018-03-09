@@ -2625,7 +2625,6 @@ def overview_learners_circular(entry_point):
             text2 = ''
         else:
             text2 += '= <b>{0:+d}</b></tt>'.format(int(total))
-            text2 = text2.format(total/loops)
             if loops == 0:
                 text2 = text2.format(0)
             else:
