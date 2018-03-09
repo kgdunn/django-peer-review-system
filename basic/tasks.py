@@ -60,8 +60,7 @@ def remove_old_submissions():
                                                         submission.trigger,
                                                         submission))
 
-
-
+    logger.info('remove_old_submissions: success')
 
 def email__no_reviews_after_submission():
     """
