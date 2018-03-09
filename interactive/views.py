@@ -2588,7 +2588,7 @@ def overview_learners_circular(entry_point):
         # ---- Evaluations: earned and given
         earned = learner.peer_reviewer.filter(trigger__entry_point=entry_point,
                                                   sort_report='E')
-        text1 = '<tt>Earn: [{0}] '
+        text1 = '<tt>Earn: [{0:2.1f}] '
         total = 0.0
         loops = 0.0
         for report in earned:
@@ -2598,7 +2598,7 @@ def overview_learners_circular(entry_point):
                 loops += 1
                 text1 = textnew
 
-        if text1 == '<tt>Earn: [{2.1f}] ':
+        if text1 == '<tt>Earn: [{0:2.1f}] ':
             text1 = ''
         else:
             text1 += '= <b>{0:+d}</b></tt><br>'.format(int(total))
@@ -2609,7 +2609,7 @@ def overview_learners_circular(entry_point):
 
         given = learner.evaluator.filter(trigger__entry_point=entry_point,
                                              sort_report='E')
-        text2 = '<tt>Gave: [{0}] '
+        text2 = '<tt>Gave: [{0:2.1f}] '
         total = 0.0
         loops = 0.0
         for report in given:
@@ -2621,7 +2621,7 @@ def overview_learners_circular(entry_point):
                 tot_evals_given += 1
                 text2 = textnew
 
-        if text2 == '<tt>Gave: [{2.1f}] ':
+        if text2 == '<tt>Gave: [{0:2.1f}] ':
             text2 = ''
         else:
             text2 += '= <b>{0:+d}</b></tt>'.format(int(total))
