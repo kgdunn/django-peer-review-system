@@ -3031,7 +3031,7 @@ def ce_step_2review(trigger, learner, entry_point=None, summaries=list(),
                                                                  trigger,
                                                                  summaries)[0]
 
-    ctx_objects['3_class'], ctx_objects['3_message'] = get_line3(learner,
+    ctx_objects['3_class'], ctx_objects['3_message'] = get_line3_circular(learner,
                                                                  trigger,
                                                                  summaries)[0]
 
@@ -3457,3 +3457,47 @@ def get_line2_circular(learner, trigger, summaries):
                        ' review {}').format(how_many, which_ones[0:-1], suffix))
 
     return out
+
+
+def get_line3_circular(learner, trigger, summaries):
+    """
+    Get the summary of the evaluations.
+    """
+    earned = learner.peer_reviewer.filter(sort_report='E',
+                                    trigger__entry_point=trigger.entry_point)
+    text1 = 'Evaluations received: '
+    total = 0.0
+    loops = 0.0
+    now_time = datetime.datetime.now(datetime.timezone.utc)
+    next_trigger = None
+    for report in earned:
+        if report.r_actual:
+            next_trigger = report.r_actual.rubric_template.next_trigger
+            if next_trigger and next_trigger.deadline_dt > now_time:
+                # Deadline is still in the future, don't show the evaluations:
+                return [('future', ('Evaluation scores will only be shown '
+                                    'after the resubmission deadline.')),]
+
+
+            # Lock the report, as the student is about to view it.
+            if report.r_actual.status not in ('L',):
+                report.r_actual.status = 'L'
+                report.r_actual.save()
+
+
+        textnew, total = format_text_overview(report.r_actual, text1, total,
+                                       url='/interactive/evaluate/')
+        if textnew != text1:
+            loops += 1
+            text1 = textnew
+
+
+    if text1 == 'Evaluations received: ':
+        text1 = ''
+    else:
+        text1 += '= <b>{0:d}</b></tt> out of {1:d}'.format(int(total),
+                    int(report.r_actual.rubric_template.maximum_score*loops))
+        text1 = text1.format(total/loops)
+
+
+    return [('', text1),]
