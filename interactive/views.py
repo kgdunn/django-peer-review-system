@@ -2598,7 +2598,7 @@ def overview_learners_circular(entry_point):
                 loops += 1
                 text1 = textnew
 
-        if text1 == '<tt>Earn: [{0}] ':
+        if text1 == '<tt>Earn: [{2.1f}] ':
             text1 = ''
         else:
             text1 += '= <b>{0:+d}</b></tt><br>'.format(int(total))
@@ -2618,7 +2618,7 @@ def overview_learners_circular(entry_point):
                 tot_evals_given += 1
                 text2 = textnew
 
-        if text2 == '<tt>Gave: [{0}] ':
+        if text2 == '<tt>Gave: [{2.1f}] ':
             text2 = ''
         else:
             text2 += '= <b>{0:+d}</b></tt>'.format(int(total))
