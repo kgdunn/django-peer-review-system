@@ -33,6 +33,7 @@ class Submission(models.Model):
               ('G', 'Being peer-reviewed/graded'),
               ('N', 'Nothing submitted yet'),
               ('A', 'Automated (internal)'),
+              ('X', 'File has been deleted from webserver'),
               )
 
     submitted_by = models.ForeignKey('basic.Person')

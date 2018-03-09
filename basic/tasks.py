@@ -29,6 +29,40 @@ logger = logging.getLogger(__name__)
 
 from .models import Email_Task
 
+def remove_old_submissions():
+    """
+    Removes all old submissions from the server. Leaves the entry in the
+    database though.
+    Flags it as deleted.
+    """
+    day_offset = 5
+    import os
+    import datetime
+    from submissions.models import Submission
+    then_time = datetime.datetime.now(datetime.timezone.utc) - \
+                                            datetime.timedelta(days=day_offset)
+
+    to_consider = Submission.objects.filter(is_valid=False,
+                                            datetime_submitted__lt=then_time).\
+                                        exclude(status='X').exclude(status='A')
+    for submission in to_consider:
+        try:
+            file = submission.file_upload.file.name
+            os.unlink(file)
+        except FileNotFoundError:
+            continue
+
+        submission.status = 'X'
+        submission.save()
+
+        logger.warn('DELETED: [{}] on EP={} and {}. {}'.format(submission.id,
+                                                        submission.entry_point,
+                                                        submission.trigger,
+                                                        submission))
+
+
+
+
 def email__no_reviews_after_submission():
     """
     Send email to learners that have waited more than 24 hours since uploading

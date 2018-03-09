@@ -11,7 +11,10 @@ try:
     if not(Schedule.objects.filter(func=task)):
         schedule(func=task, schedule_type=Schedule.HOURLY)
 
-    from basic.tasks import email__no_reviews_after_submission
+    task = 'basic.tasks.remove_old_submissions'
+    if not(Schedule.objects.filter(func=task)):
+        schedule(func=task, schedule_type=Schedule.DAILY)
+
 
 except:
     # This is needed to catch errors when running manage.py migrate on a fresh
