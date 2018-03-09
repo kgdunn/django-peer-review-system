@@ -3,14 +3,19 @@
 <h2 style="display:inline; clear:none;">Learner overview</h2><br>
 
 <style>
+#graph {
+    width: 900px;
+    height: 500px;
+}
+</style>
 
+<style>
 .link {
   fill: none;
   stroke: #aaa;
   stroke-width: 1.5px;
   stroke-opacity: 0.6;
 }
-
 .marker {
     fill: #AAA;
     stroke: #aaa;
@@ -21,148 +26,160 @@
   stroke: #fff;
   stroke-width: 1.5px;
 }
-
 text {
   font: 10px sans-serif;
+  color: #777777;
+  stroke: #777777;
   pointer-events: none;
 }
-
 </style>
-<script src="//d3js.org/d3.v3.min.js"></script>
+
+<div id="graph"></div>
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/d3/4.1.1/d3.min.js"></script>
 <script>
+!(function(){
+    "use strict"
 
-var links = {{graph.links|safe}};
+    var width,height
+    var chartWidth, chartHeight
+    var circle_radius = 5;
+    var linkDistance = 80; // target distance between linked nodes; optimized during simulation
+    var linkStrength = 0.5;
+    var color = d3.scaleOrdinal(d3.schemeCategory20);
+    var margin
+    var svg = d3.select("#graph").append("svg")
+    var chartLayer = svg.append("g").classed("chartLayer", true)
 
-var nodes = {{graph.nodes|safe}};
+    main()
 
-var width = 1000, height = 600;
-var circle_radius = 7;
-var linkDistance = 40; // target distance between linked nodes; optimized during simulation
-var linkStrength = 0.5;
-var charge = -100;
-
-var mapper = {"None": "#ababab"};
-var force = d3.layout.force()
-    .nodes(d3.values(nodes))
-    .links(links)
-    .size([width, height])
-    .linkDistance(linkDistance)
-    .linkStrength(linkStrength)
-    .charge(charge)
-    .friction(0.9)
-    .gravity(0.1)
-    .theta(0.8)
-    .alpha(0.5)
-    .on("tick", tick)  // runs the animation of the force layout one 'step'; give the force layout diagram it's fluid movement
-    .start();
-
-
-var svg = d3.select("body").append("svg")
-    .attr("width", width)
-    .attr("height", height);
-
-// build the arrow.
-svg.append("svg:defs").selectAll("marker")
-    .data(["end"])      // Different link/path types can be defined here
-  .enter().append("svg:marker")    // This section adds in the arrows
-    .attr("id", String)
-    .attr("class", "marker")
-    .attr("viewBox", "0 -5 10 10")
-    .attr("refX", 20)
-    .attr("refY", 0)
-    .attr("markerWidth", 6)
-    .attr("markerHeight", 6)
-    .attr("orient", "auto")
-  .append("svg:path")
-    .attr("d", "M0,-5L10,0L0,5");
-
-var link = svg.selectAll(".link")
-    .data(force.links())
-  .enter().append("line")
-    .attr("class", "link")
-    .attr("marker-end", "url(#end)");
-
-var node = svg.selectAll(".node")
-    .data(force.nodes())
-  .enter().append("g")
-    .attr("class", "node")
-    .on("mouseover", mouseover)
-    .on("mouseout", mouseout)
-    .call(force.drag)
-    .on('dblclick', connectedNodes); // code for double clicking
-
-node.append("circle")
-    .attr("r", circle_radius)
-    .attr("fill", function(d) { return mapper[d.achieved]; });
-
-node.append("text")
-    .attr("x", -circle_radius/2)
-    .attr("dx", "-0.1em")
-    .attr("dy", "0.3em")
-    .text(function(d) { return d.title; });
-
-node.append("title")
-    .text(function(d) { return "Achieved: " + d.achieved;});
-
-
-    //Toggle stores whether the highlighting is on
-    var toggle = 0;
-    //Create an array logging what is connected to what
-    var linkedByIndex = {};
-    for (i = 0; i < force.nodes.length; i++) {
-        linkedByIndex[i + "," + i] = 1;
-    };
-    links.forEach(function (d) {
-        linkedByIndex[d.source.index + "," + d.target.index] = 1;
-    });
-    //This function looks up whether a pair are neighbours
-    function neighboring(a, b) {
-        return linkedByIndex[a.index + "," + b.index];
-    }
-    function connectedNodes() {
-        if (toggle == 0) {
-            //Reduce the opacity of all but the neighbouring nodes
-            d = d3.select(this).node().__data__;
-            node.style("opacity", function (o) {
-                return neighboring(d, o) | neighboring(o, d) ? 1 : 0.2;
-            });
-            link.style("opacity", function (o) {
-                return d.index==o.source.index | d.index==o.target.index ? 1 : 0.2;
-            });
-            //Reduce the op
-            toggle = 1;
-        } else {
-            //Put them back to opacity=1
-            node.style("opacity", 1);
-            link.style("opacity", 1);
-            toggle = 0;
+    function main() {
+        var data = {
+            nodes:{{graph.nodes|safe}},
+            links:{{graph.links|safe}}
         }
+        setSize(data)
+        drawChart(data)
     }
 
-function tick() {
-  link
-      .attr("x1", function(d) { return d.source.x; })
-      .attr("y1", function(d) { return d.source.y; })
-      .attr("x2", function(d) { return d.target.x; })
-      .attr("y2", function(d) { return d.target.y; });
+    function setSize(data) {
+        width = document.querySelector("#graph").clientWidth
+        height = document.querySelector("#graph").clientHeight
+        margin = {top:0, left:0, bottom:0, right:0 }
+        chartWidth = width - (margin.left+margin.right)
+        chartHeight = height - (margin.top+margin.bottom)
+        svg.attr("width", width).attr("height", height)
+        chartLayer
+            .attr("width", chartWidth)
+            .attr("height", chartHeight)
+            .attr("transform", "translate("+[margin.left, margin.top]+")")
+    }
 
-  node
-      .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
-}
+    function drawChart(data) {
+
+        // build the arrow.
+        svg.append("svg:defs").selectAll("marker")
+            .data(["end"])      // Different link/path types can be defined here
+          .enter().append("svg:marker")    // This section adds in the arrows
+            .attr("id", String)
+            .attr("class", "marker")
+            .attr("viewBox", "0 -5 10 10")
+            .attr("refX", 20)
+            .attr("refY", 0)
+            .attr("markerWidth", 6)
+            .attr("markerHeight", 6)
+            .attr("orient", "auto")
+          .append("svg:path")
+            .attr("d", "M0,-5L10,0L0,5");
 
 
-function mouseover() {
-  d3.select(this).select("circle").transition()
-      .duration(750)
-      .attr("r", circle_radius*2);
-}
+        var simulation = d3.forceSimulation()
+            .force("link", d3.forceLink().distance(linkDistance).strength(linkStrength))
+            .force("collide",d3.forceCollide( function(d){return circle_radius + 8 }).iterations(16) )
+            .force("charge", d3.forceManyBody())
+            .force("center", d3.forceCenter(chartWidth / 2, chartHeight / 2))
+            .force("y", d3.forceY(0))
+            .force("x", d3.forceX(0))
 
-function mouseout() {
-  d3.select(this).select("circle").transition()
-      .duration(750)
-      .attr("r", circle_radius);
-}
+        var link = svg.append("g")
+            .selectAll("line")
+            .data(data.links)
+            .enter().append("line")
+            .attr("class", "link")
+            .attr("marker-end", "url(#end)");
 
+        var node = svg.append("g")
+            .attr("class", "node")
+            .selectAll("circle")
+            .data(data.nodes)
+            .enter().append("circle")
+            .attr("r", circle_radius)
+            .attr("fill", function(d) { return color(d.groupid); })
+            .call(d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended));
+
+        node.append("title")
+          .attr("class", "text")
+          .attr("x", -circle_radius/2)
+          .attr("dx", "-0.1em")
+          .attr("dy", "0.3em")
+          .text(function(d) {
+          return d.title;
+          });
+
+        var ticked = function() {
+            link
+                .attr("x1", function(d) { return d.source.x; })
+                .attr("y1", function(d) { return d.source.y; })
+                .attr("x2", function(d) { return d.target.x; })
+                .attr("y2", function(d) { return d.target.y; });
+
+            node
+                .attr("cx", function(d) { return d.x; })
+                .attr("cy", function(d) { return d.y; });
+        }
+
+        simulation
+            .nodes(data.nodes)
+            .on("tick", ticked);
+
+        simulation.force("link")
+            .links(data.links);
+
+
+
+
+
+        function positionLink(d) {
+            return "M" + d[0].x + "," + d[0].y
+                 + "S" + d[1].x + "," + d[1].y
+                 + " " + d[2].x + "," + d[2].y;
+          }
+
+          function positionNode(d) {
+            return "translate(" + d.x + "," + d.y + ")";
+          }
+
+          function dragstarted(d) {
+            if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x, d.fy = d.y;
+          }
+
+          function dragged(d) {
+            d.fx = d3.event.x, d.fy = d3.event.y;
+          }
+
+          function dragended(d) {
+            if (!d3.event.active) simulation.alphaTarget(0);
+            d.fx = null, d.fy = null;
+          }
+
+
+
+    }
+}());
 </script>
 
 
@@ -175,7 +192,6 @@ function mouseout() {
 </div>
 {% endcomment %}
 
-<div id="pr_graph"></div>
 
 <script language="javascript" type="text/javascript">
 $(document).ready( function () {
@@ -194,9 +210,8 @@ $(document).ready( function () {
 } );
 </script>
 
-<b>Note:</b> students that have <span style="color:darkorange">NOT activated their accounts are shown in orange</span>.
-
 <li>{{n_reviews_allocated}} reviews allocated for {{learners|length}} students.
+<li>{{tot_evals_given}} evaluations given/earned out of a total of {{max_evals_given}} evaluations.
 <table class="summaries pr-admin" id="class_overview">
 <thead>
 <tr>

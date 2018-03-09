@@ -1487,7 +1487,8 @@ class group_graph(object):
             if reports.get(node['id'], False):
                 node['achieved'] = \
                           reports[node['id']].get('_highest_achievement',
-                            node['id'].groupenrolled_set.all()[0].group.id)
+                                                  'None')
+                node['groupid'] = node['id'].groupenrolled_set.all()[0].group.id
             else:
                 node['achieved'] = 'NOT_FOUND'
 
@@ -2500,6 +2501,8 @@ def overview_learners_circular(entry_point):
     graph = group_graph(entry_point)
     ctx['n_reviews_allocated'] = len(graph.graph.edges())
     reports = {}
+    max_evals_given = tot_evals_given = 0
+
     filters = ('submitted',
                'completed_all_reviews',
                #'read_and_evaluated_all_reviews'
@@ -2590,8 +2593,9 @@ def overview_learners_circular(entry_point):
         text1 = '<tt>Earn: '
         total = 0.0
         for report in earned:
-            text1, total = format_text_overview(report.r_actual, text1, total,
+            textnew, total = format_text_overview(report.r_actual, text1, total,
                                            url='/interactive/evaluate/')
+
         if text1 == '<tt>Earn: ':
             text1 = ''
         else:
@@ -2602,8 +2606,12 @@ def overview_learners_circular(entry_point):
         text2 = '<tt>Gave: '
         total = 0.0
         for report in given:
-            text2, total = format_text_overview(report.r_actual, text2, total,
+            max_evals_given += 1
+            textnew, total = format_text_overview(report.r_actual, text2, total,
                                            url='/interactive/evaluate/')
+            if textnew != text2:
+                tot_evals_given += 1
+                text2 = textnew
 
         if text2 == '<tt>Gave: ':
             text2 = ''
@@ -2612,6 +2620,9 @@ def overview_learners_circular(entry_point):
 
         reports[learner]['read_and_evaluated_all_reviews'] = text1 + text2
 
+
+    ctx['tot_evals_given'] = tot_evals_given
+    ctx['max_evals_given'] = max_evals_given
     ctx['graph'] = graph.graph_json(reports)
     ctx['reports'] = reports
     return loader.render_to_string('interactive/ce_learner_overview.html', ctx)
