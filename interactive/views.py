@@ -2588,33 +2588,43 @@ def overview_learners_circular(entry_point):
         # ---- Evaluations: earned and given
         earned = learner.peer_reviewer.filter(trigger__entry_point=entry_point,
                                                   sort_report='E')
-        text1 = '<tt>Earn: '
+        text1 = '<tt>Earn: [{0}] '
         total = 0.0
+        loops = 0.0
         for report in earned:
-            text1, total = format_text_overview(report.r_actual, text1, total,
+            textnew, total = format_text_overview(report.r_actual, text1, total,
                                            url='/interactive/evaluate/')
+            if textnew != text1:
+                loops += 1
+                tot_evals_given += 1
+                text1 = textnew
 
-        if text1 == '<tt>Earn: ':
+        if text1 == '<tt>Earn: [{0}] ':
             text1 = ''
         else:
             text1 += '= <b>{0:+d}</b></tt><br>'.format(int(total))
+            text1 = text1.format(total/loops)
 
         given = learner.evaluator.filter(trigger__entry_point=entry_point,
                                              sort_report='E')
-        text2 = '<tt>Gave: '
+        text2 = '<tt>Gave: [{0}] '
         total = 0.0
+        loops = 0.0
         for report in given:
             max_evals_given += 1
             textnew, total = format_text_overview(report.r_actual, text2, total,
                                            url='/interactive/evaluate/')
             if textnew != text2:
+                loops += 1
                 tot_evals_given += 1
                 text2 = textnew
 
-        if text2 == '<tt>Gave: ':
+        if text2 == '<tt>Gave: [{0}] ':
             text2 = ''
         else:
             text2 += '= <b>{0:+d}</b></tt>'.format(int(total))
+            text2 = text2.format(total/loops)
+
 
         reports[learner]['read_and_evaluated_all_reviews'] = text1 + text2
 
