@@ -2523,7 +2523,7 @@ def overview_learners_circular(entry_point):
         # ---- Reviewed by ...
         temp = ''
         learner_group = learner.membership_set.filter(role='Submit',
-                                                          group__entry_point=entry_point)
+                            group__entry_point=entry_point).order_by('created')
         if learner_group:
             members = learner_group[0].group.membership_set.filter\
                     (role='Review')
