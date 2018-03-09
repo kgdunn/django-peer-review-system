@@ -3060,7 +3060,8 @@ def ce_step_3eval(trigger, learner, entry_point=None, summaries=list(),
 
 
     valid_subs = Submission.objects.filter(entry_point=entry_point,
-                                           is_valid=True).exclude(status='A')
+                         is_valid=True).exclude(status='A')\
+                        .order_by('datetime_submitted')
     if not(valid_subs.count() >= \
            trigger.entry_point.settings('min_in_pool_before_grouping_starts')):
         return
