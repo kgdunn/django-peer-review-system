@@ -2593,7 +2593,7 @@ def overview_learners_circular(entry_point):
         text1 = '<tt>Earn: '
         total = 0.0
         for report in earned:
-            textnew, total = format_text_overview(report.r_actual, text1, total,
+            text1, total = format_text_overview(report.r_actual, text1, total,
                                            url='/interactive/evaluate/')
 
         if text1 == '<tt>Earn: ':
