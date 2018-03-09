@@ -2596,7 +2596,6 @@ def overview_learners_circular(entry_point):
                                            url='/interactive/evaluate/')
             if textnew != text1:
                 loops += 1
-                tot_evals_given += 1
                 text1 = textnew
 
         if text1 == '<tt>Earn: [{0}] ':
