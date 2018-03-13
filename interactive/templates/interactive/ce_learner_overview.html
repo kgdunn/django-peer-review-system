@@ -1,6 +1,5 @@
 {% load template_extras %}
 
-<h2 style="display:inline; clear:none;">Learner overview</h2><br>
 
 <style>
 #graph {
@@ -33,9 +32,9 @@ text {
   pointer-events: none;
 }
 </style>
-
+{% comment  %}
 <div id="graph"></div>
-
+{% endcomment  %}
 <script src="//cdnjs.cloudflare.com/ajax/libs/d3/4.1.1/d3.min.js"></script>
 <script>
 !(function(){
@@ -148,10 +147,6 @@ text {
         simulation.force("link")
             .links(data.links);
 
-
-
-
-
         function positionLink(d) {
             return "M" + d[0].x + "," + d[0].y
                  + "S" + d[1].x + "," + d[1].y
@@ -182,9 +177,8 @@ text {
 }());
 </script>
 
-
 {% comment  %}
-<div style="clear:all">
+<div style="clear:both">
 <span style="float: left; padding-left: 0.5em"><a href="{% url 'csv_summary_download' %}">Download data (CSV) for all {{learners.count}} learners</a></span>
 {% if global_summary_link %}
 <span style="float: right; padding-right: 0.5em"><a href="{{global_summary_link}}">Links to all deliverables</a></span>
@@ -192,6 +186,16 @@ text {
 </div>
 {% endcomment %}
 
+
+<div style="clear:both">
+<h2 >Staff grading</h2><br>
+{{staff_grading|safe}}
+</div>
+<br>
+
+<div style="clear:both">
+<h2 style="display:inline; clear:none;">Learner overview</h2><br>
+</div>
 
 <script language="javascript" type="text/javascript">
 $(document).ready( function () {
@@ -218,11 +222,12 @@ $(document).ready( function () {
   <th>Initials</th>
   <th>Learner</th>
   <th>Group</th>
-  <th>Submit<br></th>
-  <th>Reviews <br>completed</th>
+  <th>Peer submit<br></th>
+  <th>Staff submit</th>
   <th>Reviewed by <br><tt>(Earn)</tt></th>
   <th>Reviewer of <br><tt>(Gave)</tt></th>
   <th>Evaluations</th>
+
 </tr>
 
 </thead>

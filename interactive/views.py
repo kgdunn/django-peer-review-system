@@ -176,65 +176,68 @@ def starting_point(request, course=None, learner=None, entry_point=None):
                                      .format(err, kwargs)))
 
 
-    create_hit(request, item=course, event='login',
-               user=learner, other_info=entry_point)
+    create_hit(request, item=course, event='login', user=learner,
+               other_info=entry_point)
+
     summaries = []
-    for trigger in triggers:
-        # Then actually run each trigger, but only if the requirements are
-        # met, and we are within the time range for it.
 
-        run_trigger = True
-        if (trigger.start_dt > now_time):
-            run_trigger = False
-        if (trigger.end_dt) and (trigger.end_dt <= now_time):
-            run_trigger = False
-        if (trigger.always_run):
+
+    if learner.role in ('Admin',):
+        ctx_objects['overview_learners'] = overview_learners(entry_point,
+                                                             admin=learner)
+    else:
+        # Only run this for learners
+        for trigger in triggers:
+            # Then actually run each trigger, but only if the requirements are
+            # met, and we are within the time range for it.
+
             run_trigger = True
+            if (trigger.start_dt > now_time):
+                run_trigger = False
+            if (trigger.end_dt) and (trigger.end_dt <= now_time):
+                run_trigger = False
+            if (trigger.always_run):
+                run_trigger = True
 
-        if not(run_trigger):
-            continue
+            if not(run_trigger):
+                continue
 
-        func = getattr(module, trigger.function)
-        if trigger.kwargs:
-            kwargs = json.loads(trigger.kwargs.replace('\r','')\
-                                .replace('\n',''))
-        else:
-            kwargs = {}
+            func = getattr(module, trigger.function)
+            if trigger.kwargs:
+                kwargs = json.loads(trigger.kwargs.replace('\r','')\
+                                    .replace('\n',''))
+            else:
+                kwargs = {}
 
 
-        # Push these ``kwargs`` into trigger (getattr, settattr)
-        for key, value in kwargs.items():
-            try:
-                getattr(trigger, key)
-            except AttributeError:
-                setattr(trigger, key, value)
+            # Push these ``kwargs`` into trigger (getattr, settattr)
+            for key, value in kwargs.items():
+                try:
+                    getattr(trigger, key)
+                except AttributeError:
+                    setattr(trigger, key, value)
 
-        # Some default attributes for the Trigger
-        if not(hasattr(trigger, 'show_dates')):
-            setattr(trigger, 'show_dates', False)   # don't show dates in UI
-        if not(hasattr(trigger, 'show_review_numbers')):
-            setattr(trigger, 'show_review_numbers', True) # show "Peer A" in docs
+            # Some default attributes for the Trigger
+            if not(hasattr(trigger, 'show_dates')):
+                setattr(trigger, 'show_dates', False)   # don't show dates in UI
+            if not(hasattr(trigger, 'show_review_numbers')):
+                setattr(trigger, 'show_review_numbers', True) # show "Peer A" in docs
 
-        # Add self to ctx_objects
-        ctx_objects['self'] = trigger
+            # Add self to ctx_objects
+            ctx_objects['self'] = trigger
 
-        # Call the function, finally.
-        func(trigger,
-             learner=learner,
-             ctx_objects=ctx_objects,
-             entry_point=entry_point,
-             summaries=summaries,
-             request=request
-           )
+            # Call the function, finally.
+            func(trigger,
+                 learner=learner,
+                 ctx_objects=ctx_objects,
+                 entry_point=entry_point,
+                 summaries=summaries,
+                 request=request
+               )
 
     ctx_objects['summary_list'] = summaries
     if settings.DEBUG:
         ctx_objects['header'] = '<h2>DEBUG ONLY: {}</h2><br>'.format(learner.display_name)
-
-    if learner.role in ('Admin',):
-        ctx_objects['overview_learners'] = overview_learners(entry_point)
-
-
 
     global_summary = entry_point.course.entrypoint_set.filter(order=0)
     if global_summary:
@@ -520,7 +523,7 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
 
         if not(review.order):
             review.order = idx+1
-            review.save
+            review.save()
 
         if can_be_done:
             status = '<span class="still-to-do">Start</span> your review'
@@ -1943,6 +1946,11 @@ def create_evaluation_PDF(r_actual):
     except AttributeError:
         show_review_numbers = True
 
+    try:
+        custom_review_header = report.trigger.custom_review_header
+    except AttributeError:
+        custom_review_header = None
+
 
     # From the perspective of the submitter, which peer am I?
     rubrics = RubricActual.objects.filter(submission=report.submission)\
@@ -1965,6 +1973,8 @@ def create_evaluation_PDF(r_actual):
     if show_review_numbers:
         flowables.append(Paragraph("Review from peer number {}".format(\
                                          chr(peer_number)), styles['title']))
+    elif custom_review_header:
+        flowables.append(Paragraph(custom_review_header, styles['title']))
     else:
         flowables.append(Paragraph("Review from a peer", styles['title']))
 
@@ -2487,11 +2497,100 @@ def format_text_overview(r_actual, text, total, url=''):
         else:
             return text, total
 
-def overview_learners_circular(entry_point):
+def overview_learners_circular(entry_point, admin):
     """
     Provides a learner overview for the circular economy course.
     """
+    # Dictionary of objects that will be rendered at the end
     ctx = {}
+
+
+    submission_trigger = Trigger.objects.get(order=5, entry_point=entry_point)
+    staff_review_trigger = Trigger.objects.get(order=6, entry_point=entry_point)
+    valid_subs = Submission.objects.filter(trigger=submission_trigger,
+                                           entry_point=entry_point,
+                                           is_valid=True)
+
+    # All ``ReviewReports`` that have been allocated to each admin.
+    # Was done manually, by creating a ReviewReport for the appropriate ``sub``
+    #    rr = ReviewReport(reviewer=person,
+    #                      trigger=submission_trigger,
+    #                      submission=sub,
+    #                      entry_point=entry_point)
+
+    allocated_reviews = ReviewReport.objects.filter(reviewer=admin,
+        entry_point=entry_point).order_by('-created') # for consistency
+
+    out = []
+
+    for idx, review in enumerate(allocated_reviews):
+        if not(review.order):
+            review.order = idx+1
+            review.save()
+
+        status = '<span class="still-to-do">Start</span> your review'
+
+        if review.grpconf is None: # which it also should be the first time ...
+
+            submitter = review.submission.submitted_by
+            submitter_member = Membership.objects.get(learner=submitter,
+                                    role='Submit', fixed=True,
+                                    group__trigger=submission_trigger,
+                                    group__entry_point=review.entry_point)
+
+            new_membership, _ = Membership.objects.get_or_create(role='Review',
+                                                fixed=True,
+                                                learner=review.reviewer,
+                                                group=submitter_member.group)
+
+
+            review.grpconf = new_membership.group
+            review.save()
+
+
+            # Create a RubricActual instance
+            # Creates a new actual rubric for a given ``admin`` (the person
+            # doing the) review.
+
+            r_actual, _= get_create_actual_rubric(graded_by=review.reviewer,
+                                                  trigger=staff_review_trigger,
+                                                  submission=review.submission,
+                                                rubric_code=review.unique_code)
+
+        # What is the status of this review. Cross check with RubricActual
+        prior = RubricActual.objects.filter(rubric_code=review.unique_code)
+        if prior.count():
+            prior_rubric = prior[0]
+            if prior_rubric.status in ('C', 'L'):
+                extra = ''
+                if prior_rubric.status in ('C',):
+                    extra = (' <span class="still-to-do">(you can still make '
+                             'changes)</span>')
+
+                status = 'Completed' + extra
+
+            elif prior_rubric.status in ('P', 'V'):
+                status = ('<span class="still-to-do">Start/continue</span> '
+                          'your review')
+
+        # We have a review
+        out.append(('', ('<a href="/interactive/review/{1}" target="_blank">'
+                         '{0}</a>').format(status, review.unique_code)))
+
+
+    # We now have collected all the admin review codes. Now render them:
+    output = '<span class="you-peer">Your reviews for students groups:<ul>'
+    for style, item in out:
+        output += '<li class="{0}">{1}</li>'.format(style, item)
+
+    output += '</ul></span>'
+    ctx['staff_grading'] = output
+
+
+    # The next main part
+
+
+
 
     # Not the most robust way to group students; will fall apart if a student
     # uses this system in more than 1 course
@@ -2504,8 +2603,8 @@ def overview_learners_circular(entry_point):
     max_evals_given = tot_evals_given = 0
 
     filters = ('submitted',
-               'completed_all_reviews',
-               #'read_and_evaluated_all_reviews'
+               #'completed_all_reviews',
+               'submitted_staff_review'
                )
     for learner in learners:
         reports[learner], _ = filtered_overview(learner,
@@ -2515,10 +2614,21 @@ def overview_learners_circular(entry_point):
         # ---- Submissions
         if isinstance(reports[learner]['submitted'], Achievement):
             sub = learner.submission_set.filter(is_valid=True,
+                                                trigger__order=1,
                                 entry_point=entry_point).exclude(status='A')
             if sub:
                 reports[learner]['submitted'].hyperlink = '/{}'.format(\
                                                         sub[0].file_upload.url)
+
+        if isinstance(reports[learner]['submitted_staff_review'], Achievement):
+            # Hard coded the trigger.
+            # IMPROVE: associate a trigger with an AchieveConfig
+            sub = learner.submission_set.filter(is_valid=True,
+                                                trigger__order=5,
+                                entry_point=entry_point).exclude(status='A')
+            if sub:
+                reports[learner]['submitted_staff_review'].hyperlink = \
+                                          '/{}'.format(sub[0].file_upload.url)
 
         # ---- Reviewed by ...
         temp = ''
@@ -2641,7 +2751,7 @@ def overview_learners_circular(entry_point):
     return loader.render_to_string('interactive/ce_learner_overview.html', ctx)
 
 
-def overview_learners(entry_point):
+def overview_learners(entry_point, admin=None):
     """
     Provides an overview to the instructor of what is going on
     """
@@ -2658,7 +2768,7 @@ def overview_learners(entry_point):
                 return text, total
 
     if entry_point.course.label == '66765':
-        return overview_learners_circular(entry_point)
+        return overview_learners_circular(entry_point, admin=admin)
 
     ctx = {}
     # Not the most robust way to group students; will fall apart if a student
