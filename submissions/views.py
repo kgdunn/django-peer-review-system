@@ -33,7 +33,7 @@ def is_group_submission(learner, entry_point):
         # Very specific type of group formation: students work in groups to
         # submit their document, but their document is ONLY reviewed by
         # learners outside their groups.
-        gfp = entry_point.course.group_formation_process_set.all()[0]
+        gfp = entry_point.gf_process
 
         # If this fails it is either becuase the user is not enrolled in a
         # ``gfp`` for this course
@@ -42,7 +42,7 @@ def is_group_submission(learner, entry_point):
         #       allocated into a group, and you are using group submissions.
         try:
             group_enrolled = learner.groupenrolled_set.get(is_enrolled=True,
-                                                           group__gfp=gfp)
+                                            group__gfp=entry_point.gf_process)
             group_enrolled.group_members = [g.person for g in \
                                group_enrolled.group.groupenrolled_set.all()]
 
