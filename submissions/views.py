@@ -10,7 +10,7 @@ import tempfile
 from PyPDF2 import PdfFileReader, PdfFileMerger
 
 # Import from our other apps
-from utils import get_IP_address, generate_random_token
+from utils import get_IP_address, generate_random_token, load_kwargs
 from basic.models import GroupEnrolled
 
 # Imports from this app
@@ -45,6 +45,7 @@ def is_group_submission(learner, entry_point):
                                             group__gfp=entry_point.gf_process)
             group_enrolled.group_members = [g.person for g in \
                                group_enrolled.group.groupenrolled_set.all()]
+            load_kwargs(group_enrolled.group, target_obj=group_enrolled)
 
             return group_enrolled
         except GroupEnrolled.DoesNotExist:

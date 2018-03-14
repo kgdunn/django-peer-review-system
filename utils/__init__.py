@@ -23,7 +23,7 @@ email_from = settings.DEFAULT_FROM_EMAIL
 logger = logging.getLogger(__name__)
 
 
-def load_kwargs(obj):
+def load_kwargs(obj, target_obj=None, force=False):
     """
     Loads the ``kwargs`` attribute, if it exists, and makes the JSON dictionary
     atributes of the ``obj``.
@@ -40,8 +40,11 @@ def load_kwargs(obj):
 
     # Push these ``kwargs`` into ``obj`` (getattr, settattr)
     for key, value in kwargs.items():
-        if not(getattr(obj, key, False)):
-            setattr(obj, key, value)
+        if not(getattr(obj, key, False)) or force:
+            if target_obj:
+                setattr(target_obj, key, value)
+            else:
+                setattr(obj, key, value)
 
 
 def ensuredir(path):

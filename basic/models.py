@@ -145,6 +145,8 @@ class Group(models.Model):
                                    verbose_name="Detailed group description")
     capacity = models.PositiveIntegerField(default=0,
         help_text=('How many people in this particular group instance?'))
+    kwargs = models.TextField(blank=True,
+                              help_text='JSON settings. E.g. {"num_peers": 2}')
     order = models.PositiveIntegerField(default=0, help_text=('For ordering '
             'purposes in the tables.'))
 
@@ -160,8 +162,6 @@ class GroupEnrolled(models.Model):
         help_text=('If blank/null: used internally to enrol the rest of the '
                                           'class list.'))
     is_enrolled = models.BooleanField(default=False)
-    kwargs = models.TextField(blank=True,
-                              help_text='JSON settings. E.g. {"num_peers": 2}')
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
 
