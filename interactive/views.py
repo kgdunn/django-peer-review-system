@@ -3109,6 +3109,11 @@ def ce_step_1submit(trigger, learner, entry_point=None, summaries=list(),
     """
     # Coincidentally, this existing code works just fine, with a slightly
     # modified rendered return ``trigger``.
+
+    group_submission = is_group_submission(learner, entry_point)
+    ctx_objects['full_process'] = getattr(group_submission, 'full_process',
+                                          False)
+
     trigger = get_submission_form(trigger, learner, entry_point, summaries,
                         ctx_objects, **kwargs)
 
@@ -3607,13 +3612,14 @@ def get_line3_circular(learner, trigger, summaries):
             loops += 1
             text1 = textnew
 
-
+    style = ''
     if text1 == 'Evaluations received: ':
-        text1 = ''
+        style = 'future'
+        text1 = 'No evaluations received yet'
     else:
         text1 += '= <b>{0:d}</b></tt> out of {1:d}'.format(int(total),
                     int(report.r_actual.rubric_template.maximum_score*loops))
         text1 = text1.format(total/loops)
 
 
-    return [('', text1),]
+    return [(style, text1),]
