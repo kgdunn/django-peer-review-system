@@ -72,7 +72,7 @@ def getfield(obj, field):
     return getattr(obj, field, default='')
 
 @register.filter('slicestr')
-def getfield(value, sliceamount):
+def slicestr(value, sliceamount):
     """ Returns the fraction of the string, specified in ``sliceamount``.
 
     {{some_string|slicestr:"5:9"}}

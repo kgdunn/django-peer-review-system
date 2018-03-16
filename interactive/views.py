@@ -2610,6 +2610,8 @@ def overview_learners_circular(entry_point, admin):
                'submitted_staff_review'
                )
     for learner in learners:
+        learner.group_name = is_group_submission(learner, entry_point).group.name
+
         reports[learner], _ = filtered_overview(learner,
                                                 entry_point,
                                                 filters)
@@ -2751,6 +2753,7 @@ def overview_learners_circular(entry_point, admin):
     ctx['max_evals_given'] = max_evals_given
     ctx['graph'] = graph.graph_json(reports)
     ctx['reports'] = reports
+    ctx['entry_point'] = entry_point
     return loader.render_to_string('interactive/ce_learner_overview.html', ctx)
 
 

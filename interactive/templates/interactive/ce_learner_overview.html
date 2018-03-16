@@ -236,7 +236,7 @@ $(document).ready( function () {
 <tr>
   <td>{{learner.get_initials}}</td>
   <td><span style="color:{% if learner.is_validated%}black">{% else %}darkorange">*{% endif %}{{learner.display_name}}</span><br><span style="color:#999; font-size:80%">{{learner.email|slice:"@student.tudelft.nl"}}</span></td>
-  <td>{{learner.show_group|slicestr:"7:9"}}</td>
+  <td>{{learner.group_name|slicestr:"6:8"}}</td>
 
 
     {% with report=reports|keyvalue:learner %}
