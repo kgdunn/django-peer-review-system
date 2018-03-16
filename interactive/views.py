@@ -315,6 +315,9 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
                                         learner,
                                         trigger)
 
+        # Once processed, pop it out.
+        kwargs['request'].FILES.pop('file_upload')
+
         # One final check: has a reviewer been allocated to this review
         # from this entry_point yet?
         group_submitter = Membership.objects.filter(role='Submit',
