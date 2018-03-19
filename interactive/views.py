@@ -2645,7 +2645,10 @@ def overview_learners_circular(entry_point, admin):
             for member in members:
 
                 # Ensure this is also in our graph
-                assert(graph.graph.has_successor(learner, member.learner))
+
+                if not(graph.graph.has_successor(learner, member.learner)):
+                    logger.error('ASSERT: no successor: [{}]->[{}]'.format(\
+                    learner, member.learner))
 
                 report = ReviewReport.objects.filter(reviewer=member.learner,
                                                      entry_point=entry_point)
@@ -2688,7 +2691,11 @@ def overview_learners_circular(entry_point, admin):
                 group_member = learner.membership_set.filter(role='Review')[0]
                 submitter = group_member.group.membership_set.filter(role='Submit')[0]
                 submitter = submitter.learner
-                assert(graph.graph.has_successor(submitter, learner))
+                if not(graph.graph.has_successor(submitter, learner)):
+                    logger.error('ASSERT: no successor: [{}]->[{}]'.format(\
+                    submitter, learner))
+
+
 
             initials = submitter.get_initials()
             hlink = (' <a href="/interactive/review/{0}" target="_blank">'
