@@ -2688,7 +2688,8 @@ def overview_learners_circular(entry_point, admin):
                 continue
             else:
                 ractual = ractual[0]
-                group_member = learner.membership_set.filter(role='Review')[0]
+                group_member = learner.membership_set.filter(role='Review',
+                                            group__entry_point=entry_point)[0]
                 submitter = group_member.group.membership_set.filter(role='Submit')[0]
                 submitter = submitter.learner
                 if not(graph.graph.has_successor(submitter, learner)):
