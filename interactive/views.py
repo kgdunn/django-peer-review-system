@@ -580,14 +580,10 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
                 out[idx] = (('future',
                              'Waiting for a peer to submit their work ...'))
 
-        # TODO: ``prior_rubric`` is not guaranteed to exist here.
-        if prior_rubric is None:
-            out[idx] = (('future', status))
-        else:
-            if not(can_be_done) and prior_rubric.status in ('P', 'V'):
-                # This branch will only be caught if after the deadline, and
-                # `status` will be "The time to start your peer review has
-                # passed."
+
+        if not(can_be_done):
+            if (prior_rubric is None) or prior_rubric.status in ('P', 'V'):
+                # This branch will only be caught if after the deadline.
                 out[idx] = (('future', status))
 
     if sum(reviews_completed) == num_peers:
