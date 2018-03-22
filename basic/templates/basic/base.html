@@ -287,7 +287,7 @@ $( function() {
 {% block header %}{% endblock %}
 
 <h1 style="display:inline; clear:none;">{{entry_point.LTI_title}} </h1>
-<span style="font-weight:bold">{%if course%}&nbsp;&nbsp;&nbsp;&nbsp;({{course.name}}{% if entry_point.uses_groups and learner.groupenrolled_set.all.count %}&nbsp;|&nbsp;{% with groups=learner.groupenrolled_set.all %}{{groups.0.group.name}}{%endwith%}{% endif %}){% endif %}</span>
+<span style="font-weight:bold">{%if course%}&nbsp;&nbsp;&nbsp;&nbsp;({{course.name}}&nbsp;|&nbsp;{{learner.display_name}}{% if entry_point.uses_groups and learner.groupenrolled_set.all.count %}&nbsp;|&nbsp;{% with groups=learner.groupenrolled_set.all %}{{groups.0.group.name}}{%endwith%}{% endif %}){% endif %}</span>
 <span style="float:right; padding-right: 0.5em"><a href="{{entry_point.full_URL}}">Link to this page</a></span>
 <br>
 {% block content %}
