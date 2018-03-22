@@ -533,6 +533,7 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
 
         # What is the status of this review. Cross check with RubricActual
         prior = RubricActual.objects.filter(rubric_code=review.unique_code)
+        prior_rubric = None
         if prior.count():
             prior_rubric = prior[0]
             if prior_rubric.status in ('C', 'L'):
@@ -580,18 +581,18 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
                              'Waiting for a peer to submit their work ...'))
 
         # TODO: ``prior_rubric`` is not guaranteed to exist here.
-
-        if not(can_be_done) and prior_rubric.status in ('P', 'V'):
-            # This branch will only be caught if after the deadline, and
-            # `status` will be "The time to start your peer review has passed."
+        if prior_rubric is None:
             out[idx] = (('future', status))
+        else:
+            if not(can_be_done) and prior_rubric.status in ('P', 'V'):
+                # This branch will only be caught if after the deadline, and
+                # `status` will be "The time to start your peer review has
+                # passed."
+                out[idx] = (('future', status))
 
     if sum(reviews_completed) == num_peers:
         completed(learner, 'completed_all_reviews',
                   trigger.entry_point, push_grade=True)
-
-
-
 
     for idx in range(num_peers-len(out)):
 
