@@ -217,7 +217,7 @@ def submit_peer_review_feedback(request, ractual_code):
         request.POST._mutable = True
         request.POST.pop('csrfmiddlewaretoken', None) # don't want this in stats
         request.POST._mutable = False
-    if len(items) == 0:
+    if len(items) == 0 or r_actual.special_access:
         # Once we have processed all options, and all items, the length is
         # zero, so we can also:
         r_actual.submitted = True
