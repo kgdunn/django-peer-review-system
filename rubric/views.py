@@ -213,6 +213,8 @@ def submit_peer_review_feedback(request, ractual_code):
     if np.isnan(median_words):
         median_words = 242
 
+    logger.info('r_actual.special_access: {}'.format(r_actual.special_access))
+
     if request.POST:
         request.POST._mutable = True
         request.POST.pop('csrfmiddlewaretoken', None) # don't want this in stats
