@@ -3125,8 +3125,9 @@ def ce_step_1submit(trigger, learner, entry_point=None, summaries=list(),
     ctx_objects['full_process'] = getattr(group_submission, 'full_process',
                                           False)
 
-    trigger = get_submission_form(trigger, learner, entry_point, summaries,
-                        ctx_objects, **kwargs)
+    if ctx_objects['full_process']:
+        trigger = get_submission_form(trigger, learner, entry_point, summaries,
+                                      ctx_objects, **kwargs)
 
     ctx_objects['ce_step_1submit'] = ce_render_trigger(trigger, ctx_objects)
 
