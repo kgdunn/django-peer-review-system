@@ -3601,10 +3601,12 @@ def get_line3_circular(learner, trigger, summaries):
     text1 = 'Evaluations received: '
     total = 0.0
     loops = 0.0
+    max_score = 0.0
     now_time = datetime.datetime.now(datetime.timezone.utc)
     next_trigger = None
     for report in earned:
         if report.r_actual:
+            max_score = report.r_actual.rubric_template.maximum_score
             next_trigger = report.r_actual.rubric_template.next_trigger
             if next_trigger and next_trigger.deadline_dt > now_time:
                 # Deadline is still in the future, don't show the evaluations:
@@ -3630,7 +3632,7 @@ def get_line3_circular(learner, trigger, summaries):
         text1 = 'No evaluations received yet'
     else:
         text1 += '= <b>{0:d}</b></tt> out of {1:d}'.format(int(total),
-                    int(report.r_actual.rubric_template.maximum_score*loops))
+                    int(max_score*loops))
         text1 = text1.format(total/loops)
 
 
