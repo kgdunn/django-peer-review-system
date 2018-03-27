@@ -2574,8 +2574,12 @@ def overview_learners_circular(entry_point, admin):
                           'your review')
 
         # We have a review
-        out.append(('', ('<a href="/interactive/review/{1}" target="_blank">'
-                         '{0}</a>').format(status, review.unique_code)))
+        out.append(('', ('<a href="/interactive/review/{}" target="_blank">'
+                         '{}</a> [{:d}/{:d}]').format(
+                                review.unique_code,
+                                status,
+                                int(prior_rubric.score),
+                            int(prior_rubric.rubric_template.maximum_score))))
 
 
     # We now have collected all the admin review codes. Now render them:
@@ -3506,6 +3510,46 @@ def ce_step_7grades(trigger, learner, entry_point=None, summaries=list(),
     Step 7 of the Circular Economy (CE) peer review 2017/2018.
     Get/show grades.
     """
+
+    #1. Submitting your report for peer review  25% (average grade of peers)
+    #2. Completing the 1 review                 10% (yes or no)
+    #3. Evaluation of your review by peer       15% (average of multiple evals)
+    #4. Staff grading of your report            50%
+
+    grades = {
+        '1. Reviews from peers': {'total': 0.0, 'max': 0.0, 'weight': 0.25},
+        '2. Review you completed':  {'total': 0.0, 'max': 0.0, 'weight': 0.1},
+        '3. Evaluations you received': {'total': 0.0, 'max': 0.0, 'weight':0.15},
+        '4. Average of staff review(s)': {'total': 0.0, 'max': 0.0, 'weight':0.5},
+    }
+
+    # 1. Review from peers
+
+    # 2. Review you completed: Yes/No
+    learner.peer_reviewer.filter(sort_report='E',
+                                        trigger__entry_point=trigger.entry_point)
+
+
+
+    # Evaluations: (see code from ``get_line3_circular``)
+    earned = learner.peer_reviewer.filter(sort_report='E',
+                                    trigger__entry_point=trigger.entry_point)
+    total = 0.0
+    loops = 0
+    max_score = 0.0
+    for report in earned:
+        if report.r_actual:
+            loops += 1
+            max_score = report.r_actual.rubric_template.maximum_score
+            total += report.r_actual.score
+
+    grades['3. Evaluations you received']['total'] = total
+    grades['3. Evaluations you received']['max'] = max_score * loops
+
+
+
+
+
     ctx_objects['ce_step_7grades'] = ce_render_trigger(trigger, ctx_objects)
 
 def update_completions_and_grades(r_actual):
