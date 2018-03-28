@@ -2801,13 +2801,13 @@ def overview_learners_circular(entry_point, admin):
 
         # Final grade for this learner
         grades = ce_student_grades(learner, entry_point)
-        text = ('<tt>Earn: [{:2.1f}] p={:2.1f}; r={:2.1f}; e={:2.1f} '
+        text = ('<tt>Earn: [{:2.1f}] p={:2.1f}; r={:d}; e={:2.1f} '
                 's={:2.1f}</tt>')
 
         reports[learner]['grades'] = text.format(\
                 grades['5. Total grade calculated']['score'],
                 grades['1. Reviews from peers']['score'],
-                grades['2. Review you completed']['score'],
+                int(grades['2. Review you completed']['score']),
                 grades['3. Evaluations you received']['score'],
                 grades['4. Average of staff review(s)']['score'])
 
