@@ -2757,6 +2757,13 @@ def overview_learners_circular(entry_point, admin):
 
         reports[learner]['read_and_evaluated_all_reviews'] = text1 + text2
 
+        # Final grade for this learner
+        grades = ce_student_grades(learner, entry_point)
+        reports[learner]['grades'] = '{:2.1f}'.format(\
+                                  grades['5. Total grade calculated']['total'])
+
+    # End of calculations/summary per leading
+
 
     ctx['tot_evals_given'] = tot_evals_given
     ctx['max_evals_given'] = max_evals_given
@@ -3499,8 +3506,64 @@ def ce_step_6staff(trigger, learner, entry_point=None, summaries=list(),
                   ctx_objects=dict(), **kwargs):
     """
     Step 6 of the Circular Economy (CE) peer review 2017/2018.
-    Groups submit for staff review.
+    Groups have submitted for staff review, and now get these reviews back.
     """
+    # Get the staff-graded rubrics for this submission:
+
+    submission_trigger = entry_point.trigger_set.get(order=5)
+    staff_review_trigger = entry_point.trigger_set.get(order=6)
+    submitter_member = learner.membership_set.get(role='Submit', fixed=True,
+                                            group__trigger=submission_trigger,
+                                                group__entry_point=entry_point)
+    group = submitter_member.group
+
+    valid_subs = Submission.objects.filter(entry_point=entry_point,
+                         is_valid=True).exclude(status='A')\
+                        .order_by('datetime_submitted')
+
+    group_enrolled_sub = is_group_submission(learner, entry_point)
+    # And filter the submission list down to only those from this trigger,
+    # and this submitter's group
+    if group_enrolled_sub:
+        submission = valid_subs.get(group_submitted=group_enrolled_sub.group,
+                                    trigger=submission_trigger)
+
+
+    # Get the ``RubricTemplate`` instance via the trigger.
+    template = RubricTemplate.objects.get(trigger=staff_review_trigger)
+
+    # Get the staff-graded rubrics for this submission:
+    staff_graded = RubricActual.objects.filter(rubric_template=template,
+                                               submission=submission)
+    staff_grade = 'View your staff evaluations: <ul>'
+    for rubric in staff_graded:
+        if rubric.status in ('C', 'L'):
+            if rubric.status in ('C',):
+                rubric.status = 'L'
+                rubric.save()
+
+            try:
+                auto_submission = Submission.objects.get(submitted_file_name=\
+                                                         rubric.rubric_code)
+                auto_submission_url = auto_submission.file_upload.url
+            except Submission.DoesNotExist:
+                auto_submission_url = ''
+                logger.error(('ERROR: Student trying to see submission that '
+                              'does not exist: {}'.format(rubric.rubric_code)))
+
+            staff_grade += ('<li><a href="/interactive/review/{}" '
+                'target="_blank">{} </a> [{:d}/{:d}] or <a href="{}" '
+                'target="_blank">as PDF</a></li>').format(\
+                                                      rubric.rubric_code,
+                                                      'View feedback',
+                                                      int(rubric.score),
+                                    int(rubric.rubric_template.maximum_score),
+                                    auto_submission_url)
+
+        elif rubric.status in ('P', 'V'):
+            pass
+
+    ctx_objects['staff_grade'] = staff_grade + '</ul>'
     ctx_objects['ce_step_6staff'] = ce_render_trigger(trigger, ctx_objects)
 
 
@@ -3511,46 +3574,194 @@ def ce_step_7grades(trigger, learner, entry_point=None, summaries=list(),
     Get/show grades.
     """
 
-    #1. Submitting your report for peer review  25% (average grade of peers)
-    #2. Completing the 1 review                 10% (yes or no)
-    #3. Evaluation of your review by peer       15% (average of multiple evals)
-    #4. Staff grading of your report            50%
+    grades = ce_student_grades(learner, entry_point)
 
+    if (grades['3. Evaluations you received']['total'] > 0):
+        # After the evaluations are done students should be able to see grades
+        ctx_objects['allow_grades'] = True
+    else:
+        ctx_objects['allow_grades'] = False
+
+    # Seperate function here, based on the ``grades`` dictionary
+    grade_report = ["""<table class="pr-admin dataTable" id="grades"><tr>
+    <th>Item</th><th>Grade received</th><th>Extra information</th><th>
+    Maximum value possible</th><th>Weighting</th><th>Total [%]</th></tr>""",]
+
+    sorted(grades.items(), key=lambda t: t[0])
+    for key, item in sorted(grades.items(), key=lambda t: t[0]):
+        achieved = 0.0
+        if item['max'] > 0:
+            achieved = item['total']/item['max'] * item['weight'] * 100
+            achieved = '{0:.1f}'.format(achieved)
+
+        line = ('<tr role="row"><td class="text">{}</td>'
+                '<td class="numc">{}</td><td class="text">{}</td>') + \
+                '<td class="numc">{}</td>'*3 + '</tr>'
+        grade_report.append(line.format(key, item['total'], item['extra'],
+                                  item['max'], item['weight'], achieved))
+
+    grade_report.pop()
+    grade_report.append(('<tr > <th></th> <th></th> <th></th> '
+                 '<th>Totals</th><th>1.0</th><th class="bigger">{:.1f}</th>'
+            '</table>').format(grades['5. Total grade calculated']['total']))
+
+    grade_report_table = ''.join(grade_report)
+    ctx_objects['grade_report_table'] = grade_report_table
+    ctx_objects['ce_step_7grades'] = ce_render_trigger(trigger, ctx_objects)
+
+
+def ce_student_grades(learner, entry_point):
+    """
+    2017/2018 grading allocations
+    1. Submitting your report for peer review  25% (average grade of peers)
+    2. Completing the 1 review                 10% (yes or no)
+    3. Evaluation of your review by peer       15% (average of multiple evals)
+    4. Staff grading of your report            50%
+    5. Total grade
+
+    """
     grades = {
-        '1. Reviews from peers': {'total': 0.0, 'max': 0.0, 'weight': 0.25},
-        '2. Review you completed':  {'total': 0.0, 'max': 0.0, 'weight': 0.1},
-        '3. Evaluations you received': {'total': 0.0, 'max': 0.0, 'weight':0.15},
-        '4. Average of staff review(s)': {'total': 0.0, 'max': 0.0, 'weight':0.5},
+        '1. Reviews from peers': {'total': 0.0, 'max': 0.0, 'weight': 0.25,
+                                  'extra': ''},
+        '2. Review you completed':  {'total': 0.0, 'max': 0.0, 'weight': 0.1,
+                                     'extra': ''},
+        '3. Evaluations you received': {'total': 0.0, 'max': 0.0, 'weight':0.15,
+                                        'extra': ''},
+        '4. Average of staff review(s)': {'total': 0.0, 'max': 0.0,
+                                          'weight':0.5, 'extra': ''},
+        '5. Total grade calculated': {'total': 0.0, 'max': 100,
+                                          'weight':1.0, 'extra': ''},
+
     }
 
     # 1. Review from peers
+    n_reviewed = 0
+    review_total = 0.0
+    max_score = 0.0
+    valid_subs = Submission.objects.filter(entry_point=entry_point,
+                         is_valid=True).exclude(status='A')\
+                        .order_by('datetime_submitted')
+
+    group_enrolled_sub = is_group_submission(learner, entry_point)
+    if group_enrolled_sub:
+        # At this point it means the user is part of a group, so if needed,
+        # also filter by group submitted
+        submission = valid_subs.filter(group_submitted=group_enrolled_sub.group)
+
+    submission = submission[0]
+    extra = 'Average calculated from: '
+    for report in ReviewReport.objects.filter(submission=submission).\
+                                                            order_by('created'):
+        try:
+            rubric = RubricActual.objects.get(rubric_code=report.unique_code)
+        except RubricActual.DoesNotExist:
+            continue
+        if rubric.submitted:
+            max_score = rubric.rubric_template.maximum_score
+            review_total += rubric.score
+            n_reviewed += 1
+            extra += '{0:0d}'.format(int(rubric.score)) + ' + '
+        else:
+            pass
+
+    grades['1. Reviews from peers']['extra'] = extra[0:-2]
+    grades['1. Reviews from peers']['max'] = max_score
+    if n_reviewed:
+        grades['1. Reviews from peers']['total'] = review_total / n_reviewed
+
 
     # 2. Review you completed: Yes/No
-    learner.peer_reviewer.filter(sort_report='E',
-                                        trigger__entry_point=trigger.entry_point)
+    review_done = 0
+    extra = 'You did not completed a review'
+    allocated_reviews = ReviewReport.objects.filter(reviewer=learner,
+        entry_point=entry_point).order_by('-created') # for consistency
+    for idx, review in enumerate(allocated_reviews):
+        # What is the status of this review. Cross check with RubricActual
+        prior = RubricActual.objects.filter(rubric_code=review.unique_code)
+        prior_rubric = None
+        if prior.count():
+            prior_rubric = prior[0]
+            if prior_rubric.status in ('C', 'L'):
+                review_done = 1.0
+                extra = 'You completed a peer review'
 
+            elif prior_rubric.status in ('F',):
+                # This review was forced through. Set the grade to zero.
+                review_done = 0.0
 
+            elif prior_rubric.status in ('P', 'V'):
+                # Review not completed
+                grade = 0.0
 
-    # Evaluations: (see code from ``get_line3_circular``)
+    grades['2. Review you completed']['max'] = 1.0
+    grades['2. Review you completed']['total'] = review_done
+    grades['2. Review you completed']['extra'] = extra
+
+    # 3. Evaluations: (see code from ``get_line3_circular``)
     earned = learner.peer_reviewer.filter(sort_report='E',
-                                    trigger__entry_point=trigger.entry_point)
-    total = 0.0
+                                    trigger__entry_point=entry_point)
+    eval_total = 0.0
     loops = 0
     max_score = 0.0
     for report in earned:
         if report.r_actual:
             loops += 1
             max_score = report.r_actual.rubric_template.maximum_score
-            total += report.r_actual.score
+            eval_total += report.r_actual.score
 
-    grades['3. Evaluations you received']['total'] = total
+    grades['3. Evaluations you received']['total'] = eval_total
     grades['3. Evaluations you received']['max'] = max_score * loops
 
 
+    #4. Staff grading of your report
+    submission_trigger = entry_point.trigger_set.get(order=5)
+    staff_review_trigger = entry_point.trigger_set.get(order=6)
+    submitter_member = learner.membership_set.get(role='Submit', fixed=True,
+                                            group__trigger=submission_trigger,
+                                                group__entry_point=entry_point)
+    group = submitter_member.group
+
+    # Get the ``RubricTemplate`` instance via the trigger.
+    template = RubricTemplate.objects.get(trigger=staff_review_trigger)
+
+    # And filter the submission list down to only those from this trigger,
+    # and this submitter's group
+    if group_enrolled_sub:
+        submission = valid_subs.get(group_submitted=group_enrolled_sub.group,
+                                       trigger=submission_trigger)
+
+    # Get the staff-graded rubrics for this submission:
+    staff_graded = RubricActual.objects.filter(rubric_template=template,
+                                               submission=submission)
+
+    staff_total = 0
+    staff_max = 0
+    n_graded = 0
+    extra = 'Average calculated from: '
+    for rubric in staff_graded:
+        staff_max = rubric.rubric_template.maximum_score
+        if rubric.status in ('C', 'L'):
+            n_graded += 1
+            staff_total += rubric.score
+            extra += '{0:0d}'.format(int(rubric.score)) + ' + '
+
+    grades['4. Average of staff review(s)']['total'] = staff_total/n_graded
+    grades['4. Average of staff review(s)']['max'] = staff_max
+    grades['4. Average of staff review(s)']['extra'] = extra[0:-2]
 
 
+    sorted(grades.items(), key=lambda t: t[0])
+    overall_grade = 0
+    for key, item in sorted(grades.items(), key=lambda t: t[0]):
+        achieved = 0.0
+        if item['max'] > 0:
+            achieved = item['total']/item['max'] * item['weight'] * 100
+            overall_grade += achieved
 
-    ctx_objects['ce_step_7grades'] = ce_render_trigger(trigger, ctx_objects)
+
+    grades['5. Total grade calculated']['total'] = overall_grade
+    return grades
+
 
 def update_completions_and_grades(r_actual):
     """

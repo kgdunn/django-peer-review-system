@@ -95,7 +95,8 @@ class RubricActual(models.Model):
               ('V', 'Grader has viewed it, at least once'),
               ('P', 'Progressing...'),
               ('C', 'Completed'),
-              ('L', 'Locked')) # read-only
+              ('L', 'Locked'),
+              ('F', 'Forced')) # read-only
 
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
