@@ -3745,10 +3745,10 @@ def ce_student_grades(learner, entry_point):
             staff_total += rubric.score
             extra += '{0:0d}'.format(int(rubric.score)) + ' + '
 
-    grades['4. Average of staff review(s)']['total'] = staff_total/n_graded
     grades['4. Average of staff review(s)']['max'] = staff_max
     grades['4. Average of staff review(s)']['extra'] = extra[0:-2]
-
+    if n_graded > 0:
+        grades['4. Average of staff review(s)']['total'] = staff_total/n_graded
 
     sorted(grades.items(), key=lambda t: t[0])
     overall_grade = 0
