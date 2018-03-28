@@ -2664,7 +2664,7 @@ def overview_learners_circular(entry_point, admin):
                 initials = member.learner.get_initials()
                 if code:
                     hlink = (' <a href="/interactive/review/{0}" target="_blank">'
-                        '{1}</a> [{2:3.1f}] {3:4d} words<br>').format(code,
+                        '{1}</a> [{2:3.1f}] {3:4d} wds<br>').format(code,
                                                                       initials,
                         rubric.score/rubric.rubric_template.maximum_score*10,
                         rubric.word_count,)
@@ -2701,7 +2701,7 @@ def overview_learners_circular(entry_point, admin):
 
             initials = submitter.get_initials()
             hlink = (' <a href="/interactive/review/{0}" target="_blank">'
-                     '{1}</a> [{2:3.1f}] {3:4d} words<br>').format(code,
+                     '{1}</a> [{2:3.1f}] {3:4d} wds<br>').format(code,
                         initials,
                         ractual.score/ractual.rubric_template.maximum_score*10,
                         ractual.word_count)
@@ -2757,10 +2757,58 @@ def overview_learners_circular(entry_point, admin):
 
         reports[learner]['read_and_evaluated_all_reviews'] = text1 + text2
 
+
+        # ----  Staff grading for this learner
+        submission_trigger = entry_point.trigger_set.get(order=5)
+        staff_review_trigger = entry_point.trigger_set.get(order=6)
+        submitter_member = learner.membership_set.get(role='Submit', fixed=True,
+                                                group__trigger=submission_trigger,
+                                                    group__entry_point=entry_point)
+        group = submitter_member.group
+
+        # Get the ``RubricTemplate`` instance via the trigger.
+        template = RubricTemplate.objects.get(trigger=staff_review_trigger)
+
+        # And filter the submission list down to only those from this trigger,
+        # and this submitter's group
+        group_enrolled_sub = is_group_submission(learner, entry_point)
+        if group_enrolled_sub:
+            submission = valid_subs.get(group_submitted=group_enrolled_sub.group,
+                                           trigger=submission_trigger)
+
+        # Get the staff-graded rubrics for this submission:
+        staff_graded = RubricActual.objects.filter(rubric_template=template,
+                                                   submission=submission)
+
+        staff_max = 0
+        staff_grading = ''
+        for rubric in staff_graded:
+            staff_max = rubric.rubric_template.maximum_score
+            auto_submission = Submission.objects.get(submitted_file_name=\
+                                                        rubric.rubric_code)
+
+            staff_grading += ('<a href="/interactive/review/{}" target="_blank"'
+                            '>{} </a>&nbsp;[{:d}/{:d}]<br>').format(\
+                            rubric.rubric_code,
+                            rubric.graded_by.initials,
+                            int(rubric.score),
+                            int(staff_max),)
+
+        reports[learner]['staff_grading'] = staff_grading
+
+
         # Final grade for this learner
         grades = ce_student_grades(learner, entry_point)
-        reports[learner]['grades'] = '{:2.1f}'.format(\
-                                  grades['5. Total grade calculated']['total'])
+        text = ('<tt>Earn: [{:2.1f}] p={:2.1f}; r={:2.1f}; e={:2.1f} '
+                's={:2.1f}</tt>')
+
+        reports[learner]['grades'] = text.format(\
+                grades['5. Total grade calculated']['score'],
+                grades['1. Reviews from peers']['score'],
+                grades['2. Review you completed']['score'],
+                grades['3. Evaluations you received']['score'],
+                grades['4. Average of staff review(s)']['score'])
+
 
     # End of calculations/summary per leading
 
@@ -3757,9 +3805,11 @@ def ce_student_grades(learner, entry_point):
         if item['max'] > 0:
             achieved = item['total']/item['max'] * item['weight'] * 100
             overall_grade += achieved
+            grades[key]['score'] = (grades[key]['total']/grades[key]['max'])*10
 
 
     grades['5. Total grade calculated']['total'] = overall_grade
+    grades['5. Total grade calculated']['score'] = overall_grade/10.0
     return grades
 
 

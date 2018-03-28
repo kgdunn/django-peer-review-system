@@ -131,7 +131,7 @@ def sortorder(obj):
         #   AB [N.M]   PPP words'
         try:
             return float(obj.split('[')[1].split(']')[0])
-        except (IndexError,):
+        except (IndexError, ValueError):
             return strip_tags(obj).strip()
 
     return None
