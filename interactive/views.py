@@ -2664,7 +2664,7 @@ def overview_learners_circular(entry_point, admin):
                 initials = member.learner.get_initials()
                 if code:
                     hlink = (' <a href="/interactive/review/{0}" target="_blank">'
-                        '{1}</a> [{2:3.1f}] {3:4d} wds<br>').format(code,
+                        '{1}</a> [{2:3.1f}] {3:4d}<br>').format(code,
                                                                       initials,
                         rubric.score/rubric.rubric_template.maximum_score*10,
                         rubric.word_count,)
@@ -2701,7 +2701,7 @@ def overview_learners_circular(entry_point, admin):
 
             initials = submitter.get_initials()
             hlink = (' <a href="/interactive/review/{0}" target="_blank">'
-                     '{1}</a> [{2:3.1f}] {3:4d} wds<br>').format(code,
+                     '{1}</a> [{2:3.1f}] {3:4d}<br>').format(code,
                         initials,
                         ractual.score/ractual.rubric_template.maximum_score*10,
                         ractual.word_count)
@@ -2725,7 +2725,7 @@ def overview_learners_circular(entry_point, admin):
         if text1 == '<tt>Earn: [{0:2.1f}] ':
             text1 = ''
         else:
-            text1 += '= <b>{0:+d}</b></tt><br>'.format(int(total))
+            #text1 += '= <b>{0:+d}</b></tt><br>'.format(int(total))
             if loops == 0:
                 text1 = text1.format(0)
             else:
@@ -2748,7 +2748,7 @@ def overview_learners_circular(entry_point, admin):
         if text2 == '<tt>Gave: [{0:2.1f}] ':
             text2 = ''
         else:
-            text2 += '= <b>{0:+d}</b></tt>'.format(int(total))
+            #text2 += '= <b>{0:+d}</b></tt>'.format(int(total))
             if loops == 0:
                 text2 = text2.format(0)
             else:
