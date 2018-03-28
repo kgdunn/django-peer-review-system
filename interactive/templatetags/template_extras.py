@@ -121,6 +121,12 @@ def sortorder(obj):
         return obj.last.timestamp()
 
     if isinstance(obj, str):
+        # First assume pure numeric
+        try:
+            return float(obj)
+        except ValueError:
+            pass
+
         # Assume it is of the form
         #   AB [N.M]   PPP words'
         try:
