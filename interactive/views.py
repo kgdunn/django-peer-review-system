@@ -562,7 +562,7 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
                           'your review')
 
 
-            if not(can_be_done) and prior_rubric.status not in ('C', 'L'):
+            if not(can_be_done) and prior_rubric.status not in ('C', 'L', 'F'):
                 status = 'Deadline has passed to complete your review.'
                 prior_rubric.status = 'L'
                 prior_rubric.save()
@@ -3376,7 +3376,7 @@ def ce_step_3eval(trigger, learner, entry_point=None, summaries=list(),
     # Immediately set these to read-only, so the original submitter of the
     # review cannot alter them.
     for ractual in rubrics:
-        if ractual.status not in ('L',):
+        if ractual.status not in ('L', 'F'):
             ractual.status = 'L'
             ractual.save()
 
@@ -3876,7 +3876,7 @@ def get_line2_circular(learner, trigger, summaries):
             which_ones += chr(idx+65) + ','
             how_many += 1
             status = 'read'
-            if review.r_actual.status in ('C', 'L'):
+            if review.r_actual.status in ('C', 'L', 'F'):
                 status = 'has read and evaluated'
             else:
                 status = 'has started reading'
@@ -3922,7 +3922,7 @@ def get_line3_circular(learner, trigger, summaries):
 
 
             # Lock the report, as the student is about to view it.
-            if report.r_actual.status not in ('L',):
+            if report.r_actual.status not in ('L', 'F'):
                 report.r_actual.status = 'L'
                 report.r_actual.save()
 
