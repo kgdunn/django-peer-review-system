@@ -2725,6 +2725,7 @@ def overview_learners_circular(entry_point, admin):
         if text1 == '<tt>Earn: [{0:2.1f}] ':
             text1 = ''
         else:
+            text1 += '<br>'
             #text1 += '= <b>{0:+d}</b></tt><br>'.format(int(total))
             if loops == 0:
                 text1 = text1.format(0)
@@ -2748,6 +2749,7 @@ def overview_learners_circular(entry_point, admin):
         if text2 == '<tt>Gave: [{0:2.1f}] ':
             text2 = ''
         else:
+            text2 += '<br>'
             #text2 += '= <b>{0:+d}</b></tt>'.format(int(total))
             if loops == 0:
                 text2 = text2.format(0)
@@ -2787,8 +2789,8 @@ def overview_learners_circular(entry_point, admin):
             auto_submission = Submission.objects.get(submitted_file_name=\
                                                         rubric.rubric_code)
 
-            staff_grading += ('<a href="/interactive/review/{}" target="_blank"'
-                            '>{} </a>&nbsp;[{:d}/{:d}]<br>').format(\
+            staff_grading += ('<tt><a href="/interactive/review/{}" target='
+                            '"_blank">{}</a>&nbsp;[{:d}/{:d}]</tt><br>').format(\
                             rubric.rubric_code,
                             rubric.graded_by.initials,
                             int(rubric.score),
