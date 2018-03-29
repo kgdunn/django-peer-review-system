@@ -3808,6 +3808,8 @@ def ce_student_grades(learner, entry_point):
             achieved = item['total']/item['max'] * item['weight'] * 100
             overall_grade += achieved
             grades[key]['score'] = (grades[key]['total']/grades[key]['max'])*10
+        else:
+            grades[key]['score'] = 0.0
 
 
     grades['5. Total grade calculated']['total'] = overall_grade
