@@ -2786,9 +2786,6 @@ def overview_learners_circular(entry_point, admin):
         staff_grading = ''
         for rubric in staff_graded:
             staff_max = rubric.rubric_template.maximum_score
-            auto_submission = Submission.objects.get(submitted_file_name=\
-                                                        rubric.rubric_code)
-
             staff_grading += ('<tt><a href="/interactive/review/{}" target='
                             '"_blank">{}</a>&nbsp;[{:d}/{:d}]</tt><br>').format(\
                             rubric.rubric_code,
@@ -2797,7 +2794,6 @@ def overview_learners_circular(entry_point, admin):
                             int(staff_max),)
 
         reports[learner]['staff_grading'] = staff_grading
-
 
         # Final grade for this learner
         grades = ce_student_grades(learner, entry_point)
