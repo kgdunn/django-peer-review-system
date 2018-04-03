@@ -193,6 +193,7 @@ text {
 </div>
 <br>
 
+{% if learner.id == 96 %}
 <div style="clear:both">
 <h2 style="display:inline; clear:none;">Learner overview</h2><br>
 </div>
@@ -265,3 +266,4 @@ $(document).ready( function () {
 </tr>
 {% endfor %}
 </tbody></table>
+{% endif %} {# learner.id == 96#}
