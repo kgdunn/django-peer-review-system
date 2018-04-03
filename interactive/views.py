@@ -2766,10 +2766,11 @@ def overview_learners_circular(entry_point, admin):
         # ----  Staff grading for this learner
         submission_trigger = entry_point.trigger_set.get(order=5)
         staff_review_trigger = entry_point.trigger_set.get(order=6)
-        submitter_member = learner.membership_set.get(role='Submit', fixed=True,
-                                                group__trigger=submission_trigger,
-                                                    group__entry_point=entry_point)
-        group = submitter_member.group
+        #submitter_member = learner.membership_set.filter(role='Submit',
+        #                                                 fixed=True,
+        #                                    group__trigger=submission_trigger,
+        #                                    group__entry_point=entry_point)
+        #group = submitter_member.group
 
         # Get the ``RubricTemplate`` instance via the trigger.
         template = RubricTemplate.objects.get(trigger=staff_review_trigger)
@@ -2778,13 +2779,17 @@ def overview_learners_circular(entry_point, admin):
         # and this submitter's group
         group_enrolled_sub = is_group_submission(learner, entry_point)
         if group_enrolled_sub:
-            submission = valid_subs.get(group_submitted=group_enrolled_sub.group,
+            submission = valid_subs.filter(group_submitted=group_enrolled_sub.group,
                                            trigger=submission_trigger)
+            if submission.count():
+                submission = submission[0]
+                staff_graded = RubricActual.objects.filter(submission=submission,
+                                                rubric_template=template)
+            else:
+                staff_graded = []
+
 
         # Get the staff-graded rubrics for this submission:
-        staff_graded = RubricActual.objects.filter(rubric_template=template,
-                                                   submission=submission)
-
         staff_max = 0
         staff_grading = ''
         for rubric in staff_graded:
@@ -3562,10 +3567,10 @@ def ce_step_6staff(trigger, learner, entry_point=None, summaries=list(),
 
     submission_trigger = entry_point.trigger_set.get(order=5)
     staff_review_trigger = entry_point.trigger_set.get(order=6)
-    submitter_member = learner.membership_set.get(role='Submit', fixed=True,
-                                            group__trigger=submission_trigger,
-                                                group__entry_point=entry_point)
-    group = submitter_member.group
+    #submitter_member = learner.membership_set.get(role='Submit', fixed=True,
+    #                                        group__trigger=submission_trigger,
+    #                                            group__entry_point=entry_point)
+    #group = submitter_member.group
 
     valid_subs = Submission.objects.filter(entry_point=entry_point,
                          is_valid=True).exclude(status='A')\
@@ -3574,9 +3579,12 @@ def ce_step_6staff(trigger, learner, entry_point=None, summaries=list(),
     group_enrolled_sub = is_group_submission(learner, entry_point)
     # And filter the submission list down to only those from this trigger,
     # and this submitter's group
+    submission = None
     if group_enrolled_sub:
-        submission = valid_subs.get(group_submitted=group_enrolled_sub.group,
+        submission = valid_subs.filter(group_submitted=group_enrolled_sub.group,
                                     trigger=submission_trigger)
+    if submission.count():
+        submission = submission[0]
 
 
     # Get the ``RubricTemplate`` instance via the trigger.
@@ -3697,11 +3705,15 @@ def ce_student_grades(learner, entry_point):
         # At this point it means the user is part of a group, so if needed,
         # also filter by group submitted
         submission = valid_subs.filter(group_submitted=group_enrolled_sub.group)
+    if submission.count():
+        submission = submission[0]
+        all_reports = ReviewReport.objects.filter(submission=submission)\
+                                                           .order_by('created')
+    else:
+        all_reports = []
 
-    submission = submission[0]
     extra = 'Average calculated from: '
-    for report in ReviewReport.objects.filter(submission=submission).\
-                                                            order_by('created'):
+    for report in all_reports:
         try:
             rubric = RubricActual.objects.get(rubric_code=report.unique_code)
         except RubricActual.DoesNotExist:
@@ -3766,10 +3778,10 @@ def ce_student_grades(learner, entry_point):
     #4. Staff grading of your report
     submission_trigger = entry_point.trigger_set.get(order=5)
     staff_review_trigger = entry_point.trigger_set.get(order=6)
-    submitter_member = learner.membership_set.get(role='Submit', fixed=True,
-                                            group__trigger=submission_trigger,
-                                                group__entry_point=entry_point)
-    group = submitter_member.group
+    #submitter_member = learner.membership_set.get(role='Submit', fixed=True,
+    #                                        group__trigger=submission_trigger,
+    #                                            group__entry_point=entry_point)
+    #group = submitter_member.group
 
     # Get the ``RubricTemplate`` instance via the trigger.
     template = RubricTemplate.objects.get(trigger=staff_review_trigger)
@@ -3777,13 +3789,17 @@ def ce_student_grades(learner, entry_point):
     # And filter the submission list down to only those from this trigger,
     # and this submitter's group
     if group_enrolled_sub:
-        submission = valid_subs.get(group_submitted=group_enrolled_sub.group,
+        submission = valid_subs.filter(group_submitted=group_enrolled_sub.group,
                                        trigger=submission_trigger)
+        if submission.count():
+            submission = submission[0]
+            staff_graded = RubricActual.objects.filter(rubric_template=template,
+                                                       submission=submission)
+
+        else:
+            staff_graded = []
 
     # Get the staff-graded rubrics for this submission:
-    staff_graded = RubricActual.objects.filter(rubric_template=template,
-                                               submission=submission)
-
     staff_total = 0
     staff_max = 0
     n_graded = 0
