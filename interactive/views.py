@@ -2645,6 +2645,9 @@ def overview_learners_circular(entry_point, admin):
                     (role='Review')
             for member in members:
 
+                if member.learner.role == 'Admin':
+                    continue
+
                 # Ensure this is also in our graph
 
                 if not(graph.graph.has_successor(learner, member.learner)):
