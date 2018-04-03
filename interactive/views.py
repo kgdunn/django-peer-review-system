@@ -2819,6 +2819,7 @@ def overview_learners_circular(entry_point, admin):
     ctx['graph'] = graph.graph_json(reports)
     ctx['reports'] = reports
     ctx['entry_point'] = entry_point
+    ctx['person'] = admin
     return loader.render_to_string('interactive/ce_learner_overview.html', ctx)
 
 
