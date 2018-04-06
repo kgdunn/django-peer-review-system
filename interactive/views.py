@@ -3766,7 +3766,7 @@ def ce_student_grades(learner, entry_point):
     loops = 0
     max_score = 0.0
     for report in earned:
-        if report.r_actual:
+        if report.r_actual and report.r_actual.submitted:
             loops += 1
             max_score = report.r_actual.rubric_template.maximum_score
             eval_total += report.r_actual.score
