@@ -3385,9 +3385,9 @@ def ce_step_3eval(trigger, learner, entry_point=None, summaries=list(),
 
     # Now generate links for the evaluation reports:
     for idx, eval_report in enumerate(EvaluationReport.objects.filter(\
-                                                    sort_report='E',
-                                                    evaluator=learner,
-                                                    trigger=eval_trigger)):
+                                sort_report='E',
+                                evaluator=learner,
+                                trigger=eval_trigger)).order_by('created'):
 
         extra = ' <span class="still-to-do">(still to do)</span>'
         verb = 'Start your evaluation for'
