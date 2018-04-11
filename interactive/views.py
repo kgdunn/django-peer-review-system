@@ -3562,13 +3562,14 @@ def ce_step_6staff(trigger, learner, entry_point=None, summaries=list(),
     Groups have submitted for staff review, and now get these reviews back.
     """
     # Get the staff-graded rubrics for this submission:
+    now_time = datetime.datetime.now(datetime.timezone.utc)
+    if trigger.start_dt > now_time:
+        ctx_objects['ce_step_6staff'] = ce_render_trigger(trigger, ctx_objects)
+        return
 
     submission_trigger = entry_point.trigger_set.get(order=5)
     staff_review_trigger = entry_point.trigger_set.get(order=6)
-    #submitter_member = learner.membership_set.get(role='Submit', fixed=True,
-    #                                        group__trigger=submission_trigger,
-    #                                            group__entry_point=entry_point)
-    #group = submitter_member.group
+
 
     valid_subs = Submission.objects.filter(entry_point=entry_point,
                          is_valid=True).exclude(status='A')\
