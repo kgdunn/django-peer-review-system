@@ -5,7 +5,7 @@
 
 # ------
 # 1. Manually create the course in WePeer, and place the label number here.
-course_label = '67173'
+course_label = '67174'
 target_entries = ['1931107264', '1475539468', '1499960701', '370183435',
                   '1371427444']
 
@@ -13,7 +13,7 @@ target_entries = ['1931107264', '1475539468', '1499960701', '370183435',
 # 2. Create entry points
 from basic.models import EntryPoint, Course
 
-orig_course = Course.objects.get(label='50121')       # where we will copy from
+orig_course = Course.objects.get(label='67173')       # where we will copy from
 targ_course = Course.objects.get(label=course_label)  # where we will copy to
 
 for entry in orig_course.entrypoint_set.all():

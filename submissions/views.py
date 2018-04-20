@@ -152,7 +152,7 @@ def upload_submission(request, learner, trigger, no_thumbnail=True):
         if strike1:
             logger.debug('Invalid PDF upload: {0} [{1}]'.format(mime,
                                                             full_path))
-            return None, 'Invalid file uploaded. Uploaded file must be a PDF.'
+            #return None, 'Invalid file uploaded. Uploaded file must be a PDF.'
 
         doc = PdfFileReader(full_path)
         if doc.isEncrypted:

@@ -3633,7 +3633,7 @@ def ce_step_7grades(trigger, learner, entry_point=None, summaries=list(),
 
     grades = ce_student_grades(learner, entry_point)
 
-    if (grades['3. Evaluations you received']['total'] > 0):
+    if (grades['4. Average of staff review(s)']['total'] > 0):
         # After the evaluations are done students should be able to see grades
         ctx_objects['allow_grades'] = True
     else:
@@ -3695,6 +3695,12 @@ def ce_student_grades(learner, entry_point):
     n_reviewed = 0
     review_total = 0.0
     max_score = 0.0
+    peer_review_trigger = entry_point.trigger_set.get(order=1)
+
+    # Get the ``RubricTemplate`` instance via the trigger.
+    template = RubricTemplate.objects.get(trigger=peer_review_trigger)
+
+
     valid_subs = Submission.objects.filter(entry_point=entry_point,
                          is_valid=True).exclude(status='A')\
                         .order_by('datetime_submitted')
@@ -3714,7 +3720,8 @@ def ce_student_grades(learner, entry_point):
     extra = 'Average calculated from: '
     for report in all_reports:
         try:
-            rubric = RubricActual.objects.get(rubric_code=report.unique_code)
+            rubric = RubricActual.objects.get(rubric_code=report.unique_code,
+                                              rubric_template=template)
         except RubricActual.DoesNotExist:
             continue
         if rubric.submitted:
@@ -3727,13 +3734,20 @@ def ce_student_grades(learner, entry_point):
 
     grades['1. Reviews from peers']['extra'] = extra[0:-2]
     grades['1. Reviews from peers']['max'] = max_score
-    if n_reviewed:
+    if n_reviewed and group_enrolled_sub.full_process:
         grades['1. Reviews from peers']['total'] = review_total / n_reviewed
+    elif not(group_enrolled_sub.full_process):
 
+        grades['1. Reviews from peers']['extra'] = ('A document was not '
+                                                    'submitted for peer review')
+        grades['1. Reviews from peers']['weight'] = 0.0
+        grades['2. Review you completed']['weight'] = 0.0
+        grades['3. Evaluations you received']['weight'] = 0.0
+        grades['4. Average of staff review(s)']['weight'] = 1.0
 
     # 2. Review you completed: Yes/No
     review_done = 0
-    extra = 'You did not completed a review'
+    extra = 'You did not completed any reviews'
     allocated_reviews = ReviewReport.objects.filter(reviewer=learner,
         entry_point=entry_point).order_by('-created') # for consistency
     for idx, review in enumerate(allocated_reviews):
@@ -3754,7 +3768,8 @@ def ce_student_grades(learner, entry_point):
                 # Review not completed
                 grade = 0.0
 
-    grades['2. Review you completed']['max'] = 1.0
+    grades['2. Review you completed']['max'] = \
+                                         float(group_enrolled_sub.full_process)
     grades['2. Review you completed']['total'] = review_done
     grades['2. Review you completed']['extra'] = extra
 
@@ -3777,10 +3792,6 @@ def ce_student_grades(learner, entry_point):
     #4. Staff grading of your report
     submission_trigger = entry_point.trigger_set.get(order=5)
     staff_review_trigger = entry_point.trigger_set.get(order=6)
-    #submitter_member = learner.membership_set.get(role='Submit', fixed=True,
-    #                                        group__trigger=submission_trigger,
-    #                                            group__entry_point=entry_point)
-    #group = submitter_member.group
 
     # Get the ``RubricTemplate`` instance via the trigger.
     template = RubricTemplate.objects.get(trigger=staff_review_trigger)
