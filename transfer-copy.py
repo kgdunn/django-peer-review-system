@@ -1,7 +1,11 @@
 # SEN Q2: 50121
 # EPA Q2: 49698
-
 # SEN Q3: 67173
+
+# To watch out:
+#Students retaking the course from one quarter to the next still use the same
+#email address. They may, when taking a later version submit, but it shows them
+#enrolled in the earlier course. Can you simply switch them to the latest course?
 
 # ------
 # 1. Manually create the course in WePeer, and place the label number here.
@@ -46,7 +50,7 @@ for targ_ep in targ_course.entrypoint_set.all():
 # 5. Create a new set of achieveConfigs for all courses, and all entry points.
 from rubric.models import RubricTemplate, RItemTemplate
 from basic.models import Course, EntryPoint
-from interactive.models import Trigger
+
 
 for target_id in target_entries:
     print('Processing for {}'.format(target_id))
@@ -66,7 +70,8 @@ for target_id in target_entries:
 
 # 6. Copy rubric template, items and options from one course to another
 # 7. Adjust the dates for the deadlines when finished
-
+from rubric.models import RubricTemplate, RItemTemplate
+from interactive.models import Trigger
 for target_id in target_entries:
     print('Processing LTI {}'.format(target_id))
     # These have the added complexity that you have a .trigger, .next_trigger and
