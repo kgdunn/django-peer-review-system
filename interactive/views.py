@@ -1491,7 +1491,9 @@ class group_graph(object):
                 node['achieved'] = \
                           reports[node['id']].get('_highest_achievement',
                                                   'None')
-                node['groupid'] = node['id'].groupenrolled_set.all()[0].group.id
+                if node['id'].groupenrolled_set.all().count():
+                    group_enrolled = node['id'].groupenrolled_set.all()[0]
+                    node['groupid'] = group_enrolled.group.id
             else:
                 node['achieved'] = 'NOT_FOUND'
 
