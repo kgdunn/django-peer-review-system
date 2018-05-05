@@ -3079,20 +3079,11 @@ def csv_summary_download_circular(request):
         grades = ce_student_grades(learner, entry_point)
         # All finished for this student
 
-        rev_from_peers = grades['1. Reviews from peers']['total']/\
-                         grades['1. Reviews from peers']['max']*100
-
-        rev_completed =  grades['2. Review you completed']['total']/\
-                         grades['2. Review you completed']['max']*100
-
-        evals_received = grades['3. Evaluations you received']['total']/\
-                         grades['3. Evaluations you received']['max']*100
-
-        staff_reviews =  grades['4. Average of staff review(s)']['total']/\
-                         grades['4. Average of staff review(s)']['max']*100
-
-        total_grade = grades['5. Total grade calculated']['total']/\
-                      grades['5. Total grade calculated']['max']*100
+        rev_from_peers = grades['1. Reviews from peers']['score']*10
+        rev_completed =  grades['2. Review you completed']['score']*10
+        evals_received = grades['3. Evaluations you received']['score']*10
+        staff_reviews =  grades['4. Average of staff review(s)']['score']*10
+        total_grade = grades['5. Total grade calculated']['score']*10
 
         writer.writerow([learner.display_name,
                          learner.email,
