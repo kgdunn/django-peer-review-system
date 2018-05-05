@@ -33,7 +33,11 @@ urlpatterns = [
     # CSV download
     url(r'^csv_summary_download/$',  # (?P<entry_point>.+)/(?P<course>.+)
         views.csv_summary_download,
-        name='csv_summary_download')
+        name='csv_summary_download'),
+
+    url(r'^csv_summary_download_circular/$',
+        views.csv_summary_download_circular,
+        name='csv_summary_download_circular'),
 
 
 ]

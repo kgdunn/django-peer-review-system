@@ -3042,20 +3042,85 @@ def filtered_overview(learner, entry_point, filters):
     return report, highest_achievement
 
 
-def csv_summary_download(request):
+def csv_summary_download_circular(request):
     """
     Returns a CSV download of the student names and scores.
     """
     from basic.views import get_course_ep_info
     info = get_course_ep_info(request)
+    if info['learner'].role != 'Admin':
+        return HttpResponse('')
 
     entry_point = info['entry_point']
     fname = slugify('{}-{}-{}'.format(entry_point.course,
                                       entry_point.LTI_id,
                          timezone.now().strftime('%Y-%m-%d-%H-%M'))) + '.csv'
 
+
+
+    learners = entry_point.course.person_set.filter(role='Learn',
+                                        is_validated=True).order_by('-created')
+
+    # Create the HttpResponse object with the appropriate CSV header.
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="{}"'.format(fname)
+
+    writer = csv.writer(response)
+    writer.writerow(['Learner',
+                     'Email',
+                     'Deliverable',
+                     'Reviews from peers [0.25]',
+                     'Review you completed [0.1]',
+                     'Evaluations you received [0.15]',
+                     'Average of staff reviews [0.5]',
+                     'Total grade [1.0]'])
+
+    for learner in learners:
+        grades = ce_student_grades(learner, entry_point)
+        # All finished for this student
+
+        rev_from_peers = grades['1. Reviews from peers']['total']/\
+                         grades['1. Reviews from peers']['max']*100
+
+        rev_completed =  grades['2. Review you completed']['total']/\
+                         grades['2. Review you completed']['max']*100
+
+        evals_received = grades['3. Evaluations you received']['total']/\
+                         grades['3. Evaluations you received']['max']*100
+
+        staff_reviews =  grades['4. Average of staff review(s)']['total']/\
+                         grades['4. Average of staff review(s)']['max']*100
+
+        total_grade = grades['5. Total grade calculated']['total']/\
+                      grades['5. Total grade calculated']['max']*100
+
+        writer.writerow([learner.display_name,
+                         learner.email,
+                         entry_point.LTI_title,
+                         rev_from_peers,
+                         rev_completed,
+                         evals_received,
+                         staff_reviews,
+                         total_grade])
+
+    return response
+
+
+def csv_summary_download(request):
+    """
+    Returns a CSV download of the student names and scores.
+    """
+    from basic.views import get_course_ep_info
+    info = get_course_ep_info(request)
     if info['learner'].role != 'Admin':
         return HttpResponse('')
+
+    entry_point = info['entry_point']
+    fname = slugify('{}-{}-{}'.format(entry_point.course,
+                                      entry_point.LTI_id,
+                         timezone.now().strftime('%Y-%m-%d-%H-%M'))) + '.csv'
+
+
 
     learners = entry_point.course.person_set.filter(role='Learn',
                                         is_validated=True).order_by('-created')
@@ -3157,6 +3222,8 @@ def csv_summary_download(request):
                          total_assess_gave])
 
     return response
+
+
 
 #------
 # Trigger functions for Circular Economy

@@ -177,14 +177,14 @@ text {
 }());
 </script>
 
-{% comment  %}
+
 <div style="clear:both">
-<span style="float: left; padding-left: 0.5em"><a href="{% url 'csv_summary_download' %}">Download data (CSV) for all {{learners.count}} learners</a></span>
+<span style="float: left; padding-left: 0.5em"><a href="{% url 'csv_summary_download_circular' %}">Download data (CSV) for all {{learners.count}} learners</a></span>
 {% if global_summary_link %}
 <span style="float: right; padding-right: 0.5em"><a href="{{global_summary_link}}">Links to all deliverables</a></span>
 {% endif %}
 </div>
-{% endcomment %}
+
 
 
 <div style="clear:both">

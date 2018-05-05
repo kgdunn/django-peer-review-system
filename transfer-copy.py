@@ -146,3 +146,26 @@ for r_item in RItemTemplate.objects.filter(r_template=template).order_by('order'
                                 comment = '',
                                 submitted = False)
     r_item_actual.save()
+
+
+
+# How to push a person through to the next step (without waiting for all reviews)
+#--------------
+#* EPA Q2: https://wepeer.org/course/49698/90004256/
+#* SEN Q2: https://wepeer.org/course/50121/90004256/
+#* Abroad: https://wepeer.org/course/43639/90004256
+
+#eg. FS is holding up JM. But JM was also reviewed by CG.
+
+#1. Set a manual ``Achievement`` instance for the submitted/learner [JM] (who is being
+   #held up) by their reviewer [FS]. Therefore give '[19] all_reviews_from_peers_completed' to JM. Make notes.
+#2. Generate an EvaluationReport for the submitter [JM], so they can see their
+   #feedback from the reviewer(s) that were able to complete their reviews.
+
+   #Open the review report from the reviewer who has dropped out [FS], and select
+   #their peer review in the overview page.
+   #Click "Submit", and this will generate their EvaluationReport. Ensure you put a message that this is a blank review.
+
+
+#2. Set a manual ``Achievement`` instance for the learner in the course:
+   #'read_and_evaluated_all_reviews'
