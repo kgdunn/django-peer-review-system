@@ -158,7 +158,7 @@ for r_item in RItemTemplate.objects.filter(r_template=template).order_by('order'
 #eg. FS is holding up JM. But JM was also reviewed by CG.
 
 #1. Set a manual ``Achievement`` instance for the submitted/learner [JM] (who is being
-   #held up) by their reviewer [FS]. Therefore give '[19] all_reviews_from_peers_completed' to JM. Make notes.
+   #held up) by their reviewer [FS]. Therefore give '[19] out' to JM. Make notes.
 #2. Generate an EvaluationReport for the submitter [JM], so they can see their
    #feedback from the reviewer(s) that were able to complete their reviews.
 

@@ -64,7 +64,7 @@
 {% if show_feedback %} {# show peer/self feedback #}
     {% if item.ritem_template.option_type == 'LText' %}{% endif%}
     {% if item.ritem_template.option_type == 'DropD' or item.ritem_template.option_type == 'Radio' %}
-        {% if item.results.score %}<em>Score given</em>: {{item.results.score|floatformat}}{% endif %}{% if item.results.max_score%}; out of a maximum of {{item.results.max_score|floatformat}}{% endif %}
+        <em>Score given</em>: {{item.results.score|floatformat}}{% if item.results.max_score%}; out of a maximum of {{item.results.max_score|floatformat}}{% endif %}
     {% endif %}
 {% else %}
     {%if item.ritem_template.option_type == 'DropD'%}
