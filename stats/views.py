@@ -29,10 +29,3 @@ def create_hit(request, item=None, event='', user=None, other_info=None):
         page_hit.save()
     except Exception:
         pass
-
-
-    #event = (
-        #('login', 'login'),
-        #('start-a-review-session',    'start-a-review-session'),
-        #('ending-a-review-session',   'ending-a-review-session'),
-    #)

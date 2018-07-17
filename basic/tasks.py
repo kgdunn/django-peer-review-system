@@ -178,10 +178,6 @@ def send_emails__evaluation_and_rebuttal():
 
     entry_points = EntryPoint.objects.all()
 
-    # Exclude, for now, the Circular Economy course entry points
-    entry_points = entry_points.exclude(course__label='66765')
-
-
     for entry_point in entry_points:
 
         course = entry_point.course
@@ -227,8 +223,6 @@ def send_emails__evaluation_and_rebuttal():
                 'basic/email_outstanding_evaluations_to_read_evaluate.txt',
                                                   ctx_dict)
             to_addresses = [learner.email, ]
-
-
 
             logger.debug("Will send email to: {} | {}".format(to_addresses,
                                                               messages))

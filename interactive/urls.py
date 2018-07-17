@@ -31,13 +31,9 @@ urlpatterns = [
         name='see_readonly_assessment_with_unique_code'),
 
     # CSV download
-    url(r'^csv_summary_download/$',  # (?P<entry_point>.+)/(?P<course>.+)
+    url(r'^csv_summary_download/$',
         views.csv_summary_download,
         name='csv_summary_download'),
-
-    url(r'^csv_summary_download_circular/$',
-        views.csv_summary_download_circular,
-        name='csv_summary_download_circular'),
 
 
 ]
