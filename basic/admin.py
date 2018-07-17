@@ -71,7 +71,6 @@ admin.site.register(GroupEnrolled, GroupEnrolledAdmin)
 
 
 
-
 class TokenAdmin(admin.ModelAdmin):
     list_display = ("person", "was_used", "hash_value", "time_used", "next_uri")
     list_per_page = 1000
@@ -83,6 +82,7 @@ class Email_Task_Admin(admin.ModelAdmin):
 admin.site.register(Email_Task, Email_Task_Admin)
 
 # =======
+# Should we rather move to using session data as a way for auth?
 from django.contrib.sessions.models import Session
 class SessionAdmin(admin.ModelAdmin):
     def _session_data(self, obj):
