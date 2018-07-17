@@ -43,8 +43,6 @@ from basic.models import EntryPoint
 from rubric.views import (handle_review, get_create_actual_rubric,
                           get_learner_details)
 from rubric.models import RubricTemplate, RubricActual
-from grades.models import GradeItem, LearnerGrade
-#from grades.views import push_grade as push_to_gradebook
 from stats.views import create_hit
 from submissions.views import (get_submission, upload_submission,
                                is_group_submission)
@@ -77,11 +75,6 @@ class Summary(object):
     __repr__ = __str__
 
 
-# SHOULD THIS GO TO entry_point instances?
-#class GLOBAL_Class(object):
-#    pass
-#GLOBAL = GLOBAL_Class()
-#GLOBAL.num_peers = 2
 
 def starting_point(request, course=None, learner=None, entry_point=None):
     """
