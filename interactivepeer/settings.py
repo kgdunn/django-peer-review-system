@@ -38,7 +38,7 @@ INSTALLED_APPS = [
     'submissions',
     'rubric',
     'stats',
-    'keyterm',
+    #'keyterm',  <--- not used: was for another application; ignore this app.
 
     # 3rd party imports
     'django_q',
