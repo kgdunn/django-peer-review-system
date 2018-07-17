@@ -331,8 +331,8 @@ def create_token_send_email_check_success(person, request):
     # Create a token for the new user
     hash_value = generate_random_token(TOKEN_LENGTH)
 
-    # Send them an email
-    send_suitable_email(person, hash_value)
+    # Send them a validation email
+    send_send_validation_email_email(person, hash_value)
     info = get_course_ep_info(request)
     token = Token(person=person,
                   hash_value=hash_value,
@@ -344,7 +344,7 @@ def create_token_send_email_check_success(person, request):
     # All finished; return what we have (unsaved ``token`` instance)
     return token
 
-def send_suitable_email(person, hash_val):
+def send_validation_email(person, hash_val):
     """ Sends a validation email, and logs the email message. """
 
     if person.is_validated:
