@@ -202,7 +202,7 @@ $(document).ready( function () {
 
   $('#class_overview').DataTable( {
     paging: false,
-    order: [ [ 7, "asc" ], [ 6, "asc" ], [ 5, "asc" ], [ 2, "asc" ]],
+    order: [ [ 10, "asc" ], [ 7, "asc" ], [ 2, "asc" ]],
     searching: true,
     fixedHeader: {
         header: true,
@@ -232,28 +232,23 @@ $(document).ready( function () {
 <table class="summaries pr-admin" id="class_overview" style="width: 100%;">
 <thead>
 <tr>
-  <th>Initials</th>
-  <th>Learner</th>
-  <th>Submit</th>
-  <th colspan="2">Reviewed by <tt>(Earn)</tt></th>
-  <th colspan="2">Reviewer of <tt>(Gave)</tt></th>
-  <th>Reviews <br>completed</th>
-  <th colspan="2">Evaluate</th>
-  <th>Rebut</th>
-  <th colspan="2">Assess</th>
+  <th rowspan="2">Initials</th>
+  <th rowspan="2">Learner</th>
+  <th rowspan="2">Submit</th>
+  <th colspan="2" style="border-bottom: none">Reviewed by <tt>(Earn)</tt></th>
+  <th colspan="2" style="border-bottom: none">Reviewer of <tt>(Gave)</tt></th>
+  <th rowspan="2">Reviews <br>completed</th>
+  <th colspan="2" style="border-bottom: none">Evaluate</th>
+  <th rowspan="2">Rebut</th>
+  <th colspan="2" style="border-bottom: none">Assess</th>
 </tr>
 <tr>
-  <th></th>
-  <th></th>
-  <th></th>
   <th>Score</th>
   <th>Words</th>
   <th>Score</th>
   <th>Words</th>
-  <th></th>
   <th>Earn</th>
   <th>Gave</th>
-  <th></th>
   <th>Earn</th>
   <th>Gave</th>
 </tr>
@@ -279,15 +274,13 @@ $(document).ready( function () {
                             {{item.when|date:"d"}}<sup>{{item.when|date:"S"}}</sup>{{item.when|date:" H:i"}}
                         {% endif %}
                     </td>
-                {% else %} {# else 'if item.when' #}
+                {% elif item.display %} {# else 'if item.when' #}
                     <td data-order="{{item.sortorder}}">
-                        {% if item.display %}
-                            {{item.display|safe}}
-                        {%else%}
-                            {% if item %}
-                                {{item|safe}}
-                            {% endif %}
-                        {%endif%}
+                        {{item.display|safe}}
+                    </td>
+                {% elif item %}
+                    <td data-order="">
+                        {{item|safe}}
                     </td>
                 {% endif %} {# end 'if item.when' #}
 
