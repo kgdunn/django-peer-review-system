@@ -2506,18 +2506,15 @@ def overview_learners(entry_point, admin=None):
         def __str__(self):
             return self.display
 
-    def format_text(r_actual, text, total, url=''):
-        if r_actual is None: # It has not been started yet
-            return text, total
-        else:
-            if r_actual.status in ('C', 'L'):
-                score = int(report.r_actual.score)
-                return '{0}<a href="{1}" target="_blank">{2:+d}</a> '.format(text,
-                         url+report.r_actual.rubric_code, score), total+score
-
-            else:
-                return text, total
-
+        def format_text(self, r_actual, url=''):
+            if r_actual:
+                # Only formatted if r_actual exists, and if completed or locked
+                if r_actual.status in ('C', 'L'):
+                    score = int(report.r_actual.score)
+                    self.display += ('<a href="{0}" target="_blank">{1:+d}'
+                                     '</a> ').format(\
+                                    url+report.r_actual.rubric_code, score)
+                    self.sortorder += score
 
     ctx = {}
     # Not the most robust way to group students; will fall apart if a student
@@ -2618,36 +2615,37 @@ def overview_learners(entry_point, admin=None):
 
         # ---- Evaluations: earned and given
         earned = learner.peer_reviewer.filter(trigger__entry_point=entry_point,
-                                                  sort_report='E')
-        text1 = '<tt>Earn: '
-        total = 0.0
+                                              sort_report='E')
+        earn_text = Display_Text()
         for report in earned:
-            text1, total = format_text(report.r_actual, text1, total,
-                                           url='/interactive/evaluate/')
-        if text1 == '<tt>Earn: ':
-            text1 = ''
+            earn_text.format_text(report.r_actual, url='/interactive/evaluate/')
+
+        if not(earn_text.display):
+            earn_text.display = ''
         else:
-            text1 += '= <b>{0:+d}</b></tt><br>'.format(int(total))
+            earn_text.display = '<tt>{0}= <b>{1:+d}</b></tt>'.format(\
+                earn_text.display, int(earn_text.sortorder))
+
 
         given = learner.evaluator.filter(trigger__entry_point=entry_point,
-                                             sort_report='E')
-        text2 = '<tt>Gave: '
-        total = 0.0
+                                         sort_report='E')
+        give_text = Display_Text()
         for report in given:
-            text2, total = format_text(report.r_actual, text2, total,
-                                           url='/interactive/evaluate/')
+            give_text.format_text(report.r_actual, url='/interactive/evaluate/')
 
-        if text2 == '<tt>Gave: ':
-            text2 = ''
+        if not(give_text.display):
+            give_text.display = ''
         else:
-            text2 += '= <b>{0:+d}</b></tt>'.format(int(total))
+            give_text.display = '<tt>{0}= <b>{1:+d}</b></tt>'.format(\
+                give_text.display, int(give_text.sortorder))
 
-        reports[learner]['read_and_evaluated_all_reviews'] = text1 + text2
+        reports[learner]['read_and_evaluated_all_reviews_earn'] = earn_text
+        reports[learner]['read_and_evaluated_all_reviews_gave'] = give_text
 
         # ---- Rebuttals
         if reports[learner]['completed_rebuttal']:
             rebuttals = learner.evaluator.filter(sort_report='R',
-                                                     trigger__entry_point=entry_point)
+                                             trigger__entry_point=entry_point)
             hyperlink = ''         # Sometimes we have manually overridden the
                                    # achievement of `completed_rebuttal`, but no
                                    # actual rebuttal exists. So make the
@@ -2661,30 +2659,31 @@ def overview_learners(entry_point, admin=None):
         # ---- Assessments: earned and given
         earned = learner.evaluator.filter(trigger__entry_point=entry_point,
                                               sort_report='A')
-        text1 = '<tt>Earn: '
-        total = 0.0
+        earn_text = Display_Text()
         for report in earned:
-            text1, total = format_text(report.r_actual, text1, total,
-                                           url='/interactive/assessment/')
-        if text1 == '<tt>Earn: ':
-            text1 = ''
+            earn_text.format_text(report.r_actual,
+                                  url='/interactive/assessment/')
+
+        if not(earn_text.display):
+            earn_text.display = ''
         else:
-            text1 += '= <b>{0:+d}</b></tt><br>'.format(int(total))
+            earn_text.display = '<tt>{0}= <b>{1:+d}</b></tt>'.format(\
+                earn_text.display, int(earn_text.sortorder))
 
         given = learner.peer_reviewer.filter(trigger__entry_point=entry_point,
                                         sort_report='A')
-        text2 = '<tt>Gave: '
-        total = 0.0
+        give_text = Display_Text()
         for report in given:
-            text2, total = format_text(report.r_actual, text2, total,
-                                           url='/interactive/assessment/')
+            give_text.format_text(report.r_actual, url='/interactive/assessment/')
 
-        if text2 == '<tt>Gave: ':
-            text2 = ''
+        if not(give_text.display):
+            give_text.display = ''
         else:
-            text2 += '= <b>{0:+d}</b></tt>'.format(int(total))
+            give_text.display = '<tt>{0}= <b>{1:+d}</b></tt>'.format(\
+                give_text.display, int(give_text.sortorder))
 
-        reports[learner]['assessed_rebuttals'] = text1 + text2
+        reports[learner]['assessed_rebuttals_earn'] = earn_text
+        reports[learner]['assessed_rebuttals_gave'] = give_text
 
         # Used by the D3.js animation
         reports[learner]['_highest_achievement'] = highest_achievement
@@ -2695,9 +2694,11 @@ def overview_learners(entry_point, admin=None):
                  'reviewer_of_score',
                  'reviewer_of_words',
                  'completed_all_reviews',
-                 'read_and_evaluated_all_reviews',
+                 'read_and_evaluated_all_reviews_earn',
+                 'read_and_evaluated_all_reviews_gave',
                  'completed_rebuttal',
-                 'assessed_rebuttals',
+                 'assessed_rebuttals_earn',
+                 'assessed_rebuttals_gave',
                  '_highest_achievement']
 
         new_dict = OrderedDict()
