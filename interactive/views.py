@@ -2495,6 +2495,17 @@ def overview_learners(entry_point, admin=None):
     """
     Provides an overview to the instructor of what is going on
     """
+    class Display_Text(object):
+        """ A simply class so we can object.display and object.sortorder
+            instances of this class in a table.
+        """
+        def __init__(self, display='', sortorder=0):
+            self.display = display
+            self.sortorder = sortorder
+
+        def __str__(self):
+            return self.display
+
     def format_text(r_actual, text, total, url=''):
         if r_actual is None: # It has not been started yet
             return text, total
@@ -2519,7 +2530,11 @@ def overview_learners(entry_point, admin=None):
                'read_and_evaluated_all_reviews',
                'completed_rebuttal',
                'assessed_rebuttals')
+
     for learner in learners:
+        # Note: you get an OrderedDict back from `filtered_overview`.
+        #       the order is important, since the table overview will
+        #       be rendered column-for-column in this order.
         reports[learner], highest_achievement = filtered_overview(learner,
                                                                   entry_point,
                                                                   filters)
@@ -2533,16 +2548,17 @@ def overview_learners(entry_point, admin=None):
                                                         sub[0].file_upload.url)
 
         # ---- Reviewed by ...
-        temp = ''
+        slink = Display_Text(display='<tt>')
+        wtext = Display_Text(display='<tt>')
         learner_group = learner.membership_set.filter(role='Submit',
-                                                          group__entry_point=entry_point)
+                                                group__entry_point=entry_point)
         if learner_group:
             members = learner_group[0].group.membership_set.filter\
                     (role='Review')
             for member in members:
                 report = ReviewReport.objects.filter(reviewer=member.learner,
-                                                         entry_point=entry_point,
-                                                         submission__submitted_by=learner)
+                                            entry_point=entry_point,
+                                            submission__submitted_by=learner)
 
                 code = ''
                 if report:
@@ -2552,21 +2568,28 @@ def overview_learners(entry_point, admin=None):
 
                 initials = member.learner.get_initials()
                 if code:
-                    hlink = (' <a href="/interactive/review/{0}" target="_blank">'
-                                 '{1}</a> [{2:3.1f}] {3:4d} words<br>').format(code,
-                                                                               initials,
-                            rubric.score/rubric.rubric_template.maximum_score*10,
-                            rubric.word_count,)
+                    slink.display += (' <a href="/interactive/review/{0}" '
+                                     'target="_blank">{1}</a> [{2:3.1f}]<br>')\
+                                                      .format(code, initials,
+                        rubric.score/rubric.rubric_template.maximum_score*10,)
+                    slink.sortorder += rubric.score
+
+                    wtext.display += '{0:4d}<br>'.format(rubric.word_count)
+                    wtext.sortorder += rubric.word_count
                 else:
-                    hlink = ' {}<br>'.format(initials)
+                    slink.display += ' {}<br>'.format(initials)
 
-                temp += hlink
 
-        reports[learner]['reviewed_by'] = '<tt>{}</tt>'.format(temp[0:-4])
+        slink.display = slink.display[0:-4] + '</tt>'
+        wtext.display = wtext.display[0:-4] + '</tt>'
+        reports[learner]['reviewed_by_score'] = slink
+        reports[learner]['reviewed_by_words'] = wtext
 
         # ---- Reviewer of ...
+        slink = Display_Text(display='<tt>')
+        wtext = Display_Text(display='<tt>')
+
         reviewer_of = learner.reviewreport_set.filter(entry_point=entry_point)
-        temp = ''
         for review in reviewer_of:
 
             code = review.unique_code
@@ -2578,14 +2601,20 @@ def overview_learners(entry_point, admin=None):
                 ractual = ractual[0]
 
             initials = ractual.submission.submitted_by.get_initials()
-            hlink = (' <a href="/interactive/review/{0}" target="_blank">'
-                     '{1}</a> [{2:3.1f}] {3:4d} words<br>').format(code,
-                        initials,
-                        ractual.score/ractual.rubric_template.maximum_score*10,
-                        ractual.word_count)
-            temp += hlink
+            slink.display += (' <a href="/interactive/review/{0}" '
+                              'target="_blank">{1}</a> [{2:3.1f}]<br>').\
+                format(code, initials,
+                       ractual.score/ractual.rubric_template.maximum_score*10)
+            slink.sortorder += ractual.score
 
-        reports[learner]['reviewer_of'] = '<tt>{}</tt>'.format(temp[0:-1])
+            wtext.display += '{0:4d}<br>'.format(ractual.word_count)
+            wtext.sortorder += ractual.word_count
+
+
+        slink.display = slink.display[0:-4] + '</tt>'
+        wtext.display = wtext.display[0:-4] + '</tt>'
+        reports[learner]['reviewer_of_score'] = slink
+        reports[learner]['reviewer_of_words'] = wtext
 
         # ---- Evaluations: earned and given
         earned = learner.peer_reviewer.filter(trigger__entry_point=entry_point,
@@ -2661,8 +2690,10 @@ def overview_learners(entry_point, admin=None):
         reports[learner]['_highest_achievement'] = highest_achievement
 
         order = ['submitted',
-                 'reviewed_by',
-                 'reviewer_of',
+                 'reviewed_by_score',
+                 'reviewed_by_words',
+                 'reviewer_of_score',
+                 'reviewer_of_words',
                  'completed_all_reviews',
                  'read_and_evaluated_all_reviews',
                  'completed_rebuttal',

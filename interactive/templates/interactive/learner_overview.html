@@ -226,20 +226,34 @@ $(document).ready( function () {
 </div>
 
 <div id="pr_graph"></div>
+</br>
+<p><span style="color:darkorange">New:</span> sorting by columns will sort by the average score, or average number of words.
 
-<table class="summaries pr-admin" id="class_overview">
+<table class="summaries pr-admin" id="class_overview" style="width: 100%;">
 <thead>
 <tr>
   <th>Initials</th>
   <th>Learner</th>
   <th>Submit</th>
-  <th>Reviewed by <br><tt>(Earn)</tt></th>
-  <th>Reviewer of <br><tt>(Gave)</tt></th>
+  <th colspan="2">Reviewed by <tt>(Earn)</tt></th>
+  <th colspan="2">Reviewer of <tt>(Gave)</tt></th>
   <th>Reviews <br>completed</th>
   <th>Evaluate</th>
   <th>Rebut</th>
   <th>Assess</th>
-
+</tr>
+<tr>
+  <th></th>
+  <th></th>
+  <th></th>
+  <th>Score</th>
+  <th>Words</th>
+  <th>Score</th>
+  <th>Words</th>
+  <th></th>
+  <th></th>
+  <th></th>
+  <th></th>
 </tr>
 
 </thead>
@@ -254,19 +268,25 @@ $(document).ready( function () {
       {% for key in report.keys %}
         {% if not key|startswith:'_' %}
             {% with item=report|keyvalue:key%}
-              <td data-order="{{item.when.timestamp}}">
+
                 {% if item.when %}
-                    {% if item.hyperlink %}
-                      <a target="_blank" href="{{item.hyperlink}}">{{item.when|date:"d M"}} {{item.when|date:"H:i"}}</a>
-                    {% else %}
-                      {{item.when|date:"d M"}} {{item.when|date:"H:i"}}
-                    {% endif %}
-                {% else %}
-                    {% if item %}
-                      {{item|safe}}
-                    {%endif%}
-                {%endif%}
-              </td>
+                    <td data-order="{{item.when.timestamp}}">
+                        {% if item.hyperlink %}
+                            <a target="_blank" href="{{item.hyperlink}}">{{item.when|date:"d M"}} {{item.when|date:"H:i"}}</a>
+                        {% else %}
+                            {{item.when|date:"d M"}} {{item.when|date:"H:i"}}
+                        {% endif %}
+                    </td>
+                {% else %} {# else 'if item.when' #}
+                    <td data-order="{{item.sortorder}}">
+                        {% if item.display %}
+                            {{item.display|safe}}
+                        {%else%}
+                            {{item|safe}}
+                        {%endif%}
+                    </td>
+                {% endif %} {# end 'if item.when' #}
+
             {% endwith %}
         {% endif %}
       {% endfor %} {#  keys in ``report`` #}
