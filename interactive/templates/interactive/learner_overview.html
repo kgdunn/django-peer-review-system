@@ -282,7 +282,9 @@ $(document).ready( function () {
                         {% if item.display %}
                             {{item.display|safe}}
                         {%else%}
-                            {{item|safe}}
+                            {% if item %}
+                                {{item|safe}}
+                            {% endif %}
                         {%endif%}
                     </td>
                 {% endif %} {# end 'if item.when' #}
