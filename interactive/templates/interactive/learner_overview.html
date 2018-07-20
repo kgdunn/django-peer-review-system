@@ -275,13 +275,11 @@ $(document).ready( function () {
                         {% endif %}
                     </td>
                 {% elif item.display %} {# else 'if item.when' #}
-                    <td data-order="{{item.sortorder}}">
-                        {{item.display|safe}}
-                    </td>
+                    <td data-order="{{item.sortorder}}">{{item.display|safe}}</td>
                 {% elif item %}
-                    <td data-order="">
-                        {{item|safe}}
-                    </td>
+                    <td data-order="">{{item|safe}}</td>
+                {% else%}
+                     <td data-order=""></td>
                 {% endif %} {# end 'if item.when' #}
 
             {% endwith %}
