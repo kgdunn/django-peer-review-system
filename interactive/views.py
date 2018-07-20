@@ -76,6 +76,7 @@ class Summary(object):
     __repr__ = __str__
 
 
+# Do not change function name: called from the database with this name.
 def starting_point(request, course=None, learner=None, entry_point=None):
     """
     Start the interactive tool here:
@@ -521,6 +522,8 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
         if can_be_done:
             status = '<span class="still-to-do">Start</span> your review'
 
+        grade = ''
+
         # What is the status of this review. Cross check with RubricActual
         prior = RubricActual.objects.filter(rubric_code=review.unique_code)
         prior_rubric = None
@@ -532,6 +535,11 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
                     extra = (' <span class="still-to-do">(you can still make '
                              'changes)</span>')
 
+
+                score = prior_rubric.score
+                max_score = prior_rubric.rubric_template.maximum_score
+                grade = '{:d}/{:d}={:3.1f}%'.format(int(score), int(max_score),
+                               score/max_score*100 if max_score != 0 else 0.0)
                 status = 'Completed' + extra
                 reviews_completed[idx] = True
                 if trigger.show_review_numbers:
@@ -559,8 +567,10 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
 
 
         # We have a potential review
-        out.append(('', ('<a href="/interactive/review/{1}" target="_blank">'
-                         '{0}</a>').format(status, review.unique_code)))
+        out.append(('', ('<a href="/interactive/review/{0}" target="_blank">'
+                         '{1}</a> [you gave: {2}]').format(review.unique_code,
+                                                           status,
+                                                           grade)))
 
         if prior.count() == 0:
             graph = group_graph(trigger.entry_point)
@@ -2414,7 +2424,7 @@ def completed(learner, achievement, entry_point, push_grade=False,
 
 
 
-
+# Do not change function name: called from the database with this name.
 def overview(request, course=None, learner=None, entry_point=None):
     """
     Student gets an overview of their grade here.
@@ -2437,10 +2447,17 @@ def overview(request, course=None, learner=None, entry_point=None):
         return report
 
 
+
+
     entries = EntryPoint.objects.filter(course=course).order_by('order')
     achieved = {}
     entry_display = []
-    graphs = []
+
+    # For admins (NOT USED)
+    if learner.role in ('Admin', ):
+        graphs = []
+        for entry in entries:
+            graphs.append(group_graph(entry).graph)
 
     num_completed = 0
     total_entries = 0
@@ -2456,9 +2473,8 @@ def overview(request, course=None, learner=None, entry_point=None):
         if achieved[entry].get('assessed_rebuttals').done:
             num_completed += 1
 
-        if learner.role in ('Admin', ):
-            graphs.append(group_graph(entry).graph)
 
+    # Show a special extra image if the user has `all_completed`
     all_completed = False
     if total_entries == num_completed and total_entries != 0:
         all_completed = True
@@ -2466,7 +2482,7 @@ def overview(request, course=None, learner=None, entry_point=None):
     ctx = {'learner': learner,
            'course': course,
            'achieved': achieved,
-           'entries': entry_display,
+           'entry_display': entry_display,
            'entry_point': entry_point,
            'all_completed': all_completed}
 

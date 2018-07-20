@@ -59,8 +59,13 @@ class Achievement(models.Model):
     # Has the learner achieved this goal, or not?
     done = models.BooleanField(default=False)
 
-    note = models.TextField(default='', null=True, blank=True,
+    note = models.TextField(default='', null=True, blank=True,\
                             help_text='Optional additional information')
+
+
+    display = models.TextField(default='', null=True, blank=True,
+                               editable=False,
+                               help_text='Auto-generated display information')
 
 
     def __str__(self):
