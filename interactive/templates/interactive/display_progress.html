@@ -84,8 +84,10 @@ $(document).ready( function () {
     {% for unit in entry_display %}
         {% with achievement=achieved|keyvalue:unit|keyvalue:'completed_all_reviews' %}
             {% if achievement.done %}
-                <td class="achieved_dt"><i class="fa fa-check" aria-hidden="true"></i>&nbsp;<br>{{ achievement.when|date:"d M, H:i"}}<br>
-                <span style="color:grey; font-size:80%">You gave: {{ achievement.display}}</span></td>
+                <td class="achieved_dt"><i class="fa fa-check" aria-hidden="true"></i>&nbsp;<br>{{ achievement.when|date:"d M, H:i"}}
+                {% if achievement.display %}
+                    <br><span style="color:grey; font-size:80%">You gave: {{ achievement.display }}</span>
+                {% endif %}</td>
             {% else %}
                 <td style="{{achievement.deadline_dt|date_urgency_style}}"><i class="fa fa-times" aria-hidden="true"></i>&nbsp;<br>Due: {{achievement.deadline_dt|date:"d M, H:i"}}</td>
             {% endif %}
