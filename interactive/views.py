@@ -8,6 +8,7 @@ import time
 import random
 import datetime
 import tempfile
+from statistics import mean
 from random import shuffle
 from collections import namedtuple, OrderedDict
 
@@ -514,6 +515,7 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
 
     reviews_completed = [False, ] * num_peers
     achievement_text = ''
+    achievement_grade = []
     for idx, review in enumerate(allocated_reviews):
 
         if not(review.order):
@@ -538,8 +540,10 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
 
                 score = prior_rubric.score
                 max_score = prior_rubric.rubric_template.maximum_score
+                achievement_grade.append(score/max_score*100\
+                                                     if max_score != 0 else 0.0)
                 grade = '{:d}/{:d}={:3.1f}%'.format(int(score), int(max_score),
-                               score/max_score*100 if max_score != 0 else 0.0)
+                                                    achievement_grade[-1])
                 achievement_text += '{:d}/{:d} and '.format(int(score),
                                                        int(max_score))
                 status = 'Completed' + extra
@@ -592,7 +596,7 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
         if achievement_text:
             achievement_text = achievement_text[0:-5]
         completed(learner, 'completed_all_reviews', trigger.entry_point,
-                  display=achievement_text)
+                  display=achievement_text, grade=mean(achievement_grade))
 
     for idx in range(num_peers-len(out)):
 
@@ -2379,7 +2383,7 @@ def has(learner, achievement, entry_point, detailed=False):
             return possible[0].done
 
 
-def completed(learner, achievement, entry_point, display=''):
+def completed(learner, achievement, entry_point, display='', grade=None):
     """
     Complete this item for the learner's achievement.
 
@@ -2410,11 +2414,16 @@ def completed(learner, achievement, entry_point, display=''):
         completed = possible[0]
 
 
-
     # Update the achievement on second/subsequent calls,
     # as we might want to record a different `display`, or a newer date/time
     completed.done = True
     completed.display = display
+
+    # We don't check the values here, assuming it is a reasonable grade
+    # since it can be used for purposed where the value is between 0 and 10,
+    # or 0 and 100, or sometimes even -3 to +3.
+    if grade is not None:
+        completed.grade = grade
     completed.save()
 
 
