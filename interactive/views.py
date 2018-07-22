@@ -359,7 +359,7 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
 
 
                 # First, learner (or their group) has completed this step:
-                completed(student, 'submitted', entry_point, push_grade=True)
+                completed(student, 'submitted', entry_point)
 
                 # Check if the membership has been created. If not, create a
                 # new GroupConfig, and make the student a member.
@@ -513,6 +513,7 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
         entry_point=trigger.entry_point).order_by('-created') # for consistency
 
     reviews_completed = [False, ] * num_peers
+    achievement_text = ''
     for idx, review in enumerate(allocated_reviews):
 
         if not(review.order):
@@ -523,7 +524,6 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
             status = '<span class="still-to-do">Start</span> your review'
 
         grade = ''
-
         # What is the status of this review. Cross check with RubricActual
         prior = RubricActual.objects.filter(rubric_code=review.unique_code)
         prior_rubric = None
@@ -540,6 +540,8 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
                 max_score = prior_rubric.rubric_template.maximum_score
                 grade = '{:d}/{:d}={:3.1f}%'.format(int(score), int(max_score),
                                score/max_score*100 if max_score != 0 else 0.0)
+                achievement_text += '{:d}/{:d} and '.format(int(score),
+                                                       int(max_score))
                 status = 'Completed' + extra
                 reviews_completed[idx] = True
                 if trigger.show_review_numbers:
@@ -587,8 +589,10 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
                 out[idx] = (('future', status))
 
     if sum(reviews_completed) == num_peers:
-        completed(learner, 'completed_all_reviews',
-                  trigger.entry_point, push_grade=True)
+        if achievement_text:
+            achievement_text = achievement_text[0:-5]
+        completed(learner, 'completed_all_reviews', trigger.entry_point,
+                  display=achievement_text)
 
     for idx in range(num_peers-len(out)):
 
@@ -814,7 +818,7 @@ def get_line5(learner, trigger, summaries):
 
     if n_rebuttals_completed == trigger.entry_point.settings('num_peers'):
         completed(learner, 'assessed_rebuttals',
-                  trigger.entry_point, push_grade=True)
+                  trigger.entry_point)
 
 
     # All done!
@@ -2137,7 +2141,7 @@ def create_rebuttal_PDF(r_actual):
     # Only continue to generate this report if it is the last review
     completed(learner,
               'read_and_evaluated_all_reviews',
-              r_actual.rubric_template.trigger.entry_point, push_grade=True)
+              r_actual.rubric_template.trigger.entry_point)
 
 
     fd, temp_file = tempfile.mkstemp(suffix='.pdf')
@@ -2227,7 +2231,7 @@ def create_assessment_PDF(r_actual):
 
     # This marks the point where the learner has completed their rebuttal
     completed(learner, 'completed_rebuttal',
-              r_actual.rubric_template.entry_point, push_grade=True)
+              r_actual.rubric_template.entry_point)
 
 
     fd, temp_file = tempfile.mkstemp(suffix='.pdf')
@@ -2318,8 +2322,6 @@ def create_assessment_PDF(r_actual):
 
 
 #---------
-# Functions related to the learner's progress
-#---------
 def has(learner, achievement, entry_point, detailed=False):
     """
     See if a user has completed a certain ``achievement``.
@@ -2327,40 +2329,42 @@ def has(learner, achievement, entry_point, detailed=False):
     If ``achievement`` is an AchieveConfig instance, it will extract the
     achievement text, and use that.
 
+    Functions related to the learner's progress (achievements)
 
     Achievement                       Description
     -----------                       -----------
     submitted	                      Has submitted a document
 
-	work_has_started_to_be_reviewed	  This submitter's work has already
+    work_has_started_to_be_reviewed	  This submitter's work has already
                                       started to be reviewed. No further
                                       changes can be accepted.
 
-	all_reviews_from_peers_completed  All the reviews from the learner's peers
+    all_reviews_from_peers_completed  All the reviews from the learner's peers
                                       are completed now.
 
-	started_a_review	              The learner has started with a review
+    started_a_review	              The learner has started with a review
                                       (at least one).
 
-	completed_all_reviews	          Completed all required reviews of peers.
+    completed_all_reviews	          Completed all required reviews of peers.
 
-	read_and_evaluated_all_reviews	  Learner has evaluated all the reviews he
+    read_and_evaluated_all_reviews	  Learner has evaluated all the reviews he
                                       has received.
 
-	viewed_all_evaluations	          Learner has seen his N evaluations
+    viewed_all_evaluations	          Learner has seen his N evaluations
 
-	completed_rebuttal	              Learner has completed the rebuttal back
+    completed_rebuttal	              Learner has completed the rebuttal back
                                       to his peers.
 
-	read_all_rebuttals	              Learner has read all the rebuttals
+    read_all_rebuttals	              Learner has read all the rebuttals
                                       received back.
 
-	assessed_rebuttals	              Learner has assessed all the rebuttals.
+    assessed_rebuttals	              Learner has assessed all the rebuttals.
 
-	seen_all_assessments	          Has seen all assessments of the rebuttals.
+    seen_all_assessments	          Has seen all assessments of the rebuttals.
 
-	completed	                      Completed the entire process.
-    """
+    completed	                      Completed the entire process.
+"""
+
     if isinstance(achievement, AchieveConfig):
         achievement = achievement.name
     possible = Achievement.objects.filter(learner=learner,
@@ -2375,8 +2379,7 @@ def has(learner, achievement, entry_point, detailed=False):
             return possible[0].done
 
 
-def completed(learner, achievement, entry_point, push_grade=False,
-              score_override=0.0):
+def completed(learner, achievement, entry_point, display=''):
     """
     Complete this item for the learner's achievement.
 
@@ -2394,6 +2397,8 @@ def completed(learner, achievement, entry_point, push_grade=False,
             achieve_config = AchieveConfig.objects.get(name=achievement,
                                                    entry_point=entry_point)
         except AchieveConfig.DoesNotExist:
+            # This is for system admins who might forget to create
+            # AchieveConfig instances for an entry_point
             logger.error(('CRITICAL: create this achievement "{0}" for '
                           'entry_point: {1}').format(achievement,
                                                      entry_point))
@@ -2404,24 +2409,13 @@ def completed(learner, achievement, entry_point, push_grade=False,
     else:
         completed = possible[0]
 
-    #if not(completed.done):
-    ## Only write to the DB if absolutely necessary.
 
-    # CHANGE: update this anyway, since we likely want it to
-    # record the most recent date/time that this happened.
+
+    # Update the achievement on second/subsequent calls,
+    # as we might want to record a different `display`, or a newer date/time
     completed.done = True
+    completed.display = display
     completed.save()
-
-        #if push_grade:
-        #    if not(score_override):
-        #        push_to_gradebook(learner, completed.achieved.score,
-        #                          entry_point)
-
-    #if score_override:
-    #    push_to_gradebook(learner, score_override, entry_point)
-
-
-
 
 
 # Do not change function name: called from the database with this name.
