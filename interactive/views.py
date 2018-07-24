@@ -8,6 +8,7 @@ import time
 import random
 import datetime
 import tempfile
+from statistics import mean
 from random import shuffle
 from collections import namedtuple, OrderedDict
 
@@ -76,6 +77,7 @@ class Summary(object):
     __repr__ = __str__
 
 
+# Do not change function name: called from the database with this name.
 def starting_point(request, course=None, learner=None, entry_point=None):
     """
     Start the interactive tool here:
@@ -358,7 +360,7 @@ def get_submission_form(trigger, learner, entry_point=None, summaries=list(),
 
 
                 # First, learner (or their group) has completed this step:
-                completed(student, 'submitted', entry_point, push_grade=True)
+                completed(student, 'submitted', entry_point)
 
                 # Check if the membership has been created. If not, create a
                 # new GroupConfig, and make the student a member.
@@ -512,6 +514,8 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
         entry_point=trigger.entry_point).order_by('-created') # for consistency
 
     reviews_completed = [False, ] * num_peers
+    achievement_text = ''
+    achievement_grade = []
     for idx, review in enumerate(allocated_reviews):
 
         if not(review.order):
@@ -521,6 +525,7 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
         if can_be_done:
             status = '<span class="still-to-do">Start</span> your review'
 
+        grade = ''
         # What is the status of this review. Cross check with RubricActual
         prior = RubricActual.objects.filter(rubric_code=review.unique_code)
         prior_rubric = None
@@ -532,6 +537,15 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
                     extra = (' <span class="still-to-do">(you can still make '
                              'changes)</span>')
 
+
+                score = prior_rubric.score
+                max_score = prior_rubric.rubric_template.maximum_score
+                achievement_grade.append(score/max_score*100\
+                                                     if max_score != 0 else 0.0)
+                grade = '{:d}/{:d}={:3.1f}%'.format(int(score), int(max_score),
+                                                    achievement_grade[-1])
+                achievement_text += '{:d}/{:d} and '.format(int(score),
+                                                       int(max_score))
                 status = 'Completed' + extra
                 reviews_completed[idx] = True
                 if trigger.show_review_numbers:
@@ -559,8 +573,10 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
 
 
         # We have a potential review
-        out.append(('', ('<a href="/interactive/review/{1}" target="_blank">'
-                         '{0}</a>').format(status, review.unique_code)))
+        out.append(('', ('<a href="/interactive/review/{0}" target="_blank">'
+                         '{1}</a> [you gave: {2}]').format(review.unique_code,
+                                                           status,
+                                                           grade)))
 
         if prior.count() == 0:
             graph = group_graph(trigger.entry_point)
@@ -577,8 +593,10 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
                 out[idx] = (('future', status))
 
     if sum(reviews_completed) == num_peers:
-        completed(learner, 'completed_all_reviews',
-                  trigger.entry_point, push_grade=True)
+        if achievement_text:
+            achievement_text = achievement_text[0:-5]
+        completed(learner, 'completed_all_reviews', trigger.entry_point,
+                  display=achievement_text, grade=mean(achievement_grade))
 
     for idx in range(num_peers-len(out)):
 
@@ -804,7 +822,7 @@ def get_line5(learner, trigger, summaries):
 
     if n_rebuttals_completed == trigger.entry_point.settings('num_peers'):
         completed(learner, 'assessed_rebuttals',
-                  trigger.entry_point, push_grade=True)
+                  trigger.entry_point)
 
 
     # All done!
@@ -2127,7 +2145,7 @@ def create_rebuttal_PDF(r_actual):
     # Only continue to generate this report if it is the last review
     completed(learner,
               'read_and_evaluated_all_reviews',
-              r_actual.rubric_template.trigger.entry_point, push_grade=True)
+              r_actual.rubric_template.trigger.entry_point)
 
 
     fd, temp_file = tempfile.mkstemp(suffix='.pdf')
@@ -2217,7 +2235,7 @@ def create_assessment_PDF(r_actual):
 
     # This marks the point where the learner has completed their rebuttal
     completed(learner, 'completed_rebuttal',
-              r_actual.rubric_template.entry_point, push_grade=True)
+              r_actual.rubric_template.entry_point)
 
 
     fd, temp_file = tempfile.mkstemp(suffix='.pdf')
@@ -2308,8 +2326,6 @@ def create_assessment_PDF(r_actual):
 
 
 #---------
-# Functions related to the learner's progress
-#---------
 def has(learner, achievement, entry_point, detailed=False):
     """
     See if a user has completed a certain ``achievement``.
@@ -2317,40 +2333,42 @@ def has(learner, achievement, entry_point, detailed=False):
     If ``achievement`` is an AchieveConfig instance, it will extract the
     achievement text, and use that.
 
+    Functions related to the learner's progress (achievements)
 
     Achievement                       Description
     -----------                       -----------
     submitted	                      Has submitted a document
 
-	work_has_started_to_be_reviewed	  This submitter's work has already
+    work_has_started_to_be_reviewed	  This submitter's work has already
                                       started to be reviewed. No further
                                       changes can be accepted.
 
-	all_reviews_from_peers_completed  All the reviews from the learner's peers
+    all_reviews_from_peers_completed  All the reviews from the learner's peers
                                       are completed now.
 
-	started_a_review	              The learner has started with a review
+    started_a_review	              The learner has started with a review
                                       (at least one).
 
-	completed_all_reviews	          Completed all required reviews of peers.
+    completed_all_reviews	          Completed all required reviews of peers.
 
-	read_and_evaluated_all_reviews	  Learner has evaluated all the reviews he
+    read_and_evaluated_all_reviews	  Learner has evaluated all the reviews he
                                       has received.
 
-	viewed_all_evaluations	          Learner has seen his N evaluations
+    viewed_all_evaluations	          Learner has seen his N evaluations
 
-	completed_rebuttal	              Learner has completed the rebuttal back
+    completed_rebuttal	              Learner has completed the rebuttal back
                                       to his peers.
 
-	read_all_rebuttals	              Learner has read all the rebuttals
+    read_all_rebuttals	              Learner has read all the rebuttals
                                       received back.
 
-	assessed_rebuttals	              Learner has assessed all the rebuttals.
+    assessed_rebuttals	              Learner has assessed all the rebuttals.
 
-	seen_all_assessments	          Has seen all assessments of the rebuttals.
+    seen_all_assessments	          Has seen all assessments of the rebuttals.
 
-	completed	                      Completed the entire process.
-    """
+    completed	                      Completed the entire process.
+"""
+
     if isinstance(achievement, AchieveConfig):
         achievement = achievement.name
     possible = Achievement.objects.filter(learner=learner,
@@ -2365,8 +2383,7 @@ def has(learner, achievement, entry_point, detailed=False):
             return possible[0].done
 
 
-def completed(learner, achievement, entry_point, push_grade=False,
-              score_override=0.0):
+def completed(learner, achievement, entry_point, display='', grade=None):
     """
     Complete this item for the learner's achievement.
 
@@ -2384,6 +2401,8 @@ def completed(learner, achievement, entry_point, push_grade=False,
             achieve_config = AchieveConfig.objects.get(name=achievement,
                                                    entry_point=entry_point)
         except AchieveConfig.DoesNotExist:
+            # This is for system admins who might forget to create
+            # AchieveConfig instances for an entry_point
             logger.error(('CRITICAL: create this achievement "{0}" for '
                           'entry_point: {1}').format(achievement,
                                                      entry_point))
@@ -2394,27 +2413,21 @@ def completed(learner, achievement, entry_point, push_grade=False,
     else:
         completed = possible[0]
 
-    #if not(completed.done):
-    ## Only write to the DB if absolutely necessary.
 
-    # CHANGE: update this anyway, since we likely want it to
-    # record the most recent date/time that this happened.
+    # Update the achievement on second/subsequent calls,
+    # as we might want to record a different `display`, or a newer date/time
     completed.done = True
+    completed.display = display
+
+    # We don't check the values here, assuming it is a reasonable grade
+    # since it can be used for purposed where the value is between 0 and 10,
+    # or 0 and 100, or sometimes even -3 to +3.
+    if grade is not None:
+        completed.grade = grade
     completed.save()
 
-        #if push_grade:
-        #    if not(score_override):
-        #        push_to_gradebook(learner, completed.achieved.score,
-        #                          entry_point)
 
-    #if score_override:
-    #    push_to_gradebook(learner, score_override, entry_point)
-
-
-
-
-
-
+# Do not change function name: called from the database with this name.
 def overview(request, course=None, learner=None, entry_point=None):
     """
     Student gets an overview of their grade here.
@@ -2437,10 +2450,17 @@ def overview(request, course=None, learner=None, entry_point=None):
         return report
 
 
+
+
     entries = EntryPoint.objects.filter(course=course).order_by('order')
     achieved = {}
     entry_display = []
-    graphs = []
+
+    # For admins (NOT USED)
+    if learner.role in ('Admin', ):
+        graphs = []
+        for entry in entries:
+            graphs.append(group_graph(entry).graph)
 
     num_completed = 0
     total_entries = 0
@@ -2456,9 +2476,8 @@ def overview(request, course=None, learner=None, entry_point=None):
         if achieved[entry].get('assessed_rebuttals').done:
             num_completed += 1
 
-        if learner.role in ('Admin', ):
-            graphs.append(group_graph(entry).graph)
 
+    # Show a special extra image if the user has `all_completed`
     all_completed = False
     if total_entries == num_completed and total_entries != 0:
         all_completed = True
@@ -2466,7 +2485,7 @@ def overview(request, course=None, learner=None, entry_point=None):
     ctx = {'learner': learner,
            'course': course,
            'achieved': achieved,
-           'entries': entry_display,
+           'entry_display': entry_display,
            'entry_point': entry_point,
            'all_completed': all_completed}
 
@@ -2495,18 +2514,26 @@ def overview_learners(entry_point, admin=None):
     """
     Provides an overview to the instructor of what is going on
     """
-    def format_text(r_actual, text, total, url=''):
-        if r_actual is None: # It has not been started yet
-            return text, total
-        else:
-            if r_actual.status in ('C', 'L'):
-                score = int(report.r_actual.score)
-                return '{0}<a href="{1}" target="_blank">{2:+d}</a> '.format(text,
-                         url+report.r_actual.rubric_code, score), total+score
+    class Display_Text(object):
+        """ A simply class so we can object.display and object.sortorder
+            instances of this class in a table.
+        """
+        def __init__(self, display='', sortorder=0):
+            self.display = display
+            self.sortorder = sortorder
 
-            else:
-                return text, total
+        def __str__(self):
+            return self.display
 
+        def format_text(self, r_actual, url=''):
+            if r_actual:
+                # Only formatted if r_actual exists, and if completed or locked
+                if r_actual.status in ('C', 'L'):
+                    score = int(report.r_actual.score)
+                    self.display += ('<a href="{0}" target="_blank">{1:+d}'
+                                     '</a> ').format(\
+                                    url+report.r_actual.rubric_code, score)
+                    self.sortorder += score
 
     ctx = {}
     # Not the most robust way to group students; will fall apart if a student
@@ -2519,7 +2546,11 @@ def overview_learners(entry_point, admin=None):
                'read_and_evaluated_all_reviews',
                'completed_rebuttal',
                'assessed_rebuttals')
+
     for learner in learners:
+        # Note: you get an OrderedDict back from `filtered_overview`.
+        #       the order is important, since the table overview will
+        #       be rendered column-for-column in this order.
         reports[learner], highest_achievement = filtered_overview(learner,
                                                                   entry_point,
                                                                   filters)
@@ -2533,16 +2564,17 @@ def overview_learners(entry_point, admin=None):
                                                         sub[0].file_upload.url)
 
         # ---- Reviewed by ...
-        temp = ''
+        slink = Display_Text(display='<tt>')
+        wtext = Display_Text(display='<tt>')
         learner_group = learner.membership_set.filter(role='Submit',
-                                                          group__entry_point=entry_point)
+                                                group__entry_point=entry_point)
         if learner_group:
             members = learner_group[0].group.membership_set.filter\
                     (role='Review')
             for member in members:
                 report = ReviewReport.objects.filter(reviewer=member.learner,
-                                                         entry_point=entry_point,
-                                                         submission__submitted_by=learner)
+                                            entry_point=entry_point,
+                                            submission__submitted_by=learner)
 
                 code = ''
                 if report:
@@ -2552,21 +2584,28 @@ def overview_learners(entry_point, admin=None):
 
                 initials = member.learner.get_initials()
                 if code:
-                    hlink = (' <a href="/interactive/review/{0}" target="_blank">'
-                                 '{1}</a> [{2:3.1f}] {3:4d} words<br>').format(code,
-                                                                               initials,
-                            rubric.score/rubric.rubric_template.maximum_score*10,
-                            rubric.word_count,)
+                    slink.display += (' <a href="/interactive/review/{0}" '
+                                     'target="_blank">{1}</a> [{2:3.1f}]<br>')\
+                                                      .format(code, initials,
+                        rubric.score/rubric.rubric_template.maximum_score*10,)
+                    slink.sortorder += rubric.score
+
+                    wtext.display += '{0:4d}<br>'.format(rubric.word_count)
+                    wtext.sortorder += rubric.word_count
                 else:
-                    hlink = ' {}<br>'.format(initials)
+                    slink.display += ' {}<br>'.format(initials)
 
-                temp += hlink
 
-        reports[learner]['reviewed_by'] = '<tt>{}</tt>'.format(temp[0:-4])
+        slink.display = slink.display[0:-4] + '</tt>'
+        wtext.display = wtext.display[0:-4] + '</tt>'
+        reports[learner]['reviewed_by_score'] = slink
+        reports[learner]['reviewed_by_words'] = wtext
 
         # ---- Reviewer of ...
+        slink = Display_Text(display='<tt>')
+        wtext = Display_Text(display='<tt>')
+
         reviewer_of = learner.reviewreport_set.filter(entry_point=entry_point)
-        temp = ''
         for review in reviewer_of:
 
             code = review.unique_code
@@ -2578,47 +2617,54 @@ def overview_learners(entry_point, admin=None):
                 ractual = ractual[0]
 
             initials = ractual.submission.submitted_by.get_initials()
-            hlink = (' <a href="/interactive/review/{0}" target="_blank">'
-                     '{1}</a> [{2:3.1f}] {3:4d} words<br>').format(code,
-                        initials,
-                        ractual.score/ractual.rubric_template.maximum_score*10,
-                        ractual.word_count)
-            temp += hlink
+            slink.display += (' <a href="/interactive/review/{0}" '
+                              'target="_blank">{1}</a> [{2:3.1f}]<br>').\
+                format(code, initials,
+                       ractual.score/ractual.rubric_template.maximum_score*10)
+            slink.sortorder += ractual.score
 
-        reports[learner]['reviewer_of'] = '<tt>{}</tt>'.format(temp[0:-1])
+            wtext.display += '{0:4d}<br>'.format(ractual.word_count)
+            wtext.sortorder += ractual.word_count
+
+
+        slink.display = slink.display[0:-4] + '</tt>'
+        wtext.display = wtext.display[0:-4] + '</tt>'
+        reports[learner]['reviewer_of_score'] = slink
+        reports[learner]['reviewer_of_words'] = wtext
 
         # ---- Evaluations: earned and given
         earned = learner.peer_reviewer.filter(trigger__entry_point=entry_point,
-                                                  sort_report='E')
-        text1 = '<tt>Earn: '
-        total = 0.0
+                                              sort_report='E')
+        earn_text = Display_Text()
         for report in earned:
-            text1, total = format_text(report.r_actual, text1, total,
-                                           url='/interactive/evaluate/')
-        if text1 == '<tt>Earn: ':
-            text1 = ''
+            earn_text.format_text(report.r_actual, url='/interactive/evaluate/')
+
+        if not(earn_text.display):
+            earn_text.display = ''
         else:
-            text1 += '= <b>{0:+d}</b></tt><br>'.format(int(total))
+            earn_text.display = '<tt>{0}= <b>{1:+d}</b></tt>'.format(\
+                earn_text.display, int(earn_text.sortorder))
+
 
         given = learner.evaluator.filter(trigger__entry_point=entry_point,
-                                             sort_report='E')
-        text2 = '<tt>Gave: '
-        total = 0.0
+                                         sort_report='E')
+        give_text = Display_Text()
         for report in given:
-            text2, total = format_text(report.r_actual, text2, total,
-                                           url='/interactive/evaluate/')
+            give_text.format_text(report.r_actual, url='/interactive/evaluate/')
 
-        if text2 == '<tt>Gave: ':
-            text2 = ''
+        if not(give_text.display):
+            give_text.display = ''
         else:
-            text2 += '= <b>{0:+d}</b></tt>'.format(int(total))
+            give_text.display = '<tt>{0}= <b>{1:+d}</b></tt>'.format(\
+                give_text.display, int(give_text.sortorder))
 
-        reports[learner]['read_and_evaluated_all_reviews'] = text1 + text2
+        reports[learner]['read_and_evaluated_all_reviews_earn'] = earn_text
+        reports[learner]['read_and_evaluated_all_reviews_gave'] = give_text
 
         # ---- Rebuttals
         if reports[learner]['completed_rebuttal']:
             rebuttals = learner.evaluator.filter(sort_report='R',
-                                                     trigger__entry_point=entry_point)
+                                             trigger__entry_point=entry_point)
             hyperlink = ''         # Sometimes we have manually overridden the
                                    # achievement of `completed_rebuttal`, but no
                                    # actual rebuttal exists. So make the
@@ -2632,41 +2678,46 @@ def overview_learners(entry_point, admin=None):
         # ---- Assessments: earned and given
         earned = learner.evaluator.filter(trigger__entry_point=entry_point,
                                               sort_report='A')
-        text1 = '<tt>Earn: '
-        total = 0.0
+        earn_text = Display_Text()
         for report in earned:
-            text1, total = format_text(report.r_actual, text1, total,
-                                           url='/interactive/assessment/')
-        if text1 == '<tt>Earn: ':
-            text1 = ''
+            earn_text.format_text(report.r_actual,
+                                  url='/interactive/assessment/')
+
+        if not(earn_text.display):
+            earn_text.display = ''
         else:
-            text1 += '= <b>{0:+d}</b></tt><br>'.format(int(total))
+            earn_text.display = '<tt>{0}= <b>{1:+d}</b></tt>'.format(\
+                earn_text.display, int(earn_text.sortorder))
 
         given = learner.peer_reviewer.filter(trigger__entry_point=entry_point,
                                         sort_report='A')
-        text2 = '<tt>Gave: '
-        total = 0.0
+        give_text = Display_Text()
         for report in given:
-            text2, total = format_text(report.r_actual, text2, total,
-                                           url='/interactive/assessment/')
+            give_text.format_text(report.r_actual, url='/interactive/assessment/')
 
-        if text2 == '<tt>Gave: ':
-            text2 = ''
+        if not(give_text.display):
+            give_text.display = ''
         else:
-            text2 += '= <b>{0:+d}</b></tt>'.format(int(total))
+            give_text.display = '<tt>{0}= <b>{1:+d}</b></tt>'.format(\
+                give_text.display, int(give_text.sortorder))
 
-        reports[learner]['assessed_rebuttals'] = text1 + text2
+        reports[learner]['assessed_rebuttals_earn'] = earn_text
+        reports[learner]['assessed_rebuttals_gave'] = give_text
 
         # Used by the D3.js animation
         reports[learner]['_highest_achievement'] = highest_achievement
 
         order = ['submitted',
-                 'reviewed_by',
-                 'reviewer_of',
+                 'reviewed_by_score',
+                 'reviewed_by_words',
+                 'reviewer_of_score',
+                 'reviewer_of_words',
                  'completed_all_reviews',
-                 'read_and_evaluated_all_reviews',
+                 'read_and_evaluated_all_reviews_earn',
+                 'read_and_evaluated_all_reviews_gave',
                  'completed_rebuttal',
-                 'assessed_rebuttals',
+                 'assessed_rebuttals_earn',
+                 'assessed_rebuttals_gave',
                  '_highest_achievement']
 
         new_dict = OrderedDict()

@@ -332,7 +332,7 @@ def create_token_send_email_check_success(person, request):
     hash_value = generate_random_token(TOKEN_LENGTH)
 
     # Send them a validation email
-    send_send_validation_email_email(person, hash_value)
+    send_validation_email(person, hash_value)
     info = get_course_ep_info(request)
     token = Token(person=person,
                   hash_value=hash_value,

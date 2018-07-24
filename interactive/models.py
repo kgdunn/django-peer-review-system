@@ -59,8 +59,20 @@ class Achievement(models.Model):
     # Has the learner achieved this goal, or not?
     done = models.BooleanField(default=False)
 
-    note = models.TextField(default='', null=True, blank=True,
+    note = models.TextField(default='', null=True, blank=True,\
                             help_text='Optional additional information')
+
+
+    display = models.TextField(default='', null=True, blank=True,
+                               editable=False,
+                               help_text='Auto-generated display information')
+
+    # Specifically set no default value (e.g. of 0.0, because 0.0 could be
+    # a legitimate score). Differentiate between zero and null.
+    # Also, it can be positive, negative, on a scale from 0 to 10, or 0 to 100
+    # We are not checking, or enforcing anything, since it is up to the
+    # AchievementConfig to know what to numerical value to store here.
+    grade = models.FloatField(null=True, blank=True)
 
 
     def __str__(self):

@@ -202,7 +202,7 @@ $(document).ready( function () {
 
   $('#class_overview').DataTable( {
     paging: false,
-    order: [ [ 7, "asc" ], [ 6, "asc" ], [ 5, "asc" ], [ 2, "asc" ]],
+    order: [ [ 10, "asc" ], [ 7, "asc" ], [ 2, "asc" ]],
     searching: true,
     fixedHeader: {
         header: true,
@@ -226,20 +226,31 @@ $(document).ready( function () {
 </div>
 
 <div id="pr_graph"></div>
+</br>
+<p><span style="color:darkorange">New:</span> columns are sortable. They sort by date, the average score, or average number of words.
 
-<table class="summaries pr-admin" id="class_overview">
+<table class="summaries pr-admin" id="class_overview" style="width: 100%;">
 <thead>
 <tr>
-  <th>Initials</th>
-  <th>Learner</th>
-  <th>Submit</th>
-  <th>Reviewed by <br><tt>(Earn)</tt></th>
-  <th>Reviewer of <br><tt>(Gave)</tt></th>
-  <th>Reviews <br>completed</th>
-  <th>Evaluate</th>
-  <th>Rebut</th>
-  <th>Assess</th>
-
+  <th rowspan="2">Initials</th>
+  <th rowspan="2">Learner</th>
+  <th rowspan="2">Submit</th>
+  <th colspan="2" style="border-bottom: none">Reviewed by <tt>(Earn)</tt></th>
+  <th colspan="2" style="border-bottom: none">Reviewer of <tt>(Gave)</tt></th>
+  <th rowspan="2">Reviews <br>completed</th>
+  <th colspan="2" style="border-bottom: none">Evaluate</th>
+  <th rowspan="2">Rebut</th>
+  <th colspan="2" style="border-bottom: none">Assess</th>
+</tr>
+<tr>
+  <th>Score</th>
+  <th>Words</th>
+  <th>Score</th>
+  <th>Words</th>
+  <th>Earn</th>
+  <th>Gave</th>
+  <th>Earn</th>
+  <th>Gave</th>
 </tr>
 
 </thead>
@@ -254,19 +265,23 @@ $(document).ready( function () {
       {% for key in report.keys %}
         {% if not key|startswith:'_' %}
             {% with item=report|keyvalue:key%}
-              <td data-order="{{item.when.timestamp}}">
+
                 {% if item.when %}
-                    {% if item.hyperlink %}
-                      <a target="_blank" href="{{item.hyperlink}}">{{item.when|date:"d M"}} {{item.when|date:"H:i"}}</a>
-                    {% else %}
-                      {{item.when|date:"d M"}} {{item.when|date:"H:i"}}
-                    {% endif %}
-                {% else %}
-                    {% if item %}
-                      {{item|safe}}
-                    {%endif%}
-                {%endif%}
-              </td>
+                    <td data-order="{{item.when.timestamp}}">
+                        {% if item.hyperlink %}
+                            <a target="_blank" href="{{item.hyperlink}}">{{item.when|date:"d"}}<sup>{{item.when|date:"S"}}</sup>{{item.when|date:" H:i"}}</a>
+                        {% else %}
+                            {{item.when|date:"d"}}<sup>{{item.when|date:"S"}}</sup>{{item.when|date:" H:i"}}
+                        {% endif %}
+                    </td>
+                {% elif item.display %} {# else 'if item.when' #}
+                    <td data-order="{{item.sortorder}}">{{item.display|safe}}</td>
+                {% elif item %}
+                    <td data-order="">{{item|safe}}</td>
+                {% else%}
+                     <td data-order=""></td>
+                {% endif %} {# end 'if item.when' #}
+
             {% endwith %}
         {% endif %}
       {% endfor %} {#  keys in ``report`` #}

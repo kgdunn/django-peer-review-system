@@ -56,7 +56,7 @@ $(document).ready( function () {
 <table class="summaries pr-admin" id="overall_progress">
 <thead><tr>
 <td style="font-size:28">Achievement</td>
-{% for unit in entries %}
+{% for unit in entry_display %}
     <td style="font-size:20; font-weight: bold">
     {% if unit.full_URL%}
         <a href="{{unit.full_URL}}">{{unit.LTI_title}} <i class="fa fa-external-link" aria-hidden="true"></i></a>
@@ -69,7 +69,7 @@ $(document).ready( function () {
 <tbody>
 <tr><td class="first-column" style="text-align:right;"><span class="verb">Submitted</span> a document</td>
 
-    {% for unit in entries %}
+    {% for unit in entry_display %}
         {% with achievement=achieved|keyvalue:unit|keyvalue:'submitted' %}
 
             {% if achievement.done %}
@@ -81,10 +81,13 @@ $(document).ready( function () {
     {% endfor %}
 </tr>
 <tr><td class="first-column" style="text-align:right;">Completely <span class="verb">reviewed</span> all your peers' work</td>
-    {% for unit in entries %}
+    {% for unit in entry_display %}
         {% with achievement=achieved|keyvalue:unit|keyvalue:'completed_all_reviews' %}
             {% if achievement.done %}
-                <td class="achieved_dt"><i class="fa fa-check" aria-hidden="true"></i>&nbsp;<br>{{ achievement.when|date:"d M, H:i"}}</td>
+                <td class="achieved_dt"><i class="fa fa-check" aria-hidden="true"></i>&nbsp;<br>{{ achievement.when|date:"d M, H:i"}}
+                {% if achievement.display %}
+                    <br><span style="color:grey; font-size:80%">You gave: {{ achievement.display }}</span>
+                {% endif %}</td>
             {% else %}
                 <td style="{{achievement.deadline_dt|date_urgency_style}}"><i class="fa fa-times" aria-hidden="true"></i>&nbsp;<br>Due: {{achievement.deadline_dt|date:"d M, H:i"}}</td>
             {% endif %}
@@ -92,7 +95,7 @@ $(document).ready( function () {
     {% endfor %}
 </tr>
 <tr><td class="first-column" style="text-align:right;">Have read and <span class="verb">evaluated</span> reviews about your work</td>
-    {% for unit in entries %}
+    {% for unit in entry_display %}
         {% with achievement=achieved|keyvalue:unit|keyvalue:'read_and_evaluated_all_reviews' %}
             {% if achievement.done %}
                 <td class="achieved_dt"><i class="fa fa-check" aria-hidden="true"></i>&nbsp;<br>{{ achievement.when|date:"d M, H:i"}}</td>
@@ -103,7 +106,7 @@ $(document).ready( function () {
     {% endfor %}
 </tr>
 <tr><td class="first-column" style="text-align:right;">Have completed the <span class="verb">rebuttal</span></td>
-    {% for unit in entries %}
+    {% for unit in entry_display %}
         {% with achievement=achieved|keyvalue:unit|keyvalue:'completed_rebuttal' %}
             {% if achievement.done %}
                 <td class="achieved_dt"><i class="fa fa-check" aria-hidden="true"></i>&nbsp;<br>{{ achievement.when|date:"d M, H:i"}}</td>
@@ -115,7 +118,7 @@ $(document).ready( function () {
 </tr>
 
 <tr><td class="first-column" style="text-align:right;">Have <span class="verb">assessed</span> all rebuttals received</td>
-    {% for unit in entries %}
+    {% for unit in entry_display %}
         {% with achievement=achieved|keyvalue:unit|keyvalue:'assessed_rebuttals' %}
             {% if achievement.done %}
                 <td class="achieved_dt"><i class="fa fa-check" aria-hidden="true"></i>&nbsp;<br>{{ achievement.when|date:"d M, H:i"}}</td>
@@ -127,7 +130,7 @@ $(document).ready( function () {
 </tr>
 
 <tr><td><em>Enjoy!</em></td>
-    {% for unit in entries %}
+    {% for unit in entry_display %}
         {% if forloop.counter == 1 %}
             {% with achievement=achieved|keyvalue:unit|keyvalue:'assessed_rebuttals' %}
                 {% if achievement.done %}
@@ -170,13 +173,21 @@ $(document).ready( function () {
                 {% endif %}
             {% endwith %}
         {% endif %} {# if-elif-elif-... #}
-    {% endfor %}    {# for unit in entries #}
+    {% endfor %}    {# for unit in entry_display #}
 </tr>
+
+
+{% comment 'ADD THIS BACK LATER' %}
 {% if all_completed %}
 <tr>
     <td></td><td colspan="5" style="padding: 0 0 0 0; border: 0"><img width=100% src="/documents/639ams1s.png"></td>
 </tr>
 {% endif %}
+
+{% endcomment %}
+
+
+
 </tbody>
 </table>
 
