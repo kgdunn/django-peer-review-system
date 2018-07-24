@@ -63,7 +63,7 @@ def entry_point_discovery(request, course_code=None, entry_code=None):
     if not(course_ID) or not(entry_ID):
         return HttpResponse(("Homepage of the peer interaction tool. "
                              "Please access this site from your learning "
-                             "platform, for example: Brightspace or edX."))
+                             "platform, for example: Brightspace."))
 
     course = None
     try:
