@@ -573,10 +573,12 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
 
 
         # We have a potential review
-        out.append(('', ('<a href="/interactive/review/{0}" target="_blank">'
-                         '{1}</a> [you gave: {2}]').format(review.unique_code,
-                                                           status,
-                                                           grade)))
+        out_text = ('<a href="/interactive/review/{0}" target="_blank">'
+                         '{1}</a>').format(review.unique_code, status)
+        if grade:
+            out_text += '[you gave: {0}]'.format(grade)
+
+        out.append(('', out_text ))
 
         if prior.count() == 0:
             graph = group_graph(trigger.entry_point)
@@ -1246,7 +1248,7 @@ class group_graph(object):
         #"""
         #Given the graph, get the next reviewer.
         #"""
-        #potential = self.graph.nodes()
+        #potential = list(self.graph.nodes())
         #if exclude:
             #index = potential.index(exclude)
             #potential.pop(index)
@@ -1278,7 +1280,7 @@ class group_graph(object):
            #reviews (incoming arrows)
         #4. After that, assign randomly.
 
-            #potential = self.graph.nodes()
+            #potential = list(self.graph.nodes())
             #if exclude_reviewer:
                 #index = potential.index(exclude_reviewer)
                 #potential.pop(index)
@@ -1319,7 +1321,7 @@ class group_graph(object):
            #``exclude_reviewer`` already has their work reviewed by the person.
            #This avoids a back-arrow, but doesn't make it impossible.
         #"""
-        #potential = self.graph.nodes()
+        #potential = list(self.graph.nodes())
         #if exclude_reviewer:
             #index = potential.index(exclude_reviewer)
             #potential.pop(index)
