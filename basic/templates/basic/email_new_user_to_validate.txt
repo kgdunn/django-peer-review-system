@@ -8,8 +8,6 @@ There are some important points to note about the electronic peer review tool th
 
 To use this system you are agreeing to sharing the above information from points 1, 2 and 3 with the website that electronically handles the process. Please click on the link here to consent to this, and activate your account: {{validation_URI}}
 
-If you prefer not to use the system as described, please contact the module manager in your course. The system has been described to you in the Brightspace course, or during class time.
-
-We hope you enjoy using the peer review system!
+The system has been described to you in the Brightspace course, or during class time. We hope you enjoy using the peer review system!
 
 
