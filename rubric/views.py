@@ -151,7 +151,7 @@ def submit_peer_review_feedback(request, ractual_code):
     # 1. Check that this is POST
     # 2. Create OptionActuals
     # 3. Calculate score for evaluations?
-
+    logger.debug('Submitting a review: {}'.format(ractual_code))
     r_actual, reviewer = get_learner_details(ractual_code)
     if reviewer is None:
         # This branch only happens with error conditions.
