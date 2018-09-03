@@ -308,7 +308,7 @@ def handle_website_sign_in(learner, is_newbie, request):
         return ("<div style='max-width: 200px; padding:40px'>"
                 "An account has been created for you, but must still "
                 "be activated. Please check your email and click on the link "
-                "that was emailed you. <b>Also check your spam folder</b>."
+                "that was emailed to you. <b>Also check your spam folder</b>."
                 "<br></div>".format(now_time))
     else:
         # Not a newbie

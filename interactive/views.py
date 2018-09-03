@@ -1374,7 +1374,7 @@ class group_graph(object):
         """
 
         # Assume we don't use groups
-        potential = self.graph.nodes()
+        potential = list(self.graph.nodes())
 
         # At this point we also want to ensure the ``reviewer`` only sees
         # reports from their own ``group``, or only reports outside the group.
