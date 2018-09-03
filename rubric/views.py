@@ -164,6 +164,8 @@ def submit_peer_review_feedback(request, ractual_code):
 
     r_item_actuals = r_actual.ritemactual_set.all()
 
+    logger.debug('Actuals received:: {}'.format(str(r_item_actuals)))
+
     items = {}
     # Create the dictionary: one key per ITEM.
     # The value associated with the key is a dictionary itself.
