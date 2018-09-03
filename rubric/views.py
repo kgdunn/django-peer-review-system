@@ -187,6 +187,8 @@ def submit_peer_review_feedback(request, ractual_code):
     total_score = 0.0
     for key in request.POST.keys():
 
+        logger.debug('Processing key: {}'.format(key))
+
         # Small glitch: a set of checkboxes, if all unselected, will not appear
         # here, which means that that item will not be "unset".
 
@@ -352,6 +354,8 @@ def process_POST_review(key, options, items):
         # Set the RItemActual.submitted = True for this ITEM
         items[item_number]['item_obj'].submitted = True
         items[item_number]['item_obj'].save()
+
+        logger.debug('* saved: []'.format(str(items[item_number]['item_obj'])))
 
     if did_succeed:
         return item_number, r_opt_template.score, words
