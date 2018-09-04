@@ -86,12 +86,17 @@ def email__no_reviews_after_submission():
         # All valid submissions for this EntryPoint
         valid_subs = entry_point.submission_set.filter(is_valid=True)\
                                                     .exclude(status='A')
+
+        trigger = None
         if valid_subs.count():
             trigger = valid_subs[0].trigger
             if not(trigger):
                 continue
 
-        logger.info(str(trigger))
+        if trigger is None:
+            return
+        else:
+            logger.info('Processing trigger: {}'.format(str(trigger)))
 
         all_learners = course.person_set.filter(role='Learn') # is_validated=True
         for learner in all_learners:

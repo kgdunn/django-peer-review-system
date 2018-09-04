@@ -8,17 +8,20 @@
 #enrolled in the earlier course. Can you simply switch them to the latest course?
 
 # ------
-# 1. Manually create the course in WePeer, and place the label number here.
-course_label = '67174'
-target_entries = ['1931107264', '1475539468', '1499960701', '370183435',
-                  '1371427444']
+# 1. Manually create the cours, and place the label number here.
+target_course = '145747'
+target_entries = ['1931107264',  # LD1
+                  '1475539468',  # LD2
+                  '1499960701',  # LD3
+                  '370183435',   # LD4
+                  '1371427444']  # LD5
 
 
 # 2. Create entry points
 from basic.models import EntryPoint, Course
 
-orig_course = Course.objects.get(label='67173')       # where we will copy from
-targ_course = Course.objects.get(label=course_label)  # where we will copy to
+orig_course = Course.objects.get(label='148884')       # where we will copy from
+targ_course = Course.objects.get(label=target_course) # where we will copy to
 
 for entry in orig_course.entrypoint_set.all():
     entry.id = None
