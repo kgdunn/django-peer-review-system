@@ -185,6 +185,7 @@ def submit_peer_review_feedback(request, ractual_code):
     # Stores the users selections as "ROptionActual" instances
     word_count = 0
     total_score = 0.0
+    logger.debug('About to process each key')
     for key in request.POST.keys():
 
 
@@ -217,16 +218,14 @@ def submit_peer_review_feedback(request, ractual_code):
     logger.debug('Found filled in RActuals: {}'.format(str(filled_in)))
     words = [r.word_count for r in filled_in]
     words = np.array(words)
-    median_words = np.round(np.median(words[words!=0]))  # to avoid 160.5 words
+    words = words[words!=0]
+    if len(words) == 0:
+        median_words = 242
+    else:
+        # Avoids an error on certain Numpy installations
+        median_words = np.round(np.median(words))
 
     logger.debug('Median so far: {}'.format(median_words))
-
-
-    if np.isnan(median_words):
-        median_words = 242
-
-
-
     logger.info('r_actual.special_access: {}'.format(r_actual.special_access))
 
     if request.POST:
