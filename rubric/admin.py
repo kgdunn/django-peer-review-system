@@ -11,7 +11,7 @@ class RubricTemplateAdmin(admin.ModelAdmin):
     list_max_show_all = 500
     list_per_page = 500
     ordering = ['-entry_point']
-    list_filter = ['entry_point']
+    list_filter = ['entry_point__course']
 admin.site.register(RubricTemplate, RubricTemplateAdmin)
 
 
