@@ -278,7 +278,7 @@ class ROptionTemplate(models.Model):
         super(ROptionTemplate, self).save(*args, **kwargs)
 
     def __str__(self):
-        out = u'[%d] order %d (%d pts). %s' % (self.rubric_item.order,
+        out = u'[%d] order %d (%0.1f pts). %s' % (self.rubric_item.order,
                                                self.order,
                                                self.score,
                                                self.criterion)
