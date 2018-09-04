@@ -151,7 +151,7 @@ def submit_peer_review_feedback(request, ractual_code):
     # 1. Check that this is POST
     # 2. Create OptionActuals
     # 3. Calculate score for evaluations?
-    logger.debug('Submitting a review: {}'.format(ractual_code))
+    logger.info('Submitting a review: {}'.format(ractual_code))
     r_actual, reviewer = get_learner_details(ractual_code)
     if reviewer is None:
         # This branch only happens with error conditions.
@@ -164,7 +164,6 @@ def submit_peer_review_feedback(request, ractual_code):
 
     r_item_actuals = r_actual.ritemactual_set.all()
 
-    logger.debug('Actuals received:: {}'.format(str(r_item_actuals)))
 
     items = {}
     # Create the dictionary: one key per ITEM.
@@ -364,7 +363,6 @@ def process_POST_review(key, options, items):
         items[item_number]['item_obj'].submitted = True
         items[item_number]['item_obj'].save()
 
-        logger.debug('* saved: []'.format(str(items[item_number]['item_obj'])))
 
     if did_succeed:
         return item_number, r_opt_template.score, words
@@ -514,8 +512,8 @@ def xhr_store_text(request, ractual_code):
             if r_option_actual.comment != comment:
                 r_option_actual.comment = comment
                 r_option_actual.submitted = True
-                logger.debug('XHR: [{0}]: item={1}; comment='.format(learner,
-                                    item_number))
+                #logger.debug('XHR: [{0}]: item={1}; comment='.format(learner,
+                #                    item_number))
                 r_option_actual.save()
         else:
 
@@ -525,8 +523,8 @@ def xhr_store_text(request, ractual_code):
                             ritem_actual=r_item,
                             submitted=True,
                             comment=comment)
-            logger.debug('XHR: [{0}]: item={1}; comment='.format(learner,
-                                        item_number))
+            #logger.debug('XHR: [{0}]: item={1}; comment='.format(learner,
+            #                            item_number))
 
         # Set the RItemActual.submitted = True for this ITEM
         r_item.submitted = True

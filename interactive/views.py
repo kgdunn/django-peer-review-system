@@ -576,7 +576,7 @@ def get_line1(learner, trigger, summaries, ctx_objects=None):
         out_text = ('<a href="/interactive/review/{0}" target="_blank">'
                          '{1}</a>').format(review.unique_code, status)
         if grade:
-            out_text += '[you gave: {0}]'.format(grade)
+            out_text += ' [you gave: {0}]'.format(grade)
 
         out.append(('', out_text ))
 
