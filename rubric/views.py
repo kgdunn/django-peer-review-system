@@ -208,6 +208,8 @@ def submit_peer_review_feedback(request, ractual_code):
         total_score += score
         word_count += words
 
+        logger.debug('Processed: [s={}][w={}]'.format(score, words)
+
     # All done with storing the results. Did the user fill everything in?
     filled_in = RubricActual.objects.filter(Q(status='C') | Q(status='L'),
                                     rubric_template=r_actual.rubric_template)
