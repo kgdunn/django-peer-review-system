@@ -9,7 +9,7 @@
 
 # ------
 # 1. Manually create the cours, and place the label number here.
-target_course = '145747'
+target_course = '140638'
 target_entries = ['1931107264',  # LD1
                   '1475539468',  # LD2
                   '1499960701',  # LD3

@@ -1,0 +1,148 @@
+# Rename this file to "local_settings.py" and fill it with your information
+# regarding mail servers, passwords, etc.
+
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = '<security key here>'
+
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = False
+
+ALLOWED_HOSTS = ['your-server.com',  '127.0.0.1', 'localhost',]   # only checked in production
+BASE_URL = 'https://your-server.com'    # do not end with a trailing slash!
+
+CSRF_TRUSTED_ORIGINS = ['your-server.com', '127.0.0.1', ]
+
+EMAIL_HOST = 'your.smtpserver.nl'
+EMAIL_HOST_USER = 'login.user.name.for.smtp'
+EMAIL_HOST_PASSWORD = '<your password>'
+EMAIL_USE_TLS = True
+EMAIL_PORT = 587
+DEFAULT_FROM_EMAIL = 'From Name Goes Here <noreply@your.domain.nl>'
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+SEND_BROKEN_LINK_EMAILS = not(DEBUG)
+
+import re
+IGNORABLE_404_URLS = [
+    re.compile(r'^/apple-touch-icon.*\.png$'),
+    re.compile(r'^/favicon\.ico$'),
+    re.compile(r'^/robots\.txt$'),
+]
+
+ADMINS = (('First Last', 'first.last@example.com'), )
+MANAGERS = ADMINS
+
+STATIC_URL = '/images/'
+STATIC_ROOT = '/var/www/your_location/static-media/'
+MEDIA_ROOT = "/var/www/your_location/documents/"  # <-- used as destination to upload PDF reviews to
+MEDIA_URL = 'documents/'                   # <-- do NOT start with a slash
+
+# If you are using an LTI integration:
+LTI_KEY = 'key'
+LTI_SECRET = 'secret'
+
+Q_CLUSTER = {
+    'name': 'DjangORM',
+    'workers': 2,
+    'timeout': 180,
+    'retry': 360,      # Don't set the retry timer to a lower or equal number than the task timeout.
+    'queue_limit': 50, # Don't set the queue_limit so high that tasks time out while waiting to be processed.
+    'save_limit': 0,   # https://django-q.readthedocs.io/en/latest/configure.html#save-limit
+    'bulk': 10,
+    'orm': 'default',
+    'catch_up': False, # Don't catch-up on missed queue items
+}
+# Before using the database cache, you must create the cache table with this command: python manage.py createcachetable
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'my_cache_table',
+    }
+}
+
+import os
+BASE_DIR_LOCAL = os.path.dirname(os.path.abspath(__file__))
+LOG_FILENAME = os.path.join(BASE_DIR_LOCAL, 'logfile.log')
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': LOG_FILENAME,
+            'formatter': 'verbose',
+        },
+        'mail_admins': {
+            'level': 'ERROR',
+            'class': 'django.utils.log.AdminEmailHandler',
+            'include_html': True,
+            'formatter': 'verbose',
+        }
+    },
+    'formatters': {
+        'verbose': {
+            'format': "%(levelname)s :: %(funcName)s:%(lineno)s :: %(asctime)s :: %(message)s",
+            },
+        'simple': {
+            'format': '%(levelname)s %(message)s'
+            },
+        },
+    'loggers': {
+        'django.request': {
+            'handlers': ['file', 'mail_admins'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'review.views': {
+            'handlers': ['file', ],
+            'level': 'DEBUG',
+        },
+        'grades.views': {
+            'handlers': ['file', ],
+            'level': 'DEBUG',
+        },
+        'rubric.views': {
+            'handlers': ['file', ],
+            'level': 'DEBUG',
+        },
+        'basic.views': {
+            'handlers': ['file', ],
+            'level': 'DEBUG',
+        },
+        'basic.tasks': {
+            'handlers': ['file', ],
+            'level': 'DEBUG',
+        },
+        'utils.__init__': {
+            'handlers': ['file', ],
+            'level': 'DEBUG',
+        },
+        'submissions.views': {
+            'handlers': ['file', ],
+            'level': 'DEBUG',
+        },
+        'interactive.views': {
+            'handlers': ['file', ],
+            'level': 'DEBUG',
+        },
+    },
+}
+
+
+DATABASES = {
+    'default': {
+
+        # Development
+        #'NAME': os.path.join(BASE_DIR_LOCAL, 'db.sqlite3'),
+        #'ENGINE': 'django.db.backends.sqlite3',
+
+        # Production
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'database_name',
+        'USER': 'database_user',
+        'PASSWORD': '<put your password here>',
+        'HOST': 'localhost',
+        'PORT': '',
+    }
+}
