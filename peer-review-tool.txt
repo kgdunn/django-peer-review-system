@@ -1,0 +1,85 @@
+---------------------
+Creating a new course
+
+
+* Create a course
+* Create 5 entry points (for 5 assignments)
+* Create new achievement configs
+* Add all the students
+* add the triggers:
+* add the 5 rubrics x 2 (with modification from Bertien): DONE
+* With the rubric templates also go items and options.
+* add the release conditions
+* add the auto emails
+
+
+----
+Emails sent out:
+
+* To submitter: When all reviews are in (or the deadline for the reviews has passed)
+* To submitter: rebut
+* To reviewer: to assess rebuttal
+
+--------------
+To override a case when 1 review is in, and not another:
+
+1. Set the ''
+2. Set 'read_and_evaluated_all_reviews' achievement to True and then immediately ...
+3. go log in as the student, and visit their Evaluation of the single review, and
+   resubmit it (no changes).
+4. This will call the 'create_rebuttal_PDF()' function
+5. Then email the student that they can proceed to do the rebuttal.
+
+-------
+
+# How to push a person through to the next step (without waiting for all reviews)
+
+eg. FS is holding up JM. But JM was also reviewed by CG.
+
+1. Set a manual ``Achievement`` instance for the submitted/learner [JM] (who is being
+   held up) by their reviewer [FS]. Therefore give '[19] all_reviews_from_peers_completed' to JM. Make notes.
+2. Generate an EvaluationReport for the submitter [JM], so they can see their
+   feedback from the reviewer(s) that were able to complete their reviews.
+
+   Open the review report from the reviewer who has dropped out [FS], and select
+   their peer review in the overview page.
+   Click "Submit", and this will generate their EvaluationReport. Ensure you put a message that this is a blank review.
+
+
+2. Set a manual ``Achievement`` instance for the learner in the course:
+   'read_and_evaluated_all_reviews'
+
+--------------
+How to push a person through to the next step (without waiting for all reviews)
+
+1. Set a manual ``Achievement`` instance for the submitted/learner (who is being
+   held up) by their reviewer, with '[19] all_reviews_from_peers_completed'.
+   Make notes.
+
+
+2. Immediately go generate an EvaluationReport for the submitter, so they can
+   see their feedback from the reviewer(s) that were able to complete their
+   reviews.
+
+   Do this by going to the admin page, and open the review report from the
+   reviewer who has dropped out, and select their peer review in the overview
+   page. Fill in the maximum grades, and a comment that it has been forced
+   completed.
+
+
+   This review was not completed by the student. It was forced-completed after
+   the due date, to allow the submitter to continue on with their work.
+   Grading has been done in the submitter's favour.
+
+
+   Click "Submit", and this will generate their EvaluationReport.
+
+
+2. Set a manual ``Achievement`` instance for the learner in the course:
+   'read_and_evaluated_all_reviews'
+
+
+# How to 'remove' a report from the system. E.g. a poor submission.
+1. Go to the submission and uncheck "is_valid"
+2. Go find the Membership where the person is the submitter. Set fixed=False.
+3. Go to the Achievements for the student, and withdraw that achievement for submitting.
