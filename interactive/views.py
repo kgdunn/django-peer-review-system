@@ -28,7 +28,7 @@ from networkx.readwrite import json_graph
 from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, PageBreak
 from reportlab.lib.styles import ParagraphStyle, ListStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
-from reportlab.lib.colors import black, darkblue
+from reportlab.lib.colors import black, darkblue, darkred
 from reportlab.platypus import Paragraph, Spacer, ListFlowable, ListItem
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
@@ -1844,7 +1844,7 @@ def reportlab_styles():
             bulletFontName='Arial',
             bulletFontSize=10,
             bulletIndent=0,
-            textColor= black,
+            textColor=black,
             backColor=None,
             wordWrap=None,
             borderWidth= 0,
@@ -1888,6 +1888,10 @@ def reportlab_styles():
         bulletDedent='auto',
         bulletDir='ltr',
     )
+    styles['warning'] = ParagraphStyle('warning',
+        parent=styles['default'],
+        textColor=darkred,
+    )
     return styles
 
 styles = reportlab_styles()
@@ -1902,6 +1906,11 @@ def report_render_rubric(r_actual, flowables):
     """
     styles = reportlab_styles()
     review_items, _ = r_actual.report()
+
+
+    flowables.append(Paragraph('Any graded value of "8" in the report below is '
+            'actually scored as 8.5 in the grading.', styles['warning']))
+    flowables.append(Spacer(1, 2))
     for item in review_items:
 
         flowables.append(Paragraph(item.ritem_template.criterion,
@@ -1927,8 +1936,8 @@ def report_render_rubric(r_actual, flowables):
                                         '').format(option.criterion), default))
                     else:
                         out.append(Paragraph(('&larr; <strong><em>This in-between '
-                                'option was selected for a score of {:d} points'
-                                '</em></strong>').format(int(option.score)),
+                        'option was selected for a score of {} points'
+                        '</em></strong>').format(option.score).replace('.0', ''),
                                              default))
                 else:
                     if option.criterion:
@@ -1936,10 +1945,10 @@ def report_render_rubric(r_actual, flowables):
                                             format(option.criterion), default))
 
                 flowables.append(ListFlowable(out,
-                                 start='{:d}'.format(int(option.score)),
-                                 leftIndent=leftIndent,
-                                 firstLineIndent=firstLineIndent,
-                                 style=styles['list_default'],))
+                            start='{:}'.format(int(option.score)),
+                            leftIndent=leftIndent,
+                            firstLineIndent=firstLineIndent,
+                            style=styles['list_default'],))
 
 
         flowables.append(Spacer(1, 6))
