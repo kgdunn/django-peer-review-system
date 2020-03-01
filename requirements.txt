@@ -2,7 +2,7 @@ arrow==0.12.1
 backports.functools-lru-cache==1.5
 blessed==1.15.0
 decorator==4.3.0
-Django==1.11.15
+Django==1.11.28
 django-picklefield==1.1.0
 django-q==0.9.4
 docutils==0.14
