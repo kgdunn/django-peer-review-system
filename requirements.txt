@@ -8,7 +8,7 @@ django-q==0.9.4
 docutils==0.14
 networkx==2.1
 numpy==1.15.1
-Pillow==5.2.0
+Pillow==6.2.0
 PyPDF2==1.26.0
 python-dateutil==2.7.3
 python-magic-bin==0.4.14
