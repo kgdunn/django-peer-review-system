@@ -2,13 +2,13 @@ arrow==0.12.1
 backports.functools-lru-cache==1.5
 blessed==1.15.0
 decorator==4.3.0
-Django==1.11.15
+Django>=3
 django-picklefield==1.1.0
 django-q==0.9.4
 docutils==0.14
 networkx==2.1
 numpy==1.15.1
-Pillow==5.2.0
+Pillow>=7.0
 PyPDF2==1.26.0
 python-dateutil==2.7.3
 python-magic-bin==0.4.14
