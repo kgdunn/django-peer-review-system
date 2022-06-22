@@ -7,7 +7,7 @@ django-picklefield==1.1.0
 django-q==0.9.4
 docutils==0.14
 networkx==2.1
-numpy==1.15.1
+numpy==1.22.0
 Pillow>=7.0
 PyPDF2==1.26.0
 python-dateutil==2.7.3
