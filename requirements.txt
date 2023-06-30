@@ -9,7 +9,7 @@ docutils==0.14
 networkx==2.1
 numpy==1.15.1
 Pillow>=7.0
-PyPDF2==1.26.0
+PyPDF2==1.27.9
 python-dateutil==2.7.3
 python-magic-bin==0.4.14
 pytz==2018.5
